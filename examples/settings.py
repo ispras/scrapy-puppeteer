@@ -1,15 +1,12 @@
-BOT_NAME = 'scrapyppeteer'
+BOT_NAME = 'scrapypuppeteer'
 
 SPIDER_MODULES = ['examples.spiders']
 NEWSPIDER_MODULE = 'examples.spiders'
 
-DOWNLOAD_HANDLERS = {
-    'pptr': 'scrapyppeteer.PyppeteerDownloadHandler'
-}
-
-PYPPETEER_SETTINGS = {
-    'headless': False,
-    'dontClose': True
-}
-
 CONCURRENT_REQUESTS = 1
+
+DOWNLOADER_MIDDLEWARES = {
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 42
+}
+
+PUPPETEER_SERVICE_URL = 'http://localhost:3000'
