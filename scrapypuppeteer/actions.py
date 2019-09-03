@@ -44,12 +44,14 @@ class Click(PuppeteerServiceAction):
 class Scroll(PuppeteerServiceAction):
     endpoint = 'scroll'
 
-    def __init__(self, selector: str):
+    def __init__(self, selector: str, wait_options: dict = None):
         self.selector = selector
+        self.wait_options = wait_options or {}
 
     def serialize_body(self):
         return json.dumps({
-            'selector': self.selector
+            'selector': self.selector,
+            'waitOptions': self.wait_options
         })
 
 
