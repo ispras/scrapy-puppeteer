@@ -11,6 +11,7 @@ class PuppeteerRequest(Request):
             url = action.url
         elif response is not None:
             url = response.url
+            kwargs['dont_filter'] = True
         else:
             raise ValueError('Request is not a goto-request and does not follow a response')
         super().__init__(url, **kwargs)
