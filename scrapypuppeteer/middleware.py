@@ -5,7 +5,6 @@ from scrapy import Request
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
-from scrapypuppeteer.actions import Goto
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -24,30 +23,35 @@ class PuppeteerServiceDownloaderMiddleware:
             return
 
         action = request.action
-        if isinstance(action, Goto):
-            service_url = urljoin(self.service_base_url, 'goto')
-            service_params = {}
-            if request.context_id is not None:
-                service_params['context_id'] = request.context_id
-            if request.page_id is not None:
-                service_params['page_id'] = request.page_id
-            service_url += '?' + urlencode(service_params)
-            return request.replace(
-                cls=Request,
-                url=service_url,
-                method='POST',
-                headers=Headers({'Content-Type': 'application/json'}),
-                body=json.dumps({
-                    'url': action.url,
-                    'options': action.options,
-                    'closePage': request.close_page
-                }),
-                dont_filter=True,
-                meta={
-                    'puppeteer_request': request,
-                    'dont_obey_robotstxt': True
-                }
-            )
+        service_url = urljoin(self.service_base_url, action.endpoint)
+        service_params = self._encode_service_params(request)
+        if service_params:
+            service_url += '?' + service_params
+        return request.replace(
+            cls=Request,
+            url=service_url,
+            method='POST',
+            headers=Headers({'Content-Type': action.content_type}),
+            body=action.serialize_body(),
+            dont_filter=True,
+            meta={
+                'puppeteer_request': request,
+                'dont_obey_robotstxt': True
+            }
+        )
+
+    @staticmethod
+    def _encode_service_params(request):
+        service_params = {}
+        if request.context_id is not None:
+            service_params['context_id'] = request.context_id
+        if request.page_id is not None:
+            service_params['page_id'] = request.page_id
+        if request.close_page:
+            service_params['close_page'] = 1
+        if request.close_context:
+            service_params['close_context'] = 1
+        return urlencode(service_params)
 
     def process_response(self, request, response, spider):
         if not isinstance(response, TextResponse):
