@@ -44,13 +44,13 @@ class PuppeteerServiceDownloaderMiddleware:
     def _encode_service_params(request):
         service_params = {}
         if request.context_id is not None:
-            service_params['context_id'] = request.context_id
+            service_params['contextId'] = request.context_id
         if request.page_id is not None:
-            service_params['page_id'] = request.page_id
+            service_params['pageId'] = request.page_id
         if request.close_page:
-            service_params['close_page'] = 1
+            service_params['closePage'] = 1
         if request.close_context:
-            service_params['close_context'] = 1
+            service_params['closeContext'] = 1
         return urlencode(service_params)
 
     def process_response(self, request, response, spider):
@@ -67,7 +67,7 @@ class PuppeteerServiceDownloaderMiddleware:
             body=response_data.get('html'),
             encoding='utf-8',
             puppeteer_request=puppeteer_request,
-            context_id=response_data.get('context_id'),
-            page_id=response_data.get('page_id')
+            context_id=response_data.get('contextId'),
+            page_id=response_data.get('pageId')
         )
         return response
