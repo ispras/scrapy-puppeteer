@@ -5,7 +5,7 @@ from scrapypuppeteer.actions import Goto
 
 class PuppeteerRequest(Request):
     def __init__(self, action, context_id=None, page_id=None,
-                 close_page=False, close_context=False, response=None,
+                 close_page=False, response=None,
                  **kwargs):
         if isinstance(action, Goto):
             url = action.url
@@ -19,4 +19,3 @@ class PuppeteerRequest(Request):
         self.context_id = context_id
         self.page_id = page_id
         self.close_page = close_page
-        self.close_context = close_context

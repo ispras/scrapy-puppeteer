@@ -1,22 +1,29 @@
 import json
+from collections import defaultdict
 from urllib.parse import urljoin, urlencode
 
-from scrapy import Request
+from scrapy import Request, signals
+from scrapy.crawler import Crawler
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
 
 
 class PuppeteerServiceDownloaderMiddleware:
-    def __init__(self, service_url: str):
+    def __init__(self, crawler: Crawler, service_url: str):
         self.service_base_url = service_url
+        self.crawler = crawler
+        self.used_contexts = defaultdict(set)
 
     @classmethod
     def from_crawler(cls, crawler):
         service_url = crawler.settings.get('PUPPETEER_SERVICE_URL')
         if service_url is None:
             raise ValueError('Puppeteer service URL must be provided')
-        return cls(service_url)
+        middleware = cls(crawler, service_url)
+        crawler.signals.connect(middleware.close_used_contexts,
+                                signal=signals.spider_closed)
+        return middleware
 
     def process_request(self, request, spider):
         if not isinstance(request, PuppeteerRequest):
@@ -49,8 +56,6 @@ class PuppeteerServiceDownloaderMiddleware:
             service_params['pageId'] = request.page_id
         if request.close_page:
             service_params['closePage'] = 1
-        if request.close_context:
-            service_params['closeContext'] = 1
         return urlencode(service_params)
 
     def process_response(self, request, response, spider):
@@ -70,4 +75,16 @@ class PuppeteerServiceDownloaderMiddleware:
             context_id=response_data.get('contextId'),
             page_id=response_data.get('pageId')
         )
+
+        self.used_contexts[id(spider)].add(response_data.get('contextId'))
+
         return response
+
+    def close_used_contexts(self, spider):
+        contexts = list(self.used_contexts[id(spider)])
+        if contexts:
+            request = Request(urljoin(self.service_base_url, '/close_context'),
+                              method='POST',
+                              headers=Headers({'Content-Type': 'application/json'}),
+                              body=json.dumps(contexts))
+            return self.crawler.engine.downloader.fetch(request, None)
