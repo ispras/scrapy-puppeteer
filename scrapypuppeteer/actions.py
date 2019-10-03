@@ -44,7 +44,7 @@ class Click(PuppeteerServiceAction):
 class Scroll(PuppeteerServiceAction):
     endpoint = 'scroll'
 
-    def __init__(self, selector: str, wait_options: dict = None):
+    def __init__(self, selector: str = None, wait_options: dict = None):
         self.selector = selector
         self.wait_options = wait_options or {}
 
