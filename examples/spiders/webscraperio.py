@@ -1,15 +1,10 @@
 import scrapy
-from scrapy.http import HtmlResponse
-from scrapy.loader import ItemLoader
-from scrapy.loader.processors import TakeFirst
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import Goto, Scroll
+from scrapypuppeteer.actions import Goto, Scroll, Click
 
 
 class EcommerceSiteSpider(scrapy.Spider):
-    # def start_requests(self):
-    #     yield PuppeteerRequest(Goto('https://meduza.io'), callback=self.parse_main_page)
 
     @staticmethod
     def extract_items(list_page_response):
@@ -39,6 +34,50 @@ class EcommerceSiteSpider(scrapy.Spider):
         }
 
 
+class AjaxPaginationSpider(EcommerceSiteSpider):
+    name = 'e-commerce-ajax'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.start_url = 'https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops'
+        self.next_page_ix = 1
+
+    def start_requests(self):
+        yield PuppeteerRequest(Goto(self.start_url), callback=self.process_list_page)
+
+    def process_list_page(self, response):
+        yield from self.extract_items(response)
+        self.next_page_ix += 1
+        next_page_selector = f'button[data-id="{self.next_page_ix}"]'
+        if response.css(next_page_selector):
+            yield response.follow(Click(next_page_selector,
+                                        wait_options={'selectorOrTimeout': 3000}),
+                                  callback=self.process_list_page)
+
+
+class MoreSpider(EcommerceSiteSpider):
+    name = 'e-commerce-more'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.start_url = 'https://webscraper.io/test-sites/e-commerce/more/computers/laptops'
+        self.seen_item_links = set()
+
+    def start_requests(self):
+        yield PuppeteerRequest(Goto(self.start_url), callback=self.process_list_page)
+
+    def process_list_page(self, response):
+        for item in self.extract_items(response):
+            if item['link'] not in self.seen_item_links:
+                self.seen_item_links.add(item['link'])
+                yield item
+        more_selector = '.ecomerce-items-scroll-more'
+        if response.css(more_selector):
+            yield response.follow(Click(more_selector,
+                                        wait_options={'selectorOrTimeout': 3000}),
+                                  callback=self.process_list_page)
+
+
 class ScrollSpider(EcommerceSiteSpider):
     name = 'e-commerce-scroll'
 
@@ -57,5 +96,5 @@ class ScrollSpider(EcommerceSiteSpider):
             for item in new_items:
                 self.seen_item_links.add(item['link'])
                 yield item
-            yield response.follow(Scroll(wait_options={'selectorOrTimeout': 5000}),
+            yield response.follow(Scroll(wait_options={'selectorOrTimeout': 3000}),
                                   callback=self.process_list_page)
