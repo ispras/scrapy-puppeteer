@@ -10,7 +10,7 @@ class PuppeteerServiceAction:
         pass
 
 
-class Goto(PuppeteerServiceAction):
+class GoTo(PuppeteerServiceAction):
     endpoint = 'goto'
 
     def __init__(self, url: str, options: dict = None, **kwargs):
@@ -21,6 +21,32 @@ class Goto(PuppeteerServiceAction):
     def serialize_body(self):
         return json.dumps({
             'url': self.url,
+            'options': self.options
+        })
+
+
+class GoForward(PuppeteerServiceAction):
+    endpoint = 'forward'
+
+    def __init__(self, options: dict = None, **kwargs):
+        self.options = options or {}
+        self.options.update(kwargs)
+
+    def serialize_body(self):
+        return json.dumps({
+            'options': self.options
+        })
+
+
+class GoBack(PuppeteerServiceAction):
+    endpoint = 'back'
+
+    def __init__(self, options: dict = None, **kwargs):
+        self.options = options or {}
+        self.options.update(kwargs)
+
+    def serialize_body(self):
+        return json.dumps({
             'options': self.options
         })
 

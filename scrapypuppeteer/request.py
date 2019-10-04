@@ -1,13 +1,13 @@
 from scrapy.http import Request
 
-from scrapypuppeteer.actions import Goto
+from scrapypuppeteer.actions import GoTo
 
 
 class PuppeteerRequest(Request):
     def __init__(self, action, context_id=None, page_id=None,
                  close_page=False, response=None,
                  **kwargs):
-        if isinstance(action, Goto):
+        if isinstance(action, GoTo):
             url = action.url
         elif response is not None:
             url = response.url

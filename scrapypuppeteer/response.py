@@ -3,7 +3,7 @@ from urllib.parse import urljoin
 from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import Goto
+from scrapypuppeteer.actions import GoTo
 
 
 class PuppeteerResponse(TextResponse):
@@ -15,7 +15,7 @@ class PuppeteerResponse(TextResponse):
 
     def follow(self, action, close_page=False, close_context=False, **kwargs):
         page_id = None if self.puppeteer_request.close_page else self.page_id
-        if isinstance(action, Goto):
+        if isinstance(action, GoTo):
             action.url = urljoin(self.url, action.url)
         return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, response=self, **kwargs)

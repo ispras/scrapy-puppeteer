@@ -1,7 +1,7 @@
 import scrapy
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import Goto, Scroll, Click
+from scrapypuppeteer.actions import GoTo, Scroll, Click
 
 
 class EcommerceSiteSpider(scrapy.Spider):
@@ -43,7 +43,7 @@ class AjaxPaginationSpider(EcommerceSiteSpider):
         self.next_page_ix = 1
 
     def start_requests(self):
-        yield PuppeteerRequest(Goto(self.start_url), callback=self.process_list_page)
+        yield PuppeteerRequest(GoTo(self.start_url), callback=self.process_list_page)
 
     def process_list_page(self, response):
         yield from self.extract_items(response)
@@ -64,7 +64,7 @@ class MoreSpider(EcommerceSiteSpider):
         self.seen_item_links = set()
 
     def start_requests(self):
-        yield PuppeteerRequest(Goto(self.start_url), callback=self.process_list_page)
+        yield PuppeteerRequest(GoTo(self.start_url), callback=self.process_list_page)
 
     def process_list_page(self, response):
         for item in self.extract_items(response):
@@ -87,7 +87,7 @@ class ScrollSpider(EcommerceSiteSpider):
         self.seen_item_links = set()
 
     def start_requests(self):
-        yield PuppeteerRequest(Goto(self.start_url), callback=self.process_list_page)
+        yield PuppeteerRequest(GoTo(self.start_url), callback=self.process_list_page)
 
     def process_list_page(self, response):
         items = self.extract_items(response)
