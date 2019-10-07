@@ -25,8 +25,8 @@ class PuppeteerResponse(Response):
 
 class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
-        self.html = kwargs.get('html')
-        self.cookies = kwargs.get('cookies')
+        self.html = kwargs.pop('html')
+        self.cookies = kwargs.pop('cookies')
         kwargs.setdefault('body', self.html)
         kwargs.setdefault('encoding', 'utf-8')
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)

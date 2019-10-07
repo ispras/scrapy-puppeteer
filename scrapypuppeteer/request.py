@@ -9,7 +9,8 @@ class PuppeteerRequest(Request):
                  **kwargs):
         if isinstance(action, str):
             url = action
-            action = GoTo(url, **kwargs)
+            options = kwargs.pop('options', None)
+            action = GoTo(url, options)
         elif isinstance(action, GoTo):
             url = action.url
         elif response is not None:
