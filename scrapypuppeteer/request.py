@@ -5,9 +5,12 @@ from scrapypuppeteer.actions import GoTo
 
 class PuppeteerRequest(Request):
     def __init__(self, action, context_id=None, page_id=None,
-                 close_page=False, response=None,
+                 close_page=True, response=None,
                  **kwargs):
-        if isinstance(action, GoTo):
+        if isinstance(action, str):
+            url = action
+            action = GoTo(url, **kwargs)
+        elif isinstance(action, GoTo):
             url = action.url
         elif response is not None:
             url = response.url

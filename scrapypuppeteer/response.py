@@ -13,9 +13,11 @@ class PuppeteerResponse(Response):
         self.page_id = page_id
         super().__init__(url, **kwargs)
 
-    def follow(self, action, close_page=False, close_context=False, **kwargs):
+    def follow(self, action, close_page=True, **kwargs):
         page_id = None if self.puppeteer_request.close_page else self.page_id
-        if isinstance(action, GoTo):
+        if isinstance(action, str):
+            action = urljoin(self.url, action)
+        elif isinstance(action, GoTo):
             action.url = urljoin(self.url, action.url)
         return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, response=self, **kwargs)

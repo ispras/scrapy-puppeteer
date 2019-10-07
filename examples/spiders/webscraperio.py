@@ -43,7 +43,9 @@ class AjaxPaginationSpider(EcommerceSiteSpider):
         self.next_page_ix = 1
 
     def start_requests(self):
-        yield PuppeteerRequest(GoTo(self.start_url), callback=self.process_list_page)
+        yield PuppeteerRequest(GoTo(self.start_url),
+                               close_page=False,
+                               callback=self.process_list_page)
 
     def process_list_page(self, response):
         yield from self.extract_items(response)
@@ -52,6 +54,7 @@ class AjaxPaginationSpider(EcommerceSiteSpider):
         if response.css(next_page_selector):
             yield response.follow(Click(next_page_selector,
                                         wait_options={'selectorOrTimeout': 3000}),
+                                  close_page=False,
                                   callback=self.process_list_page)
 
 
@@ -64,7 +67,9 @@ class MoreSpider(EcommerceSiteSpider):
         self.seen_item_links = set()
 
     def start_requests(self):
-        yield PuppeteerRequest(GoTo(self.start_url), callback=self.process_list_page)
+        yield PuppeteerRequest(GoTo(self.start_url),
+                               close_page=False,
+                               callback=self.process_list_page)
 
     def process_list_page(self, response):
         for item in self.extract_items(response):
@@ -75,6 +80,7 @@ class MoreSpider(EcommerceSiteSpider):
         if response.css(more_selector):
             yield response.follow(Click(more_selector,
                                         wait_options={'selectorOrTimeout': 3000}),
+                                  close_page=False,
                                   callback=self.process_list_page)
 
 
@@ -87,7 +93,9 @@ class ScrollSpider(EcommerceSiteSpider):
         self.seen_item_links = set()
 
     def start_requests(self):
-        yield PuppeteerRequest(GoTo(self.start_url), callback=self.process_list_page)
+        yield PuppeteerRequest(GoTo(self.start_url),
+                               close_page=False,
+                               callback=self.process_list_page)
 
     def process_list_page(self, response):
         items = self.extract_items(response)
@@ -97,4 +105,5 @@ class ScrollSpider(EcommerceSiteSpider):
                 self.seen_item_links.add(item['link'])
                 yield item
             yield response.follow(Scroll(wait_options={'selectorOrTimeout': 3000}),
+                                  close_page=False,
                                   callback=self.process_list_page)
