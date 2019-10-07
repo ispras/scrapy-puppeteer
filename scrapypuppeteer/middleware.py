@@ -6,7 +6,9 @@ from scrapy import Request, signals
 from scrapy.crawler import Crawler
 from scrapy.http import Headers, TextResponse
 
-from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
+from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
+from scrapypuppeteer.actions import CustomJsAction, Screenshot
+from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -67,18 +69,29 @@ class PuppeteerServiceDownloaderMiddleware:
             return response
 
         response_data = json.loads(response.text)
-        response = PuppeteerResponse(
+        context_id = response_data.pop('contextId')
+        page_id = response_data.pop('pageId')
+
+        response_cls = self._get_response_class(puppeteer_request.action, response_data)
+        response = response_cls(
             url=puppeteer_request.url,
-            body=response_data.get('html'),
-            encoding='utf-8',
             puppeteer_request=puppeteer_request,
-            context_id=response_data.get('contextId'),
-            page_id=response_data.get('pageId')
+            context_id=context_id,
+            page_id=page_id,
+            **response_data
         )
 
         self.used_contexts[id(spider)].add(response_data.get('contextId'))
 
         return response
+
+    @staticmethod
+    def _get_response_class(request_action, response_data):
+        if 'html' in response_data and not isinstance(request_action, CustomJsAction):
+            return PuppeteerHtmlResponse
+        if 'screenshot' in response_data and isinstance(request_action, Screenshot):
+            return PuppeteerScreenshotResponse
+        return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
         contexts = list(self.used_contexts[id(spider)])
