@@ -12,6 +12,16 @@ from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotR
 
 
 class PuppeteerServiceDownloaderMiddleware:
+    """
+    This downloader middleware converts PuppeteerRequest instances to
+    Puppeteer service API requests and then converts its responses to
+    PuppeteerResponse instances. Additionally it tracks all browser contexts
+    that spider uses and performs cleanup request to service once spider
+    is closed.
+
+    Puppeteer service URL may be set via PUPPETEER_SERVICE_URL setting.
+    """
+
     def __init__(self, crawler: Crawler, service_url: str):
         self.service_base_url = service_url
         self.crawler = crawler
