@@ -1,12 +1,19 @@
 import json
+from abc import abstractmethod, ABC
 
 
-class PuppeteerServiceAction:
-    endpoint = None
+class PuppeteerServiceAction(ABC):
+
+    @property
+    @abstractmethod
+    def endpoint(self):
+        ...
+
     content_type = 'application/json'
 
+    @abstractmethod
     def serialize_body(self):
-        pass
+        ...
 
 
 class GoTo(PuppeteerServiceAction):
