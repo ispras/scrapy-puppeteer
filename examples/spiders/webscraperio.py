@@ -17,7 +17,7 @@ class EcommerceSiteSpider(scrapy.Spider):
                 'rating': len(item_selector.css('span.glyphicon-star')),
                 'reviews_count': int(item_selector
                                      .css('.ratings p.pull-right::text')
-                                     .re_first('\d+'))
+                                     .re_first(r'\d+'))
             }
 
     @staticmethod
@@ -77,9 +77,10 @@ class MoreSpider(EcommerceSiteSpider):
                 self.seen_item_links.add(item['link'])
                 yield item
         more_selector = '.ecomerce-items-scroll-more'
-        if response.css(more_selector):
+        more_button = response.css(more_selector)
+        if 'style' not in more_button.attrib:
             yield response.follow(Click(more_selector,
-                                        wait_options={'selectorOrTimeout': 3000}),
+                                        wait_options={'selectorOrTimeout': 1000}),
                                   close_page=False,
                                   callback=self.process_list_page)
 
@@ -104,6 +105,6 @@ class ScrollSpider(EcommerceSiteSpider):
             for item in new_items:
                 self.seen_item_links.add(item['link'])
                 yield item
-            yield response.follow(Scroll(wait_options={'selectorOrTimeout': 3000}),
+            yield response.follow(Scroll(wait_options={'selectorOrTimeout': 1000}),
                                   close_page=False,
                                   callback=self.process_list_page)

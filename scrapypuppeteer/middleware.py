@@ -91,7 +91,7 @@ class PuppeteerServiceDownloaderMiddleware:
             **response_data
         )
 
-        self.used_contexts[id(spider)].add(response_data.get('contextId'))
+        self.used_contexts[id(spider)].add(context_id)
 
         return response
 

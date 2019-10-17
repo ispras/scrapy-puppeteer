@@ -9,9 +9,9 @@ This project is under development. Use it at your own risk.
 
 ## Installation
 
-Using pip (dev branch):
+Using pip (master branch):
 ```shell script
-$ pip install git+https://github.com/ispras/scrapy-puppeteer.git@dev
+$ pip install git+https://github.com/ispras/scrapy-puppeteer.git@master
 ```
 
 ## Configuration
