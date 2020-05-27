@@ -60,7 +60,7 @@ class PuppeteerJsonResponse(PuppeteerResponse):
     """
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.data = kwargs
-        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
+        super().__init__(url, puppeteer_request, context_id, page_id)
 
 
 class PuppeteerScreenshotResponse(PuppeteerResponse):
