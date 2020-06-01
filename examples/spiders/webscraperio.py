@@ -67,7 +67,7 @@ class MoreSpider(EcommerceSiteSpider):
         self.seen_item_links = set()
 
     def start_requests(self):
-        yield PuppeteerRequest(GoTo(self.start_url),
+        yield PuppeteerRequest(GoTo(self.start_url, wait_options={'selectorOrTimeout': 10000}),
                                close_page=False,
                                callback=self.process_list_page)
 

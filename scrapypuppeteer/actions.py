@@ -21,9 +21,11 @@ class GoTo(PuppeteerServiceAction):
     Navigate page to given URL.
 
     :param str url: URL to navigate to. May be relative for following requests.
-    :param dict options: Navigation options.
+    :param dict navigation_options: Navigation options.
+    :param dict wait_options: Options specifying wait after navigation.
 
-    Available options (see puppeteer `page.goto <https://pptr.dev/#?product=Puppeteer&version=v1.19.0&show=api-pagegotourl-options>`_):
+    Available navigation options (see puppeteer `page.goto
+    <https://pptr.dev/#?product=Puppeteer&version=v3.2.0&show=api-pagegotourl-options>`_):
 
     * ``timeout`` (int): Maximum navigation time in milliseconds, defaults
       to 30 seconds, pass ``0`` to disable timeout. The default value can
@@ -40,19 +42,34 @@ class GoTo(PuppeteerServiceAction):
       * ``networkidle2``: when there are no more than 2 network connections
         for at least 500 ms.
 
+    Available wait options (see puppeteer `page.waitFor
+    <https://pptr.dev/#?product=Puppeteer&version=v3.2.0&show=api-pagewaitforselectororfunctionortimeout-options-args>`_);
+
+    * ``selectorOrTimeout`` (int|float|str): If it is a selector string or xpath string, wait until
+        element which matches that selector appears on page. If it is a number, then it
+        is treated as a timeout in milliseconds.``
+    * ``options`` (dict): optional parameters to wait on selector
+      * ``visible`` (bool): wait for element to be present in DOM and to be visible.
+        Defaults to false.
+      * ``timeout`` (int|float): maximum time to wait for in milliseconds.
+        Defaults to 30000 (30 seconds). Pass 0 to disable timeout.
+      * ``hidden`` (bool): wait for element to not be found in the DOM or to be hidden.
+      Defaults to false.
+
     """
 
     endpoint = 'goto'
 
-    def __init__(self, url: str, options: dict = None, **kwargs):
+    def __init__(self, url: str, navigation_options: dict = None, wait_options: dict = None):
         self.url = url
-        self.options = options or {}
-        self.options.update(kwargs)
+        self.navigation_options = navigation_options
+        self.wait_options = wait_options
 
     def serialize_body(self):
         return json.dumps({
             'url': self.url,
-            'options': self.options
+            'navigationOptions': self.navigation_options,
+            'waitOptions': self.wait_options
         })
 
 
@@ -60,19 +77,21 @@ class GoForward(PuppeteerServiceAction):
     """
     Navigate to the next page in history.
 
-    :param dict options: Navigation options, same as GoTo action.
+    :param dict navigation_options: Navigation options, same as GoTo action.
+    :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
 
     """
 
     endpoint = 'forward'
 
-    def __init__(self, options: dict = None, **kwargs):
-        self.options = options or {}
-        self.options.update(kwargs)
+    def __init__(self, navigation_options: dict = None, wait_options: dict = None):
+        self.navigation_options = navigation_options
+        self.wait_options = wait_options
 
     def serialize_body(self):
         return json.dumps({
-            'options': self.options
+            'navigationOptions': self.navigation_options,
+            'waitOptions': self.wait_options
         })
 
 
@@ -80,19 +99,21 @@ class GoBack(PuppeteerServiceAction):
     """
     Navigate to the previous page in history.
 
-    :param dict options: Navigation options, same as GoTo action.
+    :param dict navigation_options: Navigation options, same as GoTo action.
+    :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
 
     """
 
     endpoint = 'back'
 
-    def __init__(self, options: dict = None, **kwargs):
-        self.options = options or {}
-        self.options.update(kwargs)
+    def __init__(self, navigation_options: dict = None, wait_options: dict = None):
+        self.navigation_options = navigation_options
+        self.wait_options = wait_options
 
     def serialize_body(self):
         return json.dumps({
-            'options': self.options
+            'navigationOptions': self.navigation_options,
+            'waitOptions': self.wait_options
         })
 
 
@@ -100,7 +121,15 @@ class Click(PuppeteerServiceAction):
     """
     Click element which matches ``selector``.
 
-    Available click options (see puppeteer `page.click <https://pptr.dev/#?product=Puppeteer&version=v1.19.0&show=api-pageclickselector-options>`_):
+    :param str selector: Specifies element to click.
+    :param dict click_options: Optional parameters for click.
+    :param dict wait_options: Options specifying wait after click, same as GoTo action.
+    :param dict navigation_options: Navigation options to be used if click results in navigation to
+        other page, same as GoTo action.
+
+
+    Available click options (see puppeteer `page.click
+    <https://pptr.dev/#?product=Puppeteer&version=v3.2.0&show=api-pageclickselector-options>`_):
 
     * ``button`` (str): ``left``, ``right``, or ``middle``, defaults to
       ``left``.
@@ -108,28 +137,27 @@ class Click(PuppeteerServiceAction):
     * ``delay`` (int|float): Time to wait between ``mousedown`` and
       ``mouseup`` in milliseconds. defaults to 0.
 
-    Available wait options (see puppeteer `page.waitFor <https://pptr.dev/#?product=Puppeteer&version=v1.19.0&show=api-pagewaitforselectororfunctionortimeout-options-args>`_):
-
-    * ``selectorOrTimeout`` (int|float|str): If it is a selector string or xpath string, wait until
-        element which matches that selector appears on page. If it is a number, then it
-        is treated as a timeout in milliseconds.
-
     Response for this action contains page state after click and wait.
 
     """
 
     endpoint = 'click'
 
-    def __init__(self, selector: str, click_options: dict = None, wait_options: dict = None):
+    def __init__(self, selector: str,
+                 click_options: dict = None,
+                 wait_options: dict = None,
+                 navigation_options: dict = None):
         self.selector = selector
-        self.click_options = click_options or {}
-        self.wait_options = wait_options or {}
+        self.click_options = click_options
+        self.wait_options = wait_options
+        self.navigation_options = navigation_options
 
     def serialize_body(self):
         return json.dumps({
             'selector': self.selector,
             'clickOptions': self.click_options,
-            'waitOptions': self.wait_options
+            'waitOptions': self.wait_options,
+            'navigationOptions': self.navigation_options
         })
 
 
@@ -139,7 +167,7 @@ class Scroll(PuppeteerServiceAction):
 
     :param str selector: If provided, scroll this element into view, otherwise scroll down by window
         height.
-    :param dict wait_options: Same as in Click action.
+    :param dict wait_options: Same as in GoTo and Click actions.
 
     Response for this action contains page state after scroll and wait.
 
@@ -149,7 +177,7 @@ class Scroll(PuppeteerServiceAction):
 
     def __init__(self, selector: str = None, wait_options: dict = None):
         self.selector = selector
-        self.wait_options = wait_options or {}
+        self.wait_options = wait_options
 
     def serialize_body(self):
         return json.dumps({
@@ -162,7 +190,8 @@ class Screenshot(PuppeteerServiceAction):
     """
     Take a screen shot.
 
-    Available options (see puppeteer `page.screenshot <https://pptr.dev/#?product=Puppeteer&version=v1.19.0&show=api-pagescreenshotoptions>`_)
+    Available options (see puppeteer `page.screenshot
+    <https://pptr.dev/#?product=Puppeteer&version=v3.2.0&show=api-pagescreenshotoptions>`_)
 
     * ``type`` (str): Specify screenshot type, can be either ``jpeg`` or
       ``png``. Defaults to ``png``.
