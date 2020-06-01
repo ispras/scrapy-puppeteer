@@ -51,7 +51,7 @@ class PuppeteerServiceDownloaderMiddleware:
             url=service_url,
             method='POST',
             headers=Headers({'Content-Type': action.content_type}),
-            body=action.serialize_body(),
+            body=self._serialize_body(action),
             dont_filter=True,
             meta={
                 'puppeteer_request': request,
@@ -69,6 +69,16 @@ class PuppeteerServiceDownloaderMiddleware:
         if request.close_page:
             service_params['closePage'] = 1
         return urlencode(service_params)
+
+    @staticmethod
+    def _serialize_body(action):
+        payload = action.payload()
+        if action.content_type == 'application/json':
+            if isinstance(payload, dict):
+                # disallow null values in top-level request parameters
+                payload = {k: v for k, v in payload.items() if v is not None}
+            return json.dumps(payload)
+        return str(payload)
 
     def process_response(self, request, response, spider):
         if not isinstance(response, TextResponse):

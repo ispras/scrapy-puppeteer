@@ -1,4 +1,3 @@
-import json
 from abc import abstractmethod, ABC
 
 
@@ -12,7 +11,7 @@ class PuppeteerServiceAction(ABC):
     content_type = 'application/json'
 
     @abstractmethod
-    def serialize_body(self):
+    def payload(self):
         ...
 
 
@@ -65,12 +64,12 @@ class GoTo(PuppeteerServiceAction):
         self.navigation_options = navigation_options
         self.wait_options = wait_options
 
-    def serialize_body(self):
-        return json.dumps({
+    def payload(self):
+        return {
             'url': self.url,
             'navigationOptions': self.navigation_options,
             'waitOptions': self.wait_options
-        })
+        }
 
 
 class GoForward(PuppeteerServiceAction):
@@ -88,11 +87,11 @@ class GoForward(PuppeteerServiceAction):
         self.navigation_options = navigation_options
         self.wait_options = wait_options
 
-    def serialize_body(self):
-        return json.dumps({
+    def payload(self):
+        return {
             'navigationOptions': self.navigation_options,
             'waitOptions': self.wait_options
-        })
+        }
 
 
 class GoBack(PuppeteerServiceAction):
@@ -110,11 +109,11 @@ class GoBack(PuppeteerServiceAction):
         self.navigation_options = navigation_options
         self.wait_options = wait_options
 
-    def serialize_body(self):
-        return json.dumps({
+    def payload(self):
+        return {
             'navigationOptions': self.navigation_options,
             'waitOptions': self.wait_options
-        })
+        }
 
 
 class Click(PuppeteerServiceAction):
@@ -152,13 +151,13 @@ class Click(PuppeteerServiceAction):
         self.wait_options = wait_options
         self.navigation_options = navigation_options
 
-    def serialize_body(self):
-        return json.dumps({
+    def payload(self):
+        return {
             'selector': self.selector,
             'clickOptions': self.click_options,
             'waitOptions': self.wait_options,
             'navigationOptions': self.navigation_options
-        })
+        }
 
 
 class Scroll(PuppeteerServiceAction):
@@ -179,11 +178,11 @@ class Scroll(PuppeteerServiceAction):
         self.selector = selector
         self.wait_options = wait_options
 
-    def serialize_body(self):
-        return json.dumps({
+    def payload(self):
+        return {
             'selector': self.selector,
             'waitOptions': self.wait_options
-        })
+        }
 
 
 class Screenshot(PuppeteerServiceAction):
@@ -220,10 +219,10 @@ class Screenshot(PuppeteerServiceAction):
         self.options = options or {}
         self.options.update(kwargs)
 
-    def serialize_body(self):
-        return json.dumps({
+    def payload(self):
+        return {
             'options': self.options
-        })
+        }
 
 
 class CustomJsAction(PuppeteerServiceAction):
@@ -244,5 +243,5 @@ class CustomJsAction(PuppeteerServiceAction):
     def __init__(self, js_action: str):
         self.js_action = js_action
 
-    def serialize_body(self):
+    def payload(self):
         return self.js_action
