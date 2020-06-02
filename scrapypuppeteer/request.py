@@ -33,8 +33,9 @@ class PuppeteerRequest(Request):
         """
         if isinstance(action, str):
             url = action
-            options = kwargs.pop('options', None)
-            action = GoTo(url, options)
+            navigation_options = kwargs.pop('navigation_options', None)
+            wait_options = kwargs.pop('wait_options', None)
+            action = GoTo(url, navigation_options=navigation_options, wait_options=wait_options)
         elif isinstance(action, GoTo):
             url = action.url
         elif response is not None:
