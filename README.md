@@ -20,7 +20,7 @@ You should have [scrapy-puppeteer-service](https://github.com/ispras/scrapy-pupp
 Then add its URL to `settings.py` and enable puppeteer downloader middleware:
 ```python
 DOWNLOADER_MIDDLEWARES = {
-    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 42
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
 }
 
 PUPPETEER_SERVICE_URL = 'http://localhost:3000'

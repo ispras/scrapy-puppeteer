@@ -51,11 +51,12 @@ class PuppeteerServiceDownloaderMiddleware:
             url=service_url,
             method='POST',
             headers=Headers({'Content-Type': action.content_type}),
-            body=self._serialize_body(action),
+            body=self._serialize_body(action, request),
             dont_filter=True,
             meta={
                 'puppeteer_request': request,
-                'dont_obey_robotstxt': True
+                'dont_obey_robotstxt': True,
+                'proxy': None
             }
         )
 
@@ -71,12 +72,16 @@ class PuppeteerServiceDownloaderMiddleware:
         return urlencode(service_params)
 
     @staticmethod
-    def _serialize_body(action):
+    def _serialize_body(action, request):
         payload = action.payload()
         if action.content_type == 'application/json':
             if isinstance(payload, dict):
                 # disallow null values in top-level request parameters
                 payload = {k: v for k, v in payload.items() if v is not None}
+            proxy = request.meta.get('proxy')
+            if proxy:
+                payload['proxy'] = proxy
+            payload['headers'] = request.headers.to_unicode_dict()
             return json.dumps(payload)
         return str(payload)
 
