@@ -93,6 +93,9 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
+        if b'application/json' not in response.headers.get(b'Content-Type', b''):
+            return response
+
         response_data = json.loads(response.text)
         context_id = response_data.pop('contextId', None)
         page_id = response_data.pop('pageId', None)
