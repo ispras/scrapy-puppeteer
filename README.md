@@ -11,7 +11,7 @@ This project is under development. Use it at your own risk.
 
 Using pip (master branch):
 ```shell script
-$ pip install git+https://github.com/ispras/scrapy-puppeteer.git@master
+$ pip install scrapy-puppeteer-client
 ```
 
 ## Configuration
