@@ -46,13 +46,18 @@ class PuppeteerServiceDownloaderMiddleware:
         service_params = self._encode_service_params(request)
         if service_params:
             service_url += '?' + service_params
-        return request.replace(
-            cls=Request,
+
+        return Request(
             url=service_url,
             method='POST',
             headers=Headers({'Content-Type': action.content_type}),
             body=self._serialize_body(action, request),
             dont_filter=True,
+            cookies=request.cookies,
+            priority=request.priority,
+            callback=request.callback,
+            cb_kwargs=request.cb_kwargs,
+            errback=request.errback,
             meta={
                 'puppeteer_request': request,
                 'dont_obey_robotstxt': True,

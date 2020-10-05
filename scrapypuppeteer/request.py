@@ -31,6 +31,10 @@ class PuppeteerRequest(Request):
                          can't be inferred from action, it is set to response.url
         :param kwargs:
         """
+        if not action:
+            action = kwargs.pop('url')
+        else:
+            kwargs.pop('url')
         if isinstance(action, str):
             url = action
             navigation_options = kwargs.pop('navigation_options', None)
@@ -50,12 +54,6 @@ class PuppeteerRequest(Request):
         self.close_page = close_page
 
     def replace(self, *args, **kwargs):
-        """Create a new Request with the same attributes except for those
-        given new values.
-        """
-        for x in ['method', 'headers', 'body', 'cookies', 'meta', 'flags',
-                  'encoding', 'priority', 'dont_filter', 'callback', 'errback', 'cb_kwargs',
-                  'action', 'context_id', 'page_id', 'close_page']:
+        for x in ['action', 'context_id', 'page_id', 'close_page']:
             kwargs.setdefault(x, getattr(self, x))
-        cls = kwargs.pop('cls', self.__class__)
-        return cls(*args, **kwargs)
+        return super().replace(*args, **kwargs)
