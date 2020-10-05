@@ -46,8 +46,8 @@ class PuppeteerServiceDownloaderMiddleware:
         service_params = self._encode_service_params(request)
         if service_params:
             service_url += '?' + service_params
-        return request.replace(
-            cls=Request,
+
+        return Request(
             url=service_url,
             method='POST',
             headers=Headers({'Content-Type': action.content_type}),
@@ -82,6 +82,7 @@ class PuppeteerServiceDownloaderMiddleware:
             if proxy:
                 payload['proxy'] = proxy
             payload['headers'] = request.headers.to_unicode_dict()
+            payload['cookies'] = request.cookies.copy()
             return json.dumps(payload)
         return str(payload)
 
