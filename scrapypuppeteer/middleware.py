@@ -53,6 +53,11 @@ class PuppeteerServiceDownloaderMiddleware:
             headers=Headers({'Content-Type': action.content_type}),
             body=self._serialize_body(action, request),
             dont_filter=True,
+            cookies=request.cookies,
+            priority=request.priority,
+            callback=request.callback,
+            cb_kwargs=request.cb_kwargs,
+            errback=request.errback,
             meta={
                 'puppeteer_request': request,
                 'dont_obey_robotstxt': True,
@@ -82,7 +87,6 @@ class PuppeteerServiceDownloaderMiddleware:
             if proxy:
                 payload['proxy'] = proxy
             payload['headers'] = request.headers.to_unicode_dict()
-            payload['cookies'] = request.cookies.copy()
             return json.dumps(payload)
         return str(payload)
 
