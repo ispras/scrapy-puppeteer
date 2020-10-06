@@ -31,9 +31,9 @@ class PuppeteerRequest(Request):
                          can't be inferred from action, it is set to response.url
         :param kwargs:
         """
-        if not action:
+        if not action and 'url' in kwargs:
             action = kwargs.pop('url')
-        else:
+        elif 'url' in kwargs:
             kwargs.pop('url')
         if isinstance(action, str):
             url = action
