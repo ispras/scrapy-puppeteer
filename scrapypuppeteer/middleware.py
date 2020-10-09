@@ -132,5 +132,6 @@ class PuppeteerServiceDownloaderMiddleware:
             request = Request(urljoin(self.service_base_url, '/close_context'),
                               method='POST',
                               headers=Headers({'Content-Type': 'application/json'}),
+                              meta={"proxy": None},
                               body=json.dumps(contexts))
             return self.crawler.engine.downloader.fetch(request, None)
