@@ -1,5 +1,4 @@
 from typing import Union
-from urllib.parse import urljoin
 
 from scrapy.http import Response, TextResponse
 
@@ -33,11 +32,14 @@ class PuppeteerResponse(Response):
         """
         page_id = None if self.puppeteer_request.close_page else self.page_id
         if isinstance(action, str):
-            action = urljoin(self.url, action)
+            action = self.urljoin(action)
         elif isinstance(action, GoTo):
-            action.url = urljoin(self.url, action.url)
+            action.url = self.urljoin(action.url)
+        else:
+            kwargs['url'] = self.url
+            kwargs['dont_filter'] = True
         return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
-                                close_page=close_page, response=self, **kwargs)
+                                close_page=close_page, **kwargs)
 
 
 class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
@@ -45,6 +47,7 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
     scrapy.TextResponse capturing state of a page in browser.
     Additionally exposes received html and cookies via corresponding attributes.
     """
+
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.html = kwargs.pop('html')
         self.cookies = kwargs.pop('cookies')
@@ -58,6 +61,7 @@ class PuppeteerJsonResponse(PuppeteerResponse):
     Response for CustomJsAction.
     Result is available via self.data object.
     """
+
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.data = kwargs
         super().__init__(url, puppeteer_request, context_id, page_id)
@@ -68,6 +72,7 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
     Response for Screenshot action.
     Screenshot is available via self.screenshot as base64 encoded string.
     """
+
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.screenshot = kwargs.get('screenshot')
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)

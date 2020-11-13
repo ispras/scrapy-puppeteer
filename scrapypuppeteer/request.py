@@ -1,6 +1,6 @@
 from typing import Union
 
-from scrapy.http import Request, Response
+from scrapy.http import Request
 
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
@@ -15,7 +15,6 @@ class PuppeteerRequest(Request):
                  context_id: str = None,
                  page_id: str = None,
                  close_page: bool = True,
-                 response: Response = None,
                  **kwargs):
         """
 
@@ -27,14 +26,9 @@ class PuppeteerRequest(Request):
         :param close_page: whether to close page after request completion;
                            set to False, if you want to continue interacting
                            with the page
-        :param response: a response which this request follows; if target page URL
-                         can't be inferred from action, it is set to response.url
         :param kwargs:
         """
-        if not action and 'url' in kwargs:
-            action = kwargs.pop('url')
-        elif 'url' in kwargs:
-            kwargs.pop('url')
+        url = kwargs.pop('url', None)
         if isinstance(action, str):
             url = action
             navigation_options = kwargs.pop('navigation_options', None)
@@ -42,10 +36,9 @@ class PuppeteerRequest(Request):
             action = GoTo(url, navigation_options=navigation_options, wait_options=wait_options)
         elif isinstance(action, GoTo):
             url = action.url
-        elif response is not None:
-            url = response.url
-            kwargs['dont_filter'] = True
-        else:
+        elif not isinstance(action, PuppeteerServiceAction):
+            raise ValueError('Undefined browser action')
+        if url is None:
             raise ValueError('Request is not a goto-request and does not follow a response')
         super().__init__(url, **kwargs)
         self.action = action
