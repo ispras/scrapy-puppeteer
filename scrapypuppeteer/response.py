@@ -53,6 +53,7 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
         self.cookies = kwargs.pop('cookies')
         kwargs.setdefault('body', self.html)
         kwargs.setdefault('encoding', 'utf-8')
+        kwargs.setdefault('headers', {}).setdefault('Content-Type', 'text/html')
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
 
 
@@ -64,7 +65,8 @@ class PuppeteerJsonResponse(PuppeteerResponse):
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.data = kwargs
-        super().__init__(url, puppeteer_request, context_id, page_id)
+        headers = {'Content-Type': 'application/json'}
+        super().__init__(url, puppeteer_request, context_id, page_id, headers=headers)
 
 
 class PuppeteerScreenshotResponse(PuppeteerResponse):
