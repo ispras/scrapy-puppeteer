@@ -51,6 +51,8 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.html = kwargs.pop('html')
         self.cookies = kwargs.pop('cookies')
+        self.data = kwargs.pop('data')
+        # self.service_links = kwargs.pop('service_links')
         kwargs.setdefault('body', self.html)
         kwargs.setdefault('encoding', 'utf-8')
         kwargs.setdefault('headers', {}).setdefault('Content-Type', 'text/html')
