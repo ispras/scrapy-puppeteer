@@ -30,10 +30,11 @@ class PuppeteerRequest(Request):
         """
         url = kwargs.pop('url', None)
         if isinstance(action, str):
-            url = action
+            url = action    
+            retailer_config = kwargs.pop('retailer_config', None)
             navigation_options = kwargs.pop('navigation_options', None)
             wait_options = kwargs.pop('wait_options', None)
-            action = GoTo(url, navigation_options=navigation_options, wait_options=wait_options)
+            action = GoTo(url, retailer_config, navigation_options=navigation_options, wait_options=wait_options)
         elif isinstance(action, GoTo):
             url = action.url
         elif not isinstance(action, PuppeteerServiceAction):
