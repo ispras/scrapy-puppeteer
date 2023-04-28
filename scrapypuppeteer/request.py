@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 
 from scrapy.http import Request
 
@@ -15,6 +15,7 @@ class PuppeteerRequest(Request):
                  context_id: str = None,
                  page_id: str = None,
                  close_page: bool = True,
+                 include_headers: Union[bool, List[str]] = None,
                  **kwargs):
         """
 
@@ -26,6 +27,10 @@ class PuppeteerRequest(Request):
         :param close_page: whether to close page after request completion;
                            set to False, if you want to continue interacting
                            with the page
+        :param include_headers: determines which headers will be sent to remote
+                                site by puppeteer: either True (all headers),
+                                False (no headers), list of header names
+                                or None (default, let middleware decide)
         :param kwargs:
         """
         url = kwargs.pop('url', None)
@@ -45,8 +50,9 @@ class PuppeteerRequest(Request):
         self.context_id = context_id
         self.page_id = page_id
         self.close_page = close_page
+        self.include_headers = include_headers
 
     def replace(self, *args, **kwargs):
-        for x in ['action', 'context_id', 'page_id', 'close_page']:
+        for x in ['action', 'context_id', 'page_id', 'close_page', 'include_headers']:
             kwargs.setdefault(x, getattr(self, x))
         return super().replace(*args, **kwargs)
