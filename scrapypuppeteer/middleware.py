@@ -25,7 +25,7 @@ class PuppeteerServiceDownloaderMiddleware:
     PUPPETEER_SERVICE_URL (str)
     Service URL, e.g. 'http://localhost:3000'
 
-    PUPPETEER_INCLUDE_HEADERS (bool|list[str)]
+    PUPPETEER_INCLUDE_HEADERS (bool|list[str])
     Determines which request headers will be sent to remote site by puppeteer service.
     Either True (all headers), False (no headers) or list of header names.
     May be overriden per request.
