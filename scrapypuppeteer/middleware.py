@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from typing import List, Union
 from urllib.parse import urljoin, urlencode
 
 from scrapy import Request, signals
@@ -19,20 +20,44 @@ class PuppeteerServiceDownloaderMiddleware:
     that spider uses and performs cleanup request to service once spider
     is closed.
 
-    Puppeteer service URL may be set via PUPPETEER_SERVICE_URL setting.
+    Settings:
+
+    PUPPETEER_SERVICE_URL (str)
+    Service URL, e.g. 'http://localhost:3000'
+
+    PUPPETEER_INCLUDE_HEADERS (bool|list[str])
+    Determines which request headers will be sent to remote site by puppeteer service.
+    Either True (all headers), False (no headers) or list of header names.
+    May be overriden per request.
+    By default, only cookies are sent.
     """
 
-    def __init__(self, crawler: Crawler, service_url: str):
+    SERVICE_URL_SETTING = 'PUPPETEER_SERVICE_URL'
+    INCLUDE_HEADERS_SETTING = 'PUPPETEER_INCLUDE_HEADERS'
+    DEFAULT_INCLUDE_HEADERS = ['Cookie']  # TODO send them separately
+
+    def __init__(self,
+                 crawler: Crawler,
+                 service_url: str,
+                 include_headers: Union[bool, List[str]]):
         self.service_base_url = service_url
+        self.include_headers = include_headers
         self.crawler = crawler
         self.used_contexts = defaultdict(set)
 
     @classmethod
     def from_crawler(cls, crawler):
-        service_url = crawler.settings.get('PUPPETEER_SERVICE_URL')
+        service_url = crawler.settings.get(cls.SERVICE_URL_SETTING)
         if service_url is None:
             raise ValueError('Puppeteer service URL must be provided')
-        middleware = cls(crawler, service_url)
+        if cls.INCLUDE_HEADERS_SETTING in crawler.settings:
+            try:
+                include_headers = crawler.settings.getbool(cls.INCLUDE_HEADERS_SETTING)
+            except ValueError:
+                include_headers = crawler.settings.getlist(cls.INCLUDE_HEADERS_SETTING)
+        else:
+            include_headers = cls.DEFAULT_INCLUDE_HEADERS
+        middleware = cls(crawler, service_url, include_headers)
         crawler.signals.connect(middleware.close_used_contexts,
                                 signal=signals.spider_closed)
         return middleware
@@ -76,8 +101,7 @@ class PuppeteerServiceDownloaderMiddleware:
             service_params['closePage'] = 1
         return urlencode(service_params)
 
-    @staticmethod
-    def _serialize_body(action, request):
+    def _serialize_body(self, action, request):
         payload = action.payload()
         if action.content_type == 'application/json':
             if isinstance(payload, dict):
@@ -86,7 +110,12 @@ class PuppeteerServiceDownloaderMiddleware:
             proxy = request.meta.get('proxy')
             if proxy:
                 payload['proxy'] = proxy
-            payload['headers'] = request.headers.to_unicode_dict()
+            include_headers = self.include_headers if request.include_headers is None else request.include_headers
+            if include_headers:
+                headers = request.headers.to_unicode_dict()
+                if isinstance(include_headers, list):
+                    headers = {h: headers[h] for h in include_headers if h in headers}
+                payload['headers'] = headers
             return json.dumps(payload)
         return str(payload)
 

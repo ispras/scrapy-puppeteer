@@ -93,6 +93,11 @@ You also may specify requests context and page ids directly.
 
 Once your spider is closed, middleware will take care of closing all used browser contexts.
 
+One may customize which `PuppeteerRequest`'s headers will be sent to remote website by the service 
+via `include_headers` attribute in request or globally with `PUPPETEER_INCLUDE_HEADERS` setting. 
+Available values are True (all headers), False (no headers) or list of header names.
+By default, only cookies are sent.
+
 ## TODO
 
 - [x] skeleton that could handle goto, click, scroll, and actions
