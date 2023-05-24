@@ -114,7 +114,7 @@ class PuppeteerServiceDownloaderMiddleware:
             if include_headers:
                 headers = request.headers.to_unicode_dict()
                 if isinstance(include_headers, list):
-                    headers = {h: headers[h] for h in include_headers if h in headers}
+                    headers = {h.lower(): headers[h] for h in include_headers if h in headers}
                 payload['headers'] = headers
             return json.dumps(payload)
         return str(payload)
