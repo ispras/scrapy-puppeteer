@@ -227,7 +227,6 @@ class Screenshot(PuppeteerServiceAction):
 
 class RecaptchaSolver(PuppeteerServiceAction):
     """
-        new_text
         Tries to solve recaptcha on the page.
         First it tries to find recaptcha. If it couldn't find a recaptcha nothing
         will happen to your 2captcha balance.
