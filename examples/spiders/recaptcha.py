@@ -9,8 +9,7 @@ from scrapypuppeteer.response import PuppeteerResponse
 class RecaptchaSpider(scrapy.Spider):
     name = "recaptcha"
 
-    start_urls = ["https://www.google.com/recaptcha/api2/demo",
-                  "https://otzovik.com"]
+    start_urls = ["https://www.google.com/recaptcha/api2/demo"]
 
     def start_requests(self):
         for url in self.start_urls:
