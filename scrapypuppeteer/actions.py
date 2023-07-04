@@ -230,18 +230,18 @@ class RecaptchaSolver(PuppeteerServiceAction):
         Tries to solve recaptcha on the page.
         First it tries to find recaptcha. If it couldn't find a recaptcha nothing
         will happen to your 2captcha balance.
-        Then it solves recaptcha with 2captcha service and clicks "submit button".
-
-        :param submit_selector: str - the selector to "submit button"
+        Then it solves recaptcha with 2captcha service and inserts the special code
+        into the page automatically.
+        Note that it does not click buttons like "submit buttons".
     """
     endpoint = 'recaptcha_solver'
 
-    def __init__(self, submit_selector: str, **kwargs):
-        self.submit_selector = submit_selector
+    def __init__(self, **kwargs):
+        pass
 
     def payload(self):
         return {
-            'selector': self.submit_selector
+
         }
 
 
