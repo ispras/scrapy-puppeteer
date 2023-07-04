@@ -16,7 +16,7 @@ class PuppeteerServiceDownloaderMiddleware:
     """
     This downloader middleware converts PuppeteerRequest instances to
     Puppeteer service API requests and then converts its responses to
-    PuppeteerResponse instances. Additionally it tracks all browser contexts
+    PuppeteerResponse instances. Additionally, it tracks all browser contexts
     that spider uses and performs cleanup request to service once spider
     is closed.
 

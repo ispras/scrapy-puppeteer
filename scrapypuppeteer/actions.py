@@ -187,7 +187,7 @@ class Scroll(PuppeteerServiceAction):
 
 class Screenshot(PuppeteerServiceAction):
     """
-    Take a screen shot.
+    Take a screenshot.
 
     Available options (see puppeteer `page.screenshot
     <https://pptr.dev/#?product=Puppeteer&version=v3.2.0&show=api-pagescreenshotoptions>`_)
@@ -209,7 +209,7 @@ class Screenshot(PuppeteerServiceAction):
     * ``omitBackground`` (bool): Hide default white background and allow
       capturing screenshot with transparency.
 
-    Response for this action contains screen shot image in base64 encoding.
+    Response for this action contains screenshot image in base64 encoding.
 
     """
 
@@ -222,6 +222,26 @@ class Screenshot(PuppeteerServiceAction):
     def payload(self):
         return {
             'options': self.options
+        }
+
+
+class RecaptchaSolver(PuppeteerServiceAction):
+    """
+        Tries to solve recaptcha on the page.
+        First it tries to find recaptcha. If it couldn't find a recaptcha nothing
+        will happen to your 2captcha balance.
+        Then it solves recaptcha with 2captcha service and clicks "submit button".
+
+        :param submit_selector: str - the selector to "submit button"
+    """
+    endpoint = 'recaptcha_solver'
+
+    def __init__(self, submit_selector: str, **kwargs):
+        self.submit_selector = submit_selector
+
+    def payload(self):
+        return {
+            'selector': self.submit_selector
         }
 
 
