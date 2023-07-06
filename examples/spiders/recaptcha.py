@@ -1,9 +1,9 @@
 import scrapy
-from twisted.python.failure import Failure
 
+from twisted.python.failure import Failure
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, RecaptchaSolver, Click
-from scrapypuppeteer.response import PuppeteerResponse
+from scrapypuppeteer.response import PuppeteerResponse, PuppeteerJsonResponse
 
 
 class RecaptchaSpider(scrapy.Spider):
@@ -20,7 +20,9 @@ class RecaptchaSpider(scrapy.Spider):
         action = RecaptchaSolver()
         yield response.follow(action=action, callback=self.submit_recaptcha, errback=self.error, close_page=False)
 
-    def submit_recaptcha(self, response: PuppeteerResponse, **kwargs):
+    def submit_recaptcha(self, response: PuppeteerJsonResponse, **kwargs):
+        with open("metaData/meta.txt", 'w') as f:
+            print(response.data.get('recaptcha_data', None), file=f)
         action = Click('#recaptcha-demo-submit')
         yield response.follow(action=action, callback=self.parse, errback=self.error, close_page=False)
 
