@@ -233,15 +233,23 @@ class RecaptchaSolver(PuppeteerServiceAction):
         Then it solves recaptcha with 2captcha service and inserts the special code
         into the page automatically.
         Note that it does not click buttons like "submit buttons".
+
+        :params:
+            bool = True: solve_recaptcha: - automatic solving of recaptcha on the page if found.
+
+        Response for this action is PuppeteerJsonResponse. You can get the return values
+        via self.data['recaptcha_solver'].
+        You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
+        to get information about return value.
     """
     endpoint = 'recaptcha_solver'
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, solve_recaptcha: bool = True, **kwargs):
+        self.solve_recaptcha = solve_recaptcha
 
     def payload(self):
         return {
-
+            'solve_recaptcha': self.solve_recaptcha
         }
 
 

@@ -8,7 +8,7 @@ from scrapy.crawler import Crawler
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
-from scrapypuppeteer.actions import CustomJsAction, Screenshot
+from scrapypuppeteer.actions import CustomJsAction, Screenshot, RecaptchaSolver
 from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
 
 
@@ -149,7 +149,8 @@ class PuppeteerServiceDownloaderMiddleware:
 
     @staticmethod
     def _get_response_class(request_action, response_data):
-        if 'html' in response_data and not isinstance(request_action, CustomJsAction):
+        if 'html' in response_data and \
+                not (isinstance(request_action, CustomJsAction) or isinstance(request_action, RecaptchaSolver)):
             return PuppeteerHtmlResponse
         if 'screenshot' in response_data and isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
