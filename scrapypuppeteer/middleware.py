@@ -3,12 +3,12 @@ from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urljoin, urlencode
 
-from scrapy import Request, signals
+from scrapy import Request, signals, Spider
 from scrapy.crawler import Crawler
 from scrapy.http import Headers, TextResponse
 
-from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
-from scrapypuppeteer.actions import CustomJsAction, Screenshot, RecaptchaSolver
+from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse, PuppeteerResponse
+from scrapypuppeteer.actions import Screenshot, RecaptchaSolver
 from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
 
 
@@ -149,8 +149,7 @@ class PuppeteerServiceDownloaderMiddleware:
 
     @staticmethod
     def _get_response_class(request_action, response_data):
-        if 'html' in response_data and \
-                not (isinstance(request_action, CustomJsAction) or isinstance(request_action, RecaptchaSolver)):
+        if 'html' in response_data and 'recaptcha_data' not in response_data:
             return PuppeteerHtmlResponse
         if 'screenshot' in response_data and isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
@@ -165,3 +164,50 @@ class PuppeteerServiceDownloaderMiddleware:
                               meta={"proxy": None},
                               body=json.dumps(contexts))
             return self.crawler.engine.downloader.fetch(request, None)
+
+
+class PuppeteerRecaptchaDownloaderMiddleware:
+    """
+    This middleware is supposed to solve recaptcha on the page automatically.
+    It can sumit recaptcha if "submit button" is provided.
+    It will not "submit" captcha if there is no submit-selector.
+
+    You can provide "submit button" with settings.py inside your scrapy project.
+    """
+
+    RECAPTCHA_SOLVING_SETTING = "RECAPTCHA_SOLVING"
+    SUBMIT_SELECTOR_SETTING = "SUBMIT_RECAPTCHA_SELECTOR"
+
+    def __init__(self,
+                 recaptcha_solving: bool,
+                 submit_selectors: str | list[str]):
+        self.submit_selectors = submit_selectors
+        self.recaptcha_solving = recaptcha_solving
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler):
+        recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
+        submit_selectors = crawler.settings.get(cls.SUBMIT_SELECTOR_SETTING, [])
+        return cls(recaptcha_solving, submit_selectors)
+
+    @staticmethod
+    def process_request(request: Request, spider: Spider):
+        # We don't modify any request, we only work with responses
+        return None
+
+    def process_response(self,
+                         request, response,
+                         spider: Spider):
+        # We need to somehow understand if there is a captcha on the page
+        if isinstance(response, PuppeteerResponse) and response.meta
+
+        # We only work with PuppeteerResponses, and we don't want to proceed responses from RecaptchaSolver:
+        # What if we did not prove 2catpcha token?:
+        if not isinstance(response, PuppeteerResponse) or \
+                isinstance(response.puppeteer_request.action, RecaptchaSolver):
+            # isinstance(response, PuppeteerJsonResponse) and response.data.get('recaptcha_data', None):
+            return response
+        # At this point we have PuppeteerResponse without RecaptchaSolver, so we can try to find recaptcha
+
+        # How can we determine if request was send by middleware
+        pass
