@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urljoin, urlencode
 
-from scrapy import Request, signals, Spider
+from scrapy import Request, signals
 from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest
 from scrapy.http import Headers, TextResponse
@@ -171,10 +171,21 @@ class PuppeteerServiceDownloaderMiddleware:
 class PuppeteerRecaptchaDownloaderMiddleware:
     """
     This middleware is supposed to solve recaptcha on the page automatically.
-    It can sumit recaptcha if "submit button" is provided.
+    If there is no captcha on the page then this middleware will do nothing on
+    the page, so your 2captcha balance will remain the same.
+    It can submit recaptcha if "submit button" is provided.
     It will not "submit" captcha if there is no submit-selector.
 
-    You can provide "submit button" with settings.py inside your scrapy project.
+    Settings:
+
+    RECAPTCHA_SOLVING: bool = True - whether solve captcha automatically or not
+    SUBMIT_RECAPTCHA_SELECTOR: dict = {} - dictionary consisting of domains and
+        these domains' submit selectors, e.g.
+            'www.google.com/recaptcha/api2/demo': '#recaptcha-demo-submit'
+        it could be also squeezed to
+            'ecaptcha/api2/de': '#recaptcha-demo-submit'
+        In general - unique identifying string which is contained in web-page url
+        If there is no button to submit recaptcha then provide empty string to a domain.
     """
 
     RECAPTCHA_SOLVING_SETTING = "RECAPTCHA_SOLVING"
@@ -183,90 +194,93 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     def __init__(self,
                  recaptcha_solving: bool,
-                 submit_selectors: list[str],
-                 no_submit_selector: bool):
-        self.submit_selectors = set(submit_selectors)
+                 submit_selectors: dict):
+        self.submit_selectors = submit_selectors
         self.recaptcha_solving = recaptcha_solving
-        self.no_submit_selector = no_submit_selector
-        self._context_response = dict()
+        self._page_responses = dict()
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
-        submit_selectors = crawler.settings.get(cls.SUBMIT_SELECTOR_SETTING, [])
-        no_submit_selector = crawler.settings.get(cls.NO_SUBMIT_SETTING)
-        if recaptcha_solving and not submit_selectors and not no_submit_selector:
+        submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTOR_SETTING, dict())
+        if recaptcha_solving and not submit_selectors:
             raise ValueError('No submit selectors provided but automatic solving is enabled')
-        return cls(recaptcha_solving, submit_selectors, no_submit_selector)
+        return cls(recaptcha_solving, submit_selectors)
 
     @staticmethod
-    def process_request(request: Request, spider: Spider):
+    def process_request(request, spider):
         # We don't modify any request, we only work with responses
         return None
 
     def process_response(self,
-                         request: PuppeteerRequest | Request, response,
-                         spider: Spider):
-        if isinstance(response, PuppeteerResponse) and \
-                isinstance(response.puppeteer_request.action, Click):
-            if response.puppeteer_request.action.selector in self.submit_selectors:
-                return self._gen_response(response)
+                         request, response,
+                         spider):
+        # TODO: What if we did not provide 2captcha token?
+        if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
+            return response
 
-        if isinstance(response, PuppeteerJsonResponse) and \
-                isinstance(response.puppeteer_request.action, RecaptchaSolver):
+        if response.puppeteer_request.close_page:  # No need in solving captcha right before closing the page
+            return response
+
+        if isinstance(response.puppeteer_request.action, Click) and \
+                response.puppeteer_request.action.selector in self.submit_selectors.values():  # Submitted captcha
+            return self._gen_response(response)
+
+        if isinstance(response.puppeteer_request.action, RecaptchaSolver):
             # RECaptchaSolver was called by recaptcha middleware
-            response_data = response.data
-            if not response.puppeteer_request.action.solve_recaptcha:
-                spider.log(message=f"Found {len(response_data['recaptcha_data']['captchas'])} captcha but did not solve due to argument",
-                           level=logging.WARNING)
-                return self._gen_response(response)
-            # We need to click "submit button"
-            if self.no_submit_selector:
-                print(f"HERE {'-' * 120} {1}")
-                return self._gen_response(response)
-            for submit_selector in self.submit_selectors:
-                if submit_selector in response_data['html']:
-                    submit_click = Click(submit_selector)
-                    return response.follow(action=submit_click,
-                                           callback=request.callback,
-                                           errback=request.errback,
-                                           close_page=response.puppeteer_request.close_page)
-            raise IgnoreRequest
+            return self._submit_recaptcha(request, response, spider)
 
-        # We only work with PuppeteerResponses
-        # What if we did not prove 2catpcha token?:
-        if isinstance(response, PuppeteerResponse):  # Any puppeteer response besides JsonResponse
-            print(f"HERE {'-' * 120} {3}")
-            if response.puppeteer_request.close_page:
-                print(f"HERE {'-' * 120} {4}")
-                return response
-            # Here we need to find recaptcha and solve it
-            recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
-            # after that we need to save response's answer, so we could return it later
-            # if isinstance(response, PuppeteerJsonResponse):
-            print(f"HERE {'-' * 120} {5}")
-            self._context_response[response.context_id] = response.copy()  # TODO: fix! This causes an error!
-            # .copy() method does not work!
-            print(f"HERE {'-' * 120} {2}")
-            return response.follow(recaptcha_solver,
-                                   callback=request.callback,
-                                   errback=request.errback,
-                                   close_page=False)
-        return response
+        # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
+        return self._solve_recaptcha(request, response)
 
-    def _gen_response(self, response: PuppeteerResponse):
+    def _solve_recaptcha(self, request, response):
+        recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
+        self._page_responses[response.page_id] = response  # Saving main response to return it later
+        return response.follow(recaptcha_solver,
+                               callback=request.callback,
+                               errback=request.errback,
+                               close_page=False)
 
-        main_response = self._context_response.pop(response.context_id)
-        main_response_cls = main_response.__class__
+    def _submit_recaptcha(self, request, response, spider):
+        response_data = response.data
+        if not response.puppeteer_request.action.solve_recaptcha:
+            spider.log(message=f"Found {len(response_data['recaptcha_data']['captchas'])} captcha "
+                               f"but did not solve due to argument",
+                       level=logging.INFO)
+            return self._gen_response(response)
+        # We need to click "submit button"
+        for domain, submit_selector in self.submit_selectors.items():
+            if domain in response.url:
+                if not submit_selector:
+                    return self._gen_response(response)
+                submit_click = Click(submit_selector)
+                return response.follow(action=submit_click,
+                                       callback=request.callback,
+                                       errback=request.errback,
+                                       close_page=response.puppeteer_request.close_page)
+        raise IgnoreRequest("No submit selector found to click on the page")
 
-        puppeteer_request = response.puppeteer_request
-        response_data = json.loads(response.text)
-        context_id = response_data.pop('contextId', None)
-        page_id = response_data.pop('pageId', None)
-        return main_response_cls(
+    def _gen_response(self, response):
+        main_response = self._page_responses.pop(response.page_id)
+
+        if not isinstance(main_response, PuppeteerHtmlResponse):
+            return main_response
+
+        puppeteer_request = main_response.puppeteer_request
+        context_id = main_response.context_id
+        page_id = main_response.page_id
+        main_response_data = dict()
+        if isinstance(response.puppeteer_request.action, Click):
+            main_response_data.setdefault('html', response.body)
+        else:
+            main_response_data.setdefault('html', response.data['html'])
+        main_response_data['cookies'] = main_response.cookies
+        main_response_data['headers'] = main_response.headers
+
+        return PuppeteerHtmlResponse(
             url=puppeteer_request.url,
             puppeteer_request=puppeteer_request,
             context_id=context_id,
             page_id=page_id,
-            **response_data
+            **main_response_data
         )

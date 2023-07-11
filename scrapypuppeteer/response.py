@@ -76,5 +76,5 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
     """
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
-        self.screenshot = kwargs.get('screenshot')
+        self.screenshot = kwargs.pop('screenshot')
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
