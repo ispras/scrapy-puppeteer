@@ -192,11 +192,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
-
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
-        submit_selectors = crawler.settings.get(cls.SUBMIT_SELECTOR_SETTING)
+        submit_selectors = crawler.settings.get(cls.SUBMIT_SELECTOR_SETTING, [])
         no_submit_selector = crawler.settings.get(cls.NO_SUBMIT_SETTING)
-        if recaptcha_solving and not submit_selectors and no_submit_selector:
+        if recaptcha_solving and not submit_selectors and not no_submit_selector:
             raise ValueError('No submit selectors provided but automatic solving is enabled')
         return cls(recaptcha_solving, submit_selectors, no_submit_selector)
 
@@ -206,39 +205,68 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return None
 
     def process_response(self,
-                         request, response,
+                         request: PuppeteerRequest | Request, response,
                          spider: Spider):
-        if isinstance(response, PuppeteerJsonResponse) and \
+        if isinstance(response, PuppeteerResponse) and \
                 isinstance(response.puppeteer_request.action, Click):
             if response.puppeteer_request.action.selector in self.submit_selectors:
-                return self._context_response.pop(response.context_id, response)
+                return self._gen_response(response)
 
         if isinstance(response, PuppeteerJsonResponse) and \
                 isinstance(response.puppeteer_request.action, RecaptchaSolver):
             # RECaptchaSolver was called by recaptcha middleware
-            response_data = response.data['recaptcha_data']
+            response_data = response.data
             if not response.puppeteer_request.action.solve_recaptcha:
-                spider.log(message=f"Found {len(response_data['captcha'])} captcha but did not solve due to argument",
+                spider.log(message=f"Found {len(response_data['recaptcha_data']['captchas'])} captcha but did not solve due to argument",
                            level=logging.WARNING)
-                return self._context_response.pop(response.context_id, response)
+                return self._gen_response(response)
             # We need to click "submit button"
+            if self.no_submit_selector:
+                print(f"HERE {'-' * 120} {1}")
+                return self._gen_response(response)
             for submit_selector in self.submit_selectors:
-                if submit_selector in response.body:
+                if submit_selector in response_data['html']:
                     submit_click = Click(submit_selector)
-                    return PuppeteerRequest(action=submit_click,
-                                            close_page=response.puppeteer_request.close_page)
+                    return response.follow(action=submit_click,
+                                           callback=request.callback,
+                                           errback=request.errback,
+                                           close_page=response.puppeteer_request.close_page)
             raise IgnoreRequest
 
         # We only work with PuppeteerResponses
         # What if we did not prove 2catpcha token?:
         if isinstance(response, PuppeteerResponse):  # Any puppeteer response besides JsonResponse
-            # Seems to be done!
+            print(f"HERE {'-' * 120} {3}")
             if response.puppeteer_request.close_page:
+                print(f"HERE {'-' * 120} {4}")
                 return response
             # Here we need to find recaptcha and solve it
             recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
             # after that we need to save response's answer, so we could return it later
-            if isinstance(response, PuppeteerJsonResponse):
-                self._context_response[response.context_id] = response.copy()
-            return response.follow(recaptcha_solver, close_page=False)
+            # if isinstance(response, PuppeteerJsonResponse):
+            print(f"HERE {'-' * 120} {5}")
+            self._context_response[response.context_id] = response.copy()  # TODO: fix! This causes an error!
+            # .copy() method does not work!
+            print(f"HERE {'-' * 120} {2}")
+            return response.follow(recaptcha_solver,
+                                   callback=request.callback,
+                                   errback=request.errback,
+                                   close_page=False)
         return response
+
+    def _gen_response(self, response: PuppeteerResponse):
+
+        main_response = self._context_response.pop(response.context_id)
+        main_response_cls = main_response.__class__
+
+        puppeteer_request = response.puppeteer_request
+        response_data = json.loads(response.text)
+        context_id = response_data.pop('contextId', None)
+        page_id = response_data.pop('pageId', None)
+        return main_response_cls(
+            url=puppeteer_request.url,
+            puppeteer_request=puppeteer_request,
+            context_id=context_id,
+            page_id=page_id,
+            **response_data
+        )
