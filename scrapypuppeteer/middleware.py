@@ -189,8 +189,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     """
 
     RECAPTCHA_SOLVING_SETTING = "RECAPTCHA_SOLVING"
-    SUBMIT_SELECTOR_SETTING = "SUBMIT_RECAPTCHA_SELECTOR"
-    NO_SUBMIT_SETTING = "NO_SUBMIT_SELECTOR"
+    SUBMIT_SELECTORS_SETTING = "SUBMIT_RECAPTCHA_SELECTORS"
 
     def __init__(self,
                  recaptcha_solving: bool,
@@ -202,7 +201,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     @classmethod
     def from_crawler(cls, crawler: Crawler):
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
-        submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTOR_SETTING, dict())
+        submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
         if recaptcha_solving and not submit_selectors:
             raise ValueError('No submit selectors provided but automatic solving is enabled')
         return cls(recaptcha_solving, submit_selectors)
