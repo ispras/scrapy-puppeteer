@@ -14,7 +14,7 @@ class RecaptchaSpider(scrapy.Spider):
     def start_requests(self):
         for url in self.start_urls:
             action = GoTo(url=url)
-            yield PuppeteerRequest(action=action, callback=self.parse, errback=self.error, close_page=False)
+            yield PuppeteerRequest(action=action, callback=self.parse_html, errback=self.error, close_page=False)
 
     def solve_recaptcha(self, response: PuppeteerResponse, **kwargs):
         # Activate this function and submit_recaptcha
@@ -27,20 +27,20 @@ class RecaptchaSpider(scrapy.Spider):
         with open("metaData/meta.txt", 'w') as f:
             print(response.data.get('recaptcha_data', None), file=f)
         action = Click('#recaptcha-demo-submit')
-        yield response.follow(action=action, callback=self.parse, errback=self.error, close_page=False)
+        yield response.follow(action=action, callback=self.parse_html, errback=self.error, close_page=False)
 
-    def parse(self, response: PuppeteerResponse | PuppeteerJsonResponse, **kwargs):
-        with open(f"html/{response.url.replace('/', '_')}.html", 'w') as f:
-            f.write(repr(response.body))
+    def parse_html(self, response: PuppeteerResponse | PuppeteerJsonResponse, **kwargs):
+        with open(f"html/recaptcha_page.html", 'wb') as f:
+            f.write(response.body)
         action = Screenshot(options={
             'full_page': True,
         })
         yield response.follow(action,
-                              callback=self.final_parse,
+                              callback=self.save_image,
                               errback=self.error,
                               close_page=True)
 
-    def final_parse(self, response, **kwargs):
+    def save_image(self, response, **kwargs):
         data = response.screenshot  # Note that data is string containing bytes, don't forget to decode them!
         import base64
         with open("imageToSave.png", "wb") as fh:
