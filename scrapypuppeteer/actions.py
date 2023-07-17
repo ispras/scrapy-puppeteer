@@ -234,11 +234,13 @@ class RecaptchaSolver(PuppeteerServiceAction):
         into the page automatically.
         Note that it does not click buttons like "submit buttons".
 
-        :params:
-            bool = True: solve_recaptcha: - automatic solving of recaptcha on the page if found.
+        Params:
+            solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
+                If false is provided recaptcha will still be detected on the page but not solved.
+                You can get info about found recaptchas via return value.
 
         Response for this action is PuppeteerJsonResponse. You can get the return values
-        via self.data['recaptcha_solver'].
+        via self.data['recaptcha_data'].
         You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
         to get information about return value.
     """

@@ -6,7 +6,7 @@ from urllib.parse import urljoin, urlencode
 
 from scrapy import Request, signals
 from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest
+from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse, PuppeteerResponse
@@ -178,8 +178,9 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     Settings:
 
+    RECAPTCHA_ACTIVATION: bool = True - activates or not the middleware (if not - raises NotConfigured)
     RECAPTCHA_SOLVING: bool = True - whether solve captcha automatically or not
-    SUBMIT_RECAPTCHA_SELECTOR: dict = {} - dictionary consisting of domains and
+    RECAPTCHA_SUBMIT_SELECTOR: dict = {} - dictionary consisting of domains and
         these domains' submit selectors, e.g.
             'www.google.com/recaptcha/api2/demo': '#recaptcha-demo-submit'
         it could be also squeezed to
@@ -188,23 +189,31 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         If there is no button to submit recaptcha then provide empty string to a domain.
     """
 
+    MIDDLEWARE_ACTIVATION_SETTING = "RECAPTCHA_ACTIVATION"
     RECAPTCHA_SOLVING_SETTING = "RECAPTCHA_SOLVING"
-    SUBMIT_SELECTORS_SETTING = "SUBMIT_RECAPTCHA_SELECTORS"
+    SUBMIT_SELECTORS_SETTING = "RECAPTCHA_SUBMIT_SELECTORS"
 
     def __init__(self,
+                 activation: bool,
                  recaptcha_solving: bool,
                  submit_selectors: dict):
+        if not activation:
+            raise NotConfigured
         self.submit_selectors = submit_selectors
         self.recaptcha_solving = recaptcha_solving
         self._page_responses = dict()
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
+        activation = crawler.settings.get(cls.MIDDLEWARE_ACTIVATION_SETTING, True)
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
-        submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
+        try:
+            submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
+        except ValueError:
+            submit_selectors = {'': crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, '')}
         if recaptcha_solving and not submit_selectors:
             raise ValueError('No submit selectors provided but automatic solving is enabled')
-        return cls(recaptcha_solving, submit_selectors)
+        return cls(activation, recaptcha_solving, submit_selectors)
 
     @staticmethod
     def process_request(request, spider):
@@ -256,7 +265,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                 return response.follow(action=submit_click,
                                        callback=request.callback,
                                        errback=request.errback,
-                                       close_page=response.puppeteer_request.close_page)
+                                       close_page=False)
         raise IgnoreRequest("No submit selector found to click on the page")
 
     def _gen_response(self, response):
