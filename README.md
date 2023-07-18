@@ -113,8 +113,9 @@ DOWNLOADER_MIDDLEWARES = {
 Note that the number of RecaptchaMiddleware has to be lower than ServiceMiddleware's.
 You must provide some settings to use the middleware:
 ```Python
+RECAPTCHA_ACTIVATION = True  # Enables the middleware
 RECAPTCHA_SOLVING = False  # Automatic recaptcha solving
-SUBMIT_RECAPTCHA_SELECTORS = {  # Selectors for "submit recaptcha" button
+RECAPTCHA_SUBMIT_SELECTORS = {  # Selectors for "submit recaptcha" button
     'www.google.com/recaptcha/api2/demo': '',  # No selectors needed
 }
 ```
