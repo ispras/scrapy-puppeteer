@@ -232,7 +232,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if response.puppeteer_request.close_page:  # No need in solving captcha right before closing the page
             return response
 
-        if response.meta.pop('_captcha_submission', False):  # Submitted captcha
+        if request.meta.pop('_captcha_submission', False):  # Submitted captcha
             return self._gen_response(response)
 
         if isinstance(response.puppeteer_request.action, RecaptchaSolver):
