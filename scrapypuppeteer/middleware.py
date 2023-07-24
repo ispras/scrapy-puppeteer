@@ -198,7 +198,6 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     SUBMIT_SELECTORS_SETTING = "RECAPTCHA_SUBMIT_SELECTORS"
 
     def __init__(self,
-                 activation: bool,
                  recaptcha_solving: bool,
                  submit_selectors: dict):
         self.submit_selectors = submit_selectors
