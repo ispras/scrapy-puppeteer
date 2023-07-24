@@ -224,7 +224,6 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     def process_response(self,
                          request, response,
                          spider):
-        # TODO: What if we did not provide 2captcha token?
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
 
