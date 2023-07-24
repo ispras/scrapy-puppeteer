@@ -214,7 +214,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
         except ValueError:
             submit_selectors = {'': crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, '')}
-        return cls(activation, recaptcha_solving, submit_selectors)
+        return cls(recaptcha_solving, submit_selectors)
 
     @staticmethod
     def process_request(request, spider):
