@@ -56,6 +56,7 @@ Here is the list of available actions:
 - `Click(selector, click_options, wait_options)` - click on element on page
 - `Scroll(selector, wait_options)` - scroll page
 - `Screenshot(options)` - take screenshot
+- `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
 
 Available options essentially mirror [service](https://github.com/ispras/scrapy-puppeteer-service) method parameters, which in turn mirror puppeteer API functions to some extent.
@@ -97,6 +98,29 @@ One may customize which `PuppeteerRequest`'s headers will be sent to remote webs
 via `include_headers` attribute in request or globally with `PUPPETEER_INCLUDE_HEADERS` setting. 
 Available values are True (all headers), False (no headers) or list of header names.
 By default, only cookies are sent.
+
+## Automatic recaptcha solving
+
+Enable PuppeteerRecaptchaDownloaderMiddleware to automatically solve recaptcha during scraping. We do not recommend
+to use RecaptchaSolver action when the middleware works.
+
+```Python
+DOWNLOADER_MIDDLEWARES = {
+    'scrapypuppeteer.middleware.PuppeteerRecaptchaDownloaderMiddleware': 1041,
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+}
+```
+Note that the number of RecaptchaMiddleware has to be lower than ServiceMiddleware's.
+You must provide some settings to use the middleware:
+```Python
+RECAPTCHA_ACTIVATION = True  # Enables the middleware
+RECAPTCHA_SOLVING = False  # Automatic recaptcha solving
+RECAPTCHA_SUBMIT_SELECTORS = {  # Selectors for "submit recaptcha" button
+    'www.google.com/recaptcha/api2/demo': '',  # No selectors needed
+}
+```
+If you set RECAPTCHA_SOLVING to False the middleware will try to find captcha
+and will notify you about number of found captchas on the page.
 
 ## TODO
 

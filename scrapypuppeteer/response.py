@@ -25,7 +25,7 @@ class PuppeteerResponse(Response):
         """
         Execute action in same browser page.
 
-        :param action: URL (may be relative) or browser action.
+        :param action: URL (maybe relative) or browser action.
         :param close_page: whether to close page after request completion
         :param kwargs:
         :return:
@@ -45,7 +45,7 @@ class PuppeteerResponse(Response):
 class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
     """
     scrapy.TextResponse capturing state of a page in browser.
-    Additionally exposes received html and cookies via corresponding attributes.
+    Additionally, exposes received html and cookies via corresponding attributes.
     """
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
@@ -59,7 +59,7 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
 
 class PuppeteerJsonResponse(PuppeteerResponse):
     """
-    Response for CustomJsAction.
+    Response for CustomJsAction and RecaptchaSolver.
     Result is available via self.data object.
     """
 
@@ -76,5 +76,5 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
     """
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
-        self.screenshot = kwargs.get('screenshot')
+        self.screenshot = kwargs.pop('screenshot')
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)

@@ -187,7 +187,7 @@ class Scroll(PuppeteerServiceAction):
 
 class Screenshot(PuppeteerServiceAction):
     """
-    Take a screen shot.
+    Take a screenshot.
 
     Available options (see puppeteer `page.screenshot
     <https://pptr.dev/#?product=Puppeteer&version=v3.2.0&show=api-pagescreenshotoptions>`_)
@@ -209,7 +209,7 @@ class Screenshot(PuppeteerServiceAction):
     * ``omitBackground`` (bool): Hide default white background and allow
       capturing screenshot with transparency.
 
-    Response for this action contains screen shot image in base64 encoding.
+    Response for this action contains screenshot image in base64 encoding.
 
     """
 
@@ -222,6 +222,36 @@ class Screenshot(PuppeteerServiceAction):
     def payload(self):
         return {
             'options': self.options
+        }
+
+
+class RecaptchaSolver(PuppeteerServiceAction):
+    """
+        Tries to solve recaptcha on the page.
+        First it tries to find recaptcha. If it couldn't find a recaptcha nothing
+        will happen to your 2captcha balance.
+        Then it solves recaptcha with 2captcha service and inserts the special code
+        into the page automatically.
+        Note that it does not click buttons like "submit buttons".
+
+        Params:
+            solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
+                If false is provided recaptcha will still be detected on the page but not solved.
+                You can get info about found recaptchas via return value.
+
+        Response for this action is PuppeteerJsonResponse. You can get the return values
+        via self.data['recaptcha_data'].
+        You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
+        to get information about return value.
+    """
+    endpoint = 'recaptcha_solver'
+
+    def __init__(self, solve_recaptcha: bool = True, **kwargs):
+        self.solve_recaptcha = solve_recaptcha
+
+    def payload(self):
+        return {
+            'solve_recaptcha': self.solve_recaptcha
         }
 
 
