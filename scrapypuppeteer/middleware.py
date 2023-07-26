@@ -2,15 +2,15 @@ import json
 import logging
 from collections import defaultdict
 from typing import List, Union
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urlencode, urljoin
 
 from scrapy import Request, signals
 from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
-from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse, PuppeteerResponse
-from scrapypuppeteer.actions import Screenshot, RecaptchaSolver, Click
+from scrapypuppeteer import PuppeteerHtmlResponse, PuppeteerRequest, PuppeteerResponse
+from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll
 from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
 
 
@@ -136,7 +136,7 @@ class PuppeteerServiceDownloaderMiddleware:
         context_id = response_data.pop('contextId', None)
         page_id = response_data.pop('pageId', None)
 
-        response_cls = self._get_response_class(puppeteer_request.action, response_data)
+        response_cls = self._get_response_class(puppeteer_request.action)
         response = response_cls(
             url=puppeteer_request.url,
             puppeteer_request=puppeteer_request,
@@ -150,10 +150,10 @@ class PuppeteerServiceDownloaderMiddleware:
         return response
 
     @staticmethod
-    def _get_response_class(request_action, response_data):
-        if 'html' in response_data and 'recaptcha_data' not in response_data:
+    def _get_response_class(request_action):
+        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll)):
             return PuppeteerHtmlResponse
-        if 'screenshot' in response_data and isinstance(request_action, Screenshot):
+        if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
         return PuppeteerJsonResponse
 
