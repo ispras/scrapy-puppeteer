@@ -1,3 +1,5 @@
+import base64
+
 import scrapy
 from twisted.python.failure import Failure
 
@@ -5,22 +7,23 @@ from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, Screenshot
 from scrapypuppeteer.response import PuppeteerResponse, PuppeteerScreenshotResponse
 
-import base64
-
 
 class AutoRecaptchaSpider(scrapy.Spider):
-    """
-    Current settings for RecaptchaMiddleware:
-        RECAPTCHA_ACTIVATION = True
-        RECAPTCHA_SOLVING = True
-        RECAPTCHA_SUBMIT_SELECTORS = {
-            'www.google.com/recaptcha/api2/demo': '#recaptcha-demo-submit',
-        }
-    """
-
     name = "auto_recaptcha"
 
     start_urls = ["https://www.google.com/recaptcha/api2/demo"]
+
+    custom_settings = {
+        'DOWNLOADER_MIDDLEWARES': {
+            'scrapypuppeteer.middleware.PuppeteerRecaptchaDownloaderMiddleware': 1041,
+            'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+        },
+        'RECAPTCHA_ACTIVATION': True,
+        'RECAPTCHA_SOLVING': True,
+        'RECAPTCHA_SUBMIT_SELECTORS': {
+            'www.google.com/recaptcha/api2/demo': '#recaptcha-demo-submit',
+        }
+    }
 
     def start_requests(self):
         for url in self.start_urls:
