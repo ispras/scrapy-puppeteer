@@ -99,6 +99,9 @@ via `include_headers` attribute in request or globally with `PUPPETEER_INCLUDE_H
 Available values are True (all headers), False (no headers) or list of header names.
 By default, only cookies are sent.
 
+You would also like to send meta with your request. By default, you are not allowed to do this
+in order to sustain backward compatibility. You can change this behaviour by setting `PUPPETEER_INCLUDE_META` to True.
+
 ## Automatic recaptcha solving
 
 Enable PuppeteerRecaptchaDownloaderMiddleware to automatically solve recaptcha during scraping. We do not recommend
@@ -113,6 +116,8 @@ DOWNLOADER_MIDDLEWARES = {
 Note that the number of RecaptchaMiddleware has to be lower than ServiceMiddleware's.
 You must provide some settings to use the middleware:
 ```Python
+PUPPETEER_INCLUDE_META = True  # Essential to send meta
+
 RECAPTCHA_ACTIVATION = True  # Enables the middleware
 RECAPTCHA_SOLVING = False  # Automatic recaptcha solving
 RECAPTCHA_SUBMIT_SELECTORS = {  # Selectors for "submit recaptcha" button

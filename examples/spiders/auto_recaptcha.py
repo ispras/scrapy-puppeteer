@@ -18,6 +18,8 @@ class AutoRecaptchaSpider(scrapy.Spider):
             'scrapypuppeteer.middleware.PuppeteerRecaptchaDownloaderMiddleware': 1041,
             'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
         },
+        'PUPPETEER_INCLUDE_META': True,
+
         'RECAPTCHA_ACTIVATION': True,
         'RECAPTCHA_SOLVING': True,
         'RECAPTCHA_SUBMIT_SELECTORS': {
