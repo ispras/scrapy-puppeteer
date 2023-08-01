@@ -41,6 +41,16 @@ class PuppeteerResponse(Response):
         return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, **kwargs)
 
+    def replace(self, *args, **kwargs):
+        """
+            Create a new PuppeteerResponse object with the same attributes
+            except for those given new values
+        """
+        for attr in self.attributes:
+            kwargs.setdefault(attr, getattr(self, attr))
+        cls = kwargs.pop("cls", self.__class__)
+        return cls(*args, **kwargs)
+
 
 class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
     """
