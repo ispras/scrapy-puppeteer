@@ -86,6 +86,7 @@ class PuppeteerServiceDownloaderMiddleware:
             cb_kwargs=request.cb_kwargs,
             errback=request.errback,
             meta={
+                **request.meta,
                 'puppeteer_request': request,
                 'dont_obey_robotstxt': True,
                 'proxy': None
@@ -135,6 +136,7 @@ class PuppeteerServiceDownloaderMiddleware:
         response_data = json.loads(response.text)
         context_id = response_data.pop('contextId', None)
         page_id = response_data.pop('pageId', None)
+        response_data.setdefault('request', request)
 
         response_cls = self._get_response_class(puppeteer_request.action)
         response = response_cls(
@@ -280,18 +282,15 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         puppeteer_request = main_response.puppeteer_request
         context_id = main_response.context_id
         page_id = main_response.page_id
+
         main_response_data = dict()
         if isinstance(response.puppeteer_request.action, Click):
-            main_response_data['html'] = response.body
+            main_response_data['body'] = response.body
         else:
-            main_response_data['html'] = response.data['html']
+            main_response_data['body'] = response.data['html']
+        main_response_data['html'] = ''
         main_response_data['cookies'] = main_response.cookies
-        main_response_data['headers'] = main_response.headers
 
-        return PuppeteerHtmlResponse(
-            url=puppeteer_request.url,
-            puppeteer_request=puppeteer_request,
-            context_id=context_id,
-            page_id=page_id,
-            **main_response_data
-        )
+        return main_response.replace(main_response.url, puppeteer_request,
+                                     context_id, page_id,
+                                     **main_response_data)

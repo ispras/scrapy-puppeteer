@@ -49,6 +49,7 @@ class PuppeteerResponse(Response):
         for attr in self.attributes:
             kwargs.setdefault(attr, getattr(self, attr))
         cls = kwargs.pop("cls", self.__class__)
+        kwargs.pop('url')
         return cls(*args, **kwargs)
 
 
