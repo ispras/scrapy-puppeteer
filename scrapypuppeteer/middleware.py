@@ -32,18 +32,25 @@ class PuppeteerServiceDownloaderMiddleware:
     Either True (all headers), False (no headers) or list of header names.
     May be overriden per request.
     By default, only cookies are sent.
+
+    PUPPETEER_INCLUDE_META (bool)
+    Determines whether to send or not user's meta attached by user.
+    Default to False.
     """
 
     SERVICE_URL_SETTING = 'PUPPETEER_SERVICE_URL'
     INCLUDE_HEADERS_SETTING = 'PUPPETEER_INCLUDE_HEADERS'
+    SERVICE_META_SETTING = 'PUPPETEER_INCLUDE_META'
     DEFAULT_INCLUDE_HEADERS = ['Cookie']  # TODO send them separately
 
     def __init__(self,
                  crawler: Crawler,
                  service_url: str,
-                 include_headers: Union[bool, List[str]]):
+                 include_headers: Union[bool, List[str]],
+                 include_meta: bool):
         self.service_base_url = service_url
         self.include_headers = include_headers
+        self.include_meta = include_meta
         self.crawler = crawler
         self.used_contexts = defaultdict(set)
 
@@ -59,7 +66,8 @@ class PuppeteerServiceDownloaderMiddleware:
                 include_headers = crawler.settings.getlist(cls.INCLUDE_HEADERS_SETTING)
         else:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
-        middleware = cls(crawler, service_url, include_headers)
+        include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
+        middleware = cls(crawler, service_url, include_headers, include_meta)
         crawler.signals.connect(middleware.close_used_contexts,
                                 signal=signals.spider_closed)
         return middleware
@@ -74,6 +82,14 @@ class PuppeteerServiceDownloaderMiddleware:
         if service_params:
             service_url += '?' + service_params
 
+        meta = {
+            'puppeteer_request': request,
+            'dont_obey_robotstxt': True,
+            'proxy': None
+        }
+        if self.include_meta:
+            meta |= request.meta
+
         return Request(
             url=service_url,
             method='POST',
@@ -85,12 +101,7 @@ class PuppeteerServiceDownloaderMiddleware:
             callback=request.callback,
             cb_kwargs=request.cb_kwargs,
             errback=request.errback,
-            meta={
-                **request.meta,
-                'puppeteer_request': request,
-                'dont_obey_robotstxt': True,
-                'proxy': None
-            }
+            meta=meta
         )
 
     @staticmethod
