@@ -88,7 +88,10 @@ class PuppeteerServiceDownloaderMiddleware:
             'proxy': None
         }
         if self.include_meta:
-            meta |= request.meta
+            meta = {
+                **request.meta,
+                **meta
+            }
 
         return Request(
             url=service_url,
