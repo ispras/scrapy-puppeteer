@@ -38,6 +38,11 @@ class PuppeteerResponse(Response):
         else:
             kwargs['url'] = self.url
             kwargs['dont_filter'] = True
+        try:
+            kwargs['meta'] = self.meta | kwargs.pop('meta', {})
+        except Exception as e:
+            print(e)
+            raise e
         return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, **kwargs)
 

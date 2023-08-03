@@ -150,7 +150,7 @@ class PuppeteerServiceDownloaderMiddleware:
         response_data = json.loads(response.text)
         context_id = response_data.pop('contextId', None)
         page_id = response_data.pop('pageId', None)
-        response_data.setdefault('request', request)
+        response_data['request'] = request
 
         response_cls = self._get_response_class(puppeteer_request.action)
         response = response_cls(
