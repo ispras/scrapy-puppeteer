@@ -301,7 +301,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if isinstance(response.puppeteer_request.action, Click):
             main_response_data['body'] = response.body
         else:
-            main_response_data['body'] = bytearray(response.data['html'], main_response.encoding)
+            main_response_data['body'] = response.data['html']
         main_response_data['html'] = ''
         main_response_data['cookies'] = main_response.cookies
 
