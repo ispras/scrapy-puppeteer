@@ -127,6 +127,9 @@ RECAPTCHA_SUBMIT_SELECTORS = {  # Selectors for "submit recaptcha" button
 If you set RECAPTCHA_SOLVING to False the middleware will try to find captcha
 and will notify you about number of found captchas on the page.
 
+If you don't want the middleware to work on specific request you may provide special meta key: `'dont_recaptcha': True`.
+In this case RecaptchaMiddleware will just skip the request.
+
 ## TODO
 
 - [x] skeleton that could handle goto, click, scroll, and actions

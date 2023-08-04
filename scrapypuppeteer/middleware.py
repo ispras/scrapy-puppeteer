@@ -246,6 +246,9 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if response.puppeteer_request.close_page:  # No need in solving captcha right before closing the page
             return response
 
+        if request.meta.get('dont_recaptcha', False):
+            return response
+
         if request.meta.pop('_captcha_submission', False):  # Submitted captcha
             return self._gen_response(response)
 
