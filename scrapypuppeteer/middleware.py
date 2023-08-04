@@ -10,7 +10,7 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer import PuppeteerHtmlResponse, PuppeteerRequest, PuppeteerResponse
-from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll
+from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
 from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
 
 
@@ -243,8 +243,8 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
 
-        if response.puppeteer_request.close_page:  # No need in solving captcha right before closing the page
-            return response
+        # if response.puppeteer_request.close_page:  # No need in solving captcha right before closing the page
+        #     return response
 
         if request.meta.get('dont_recaptcha', False):
             return response
@@ -257,15 +257,34 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             return self._submit_recaptcha(request, response, spider)
 
         # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
+        print(f"Trying to solve recaptcha")
+        print(response.puppeteer_request.context_id)
+        print(response.puppeteer_request.page_id)
         return self._solve_recaptcha(request, response)
 
     def _solve_recaptcha(self, request, response):
+        print(f"We are trying to get page_id")
+        self._page_responses[self.__get_page_id(response)] = response  # Saving main response to return it later
+        print(f"we got page_id")
+        response_to_solve = self.__get_response_to_solve(response)
+
         recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
-        self._page_responses[response.page_id] = response  # Saving main response to return it later
-        return response.follow(recaptcha_solver,
-                               callback=request.callback,
-                               errback=request.errback,
-                               close_page=False)
+        return response_to_solve.follow(recaptcha_solver,
+                                        callback=request.callback,
+                                        errback=request.errback,
+                                        close_page=False)
+
+    def __get_response_to_solve(self, response):
+        if response.page_id is not None:
+            print(f"HERE???")
+            print(response.page_id)
+            return response
+        page_id = response.puppeteer_request.page_id
+        print(page_id)
+        return self.__replace_response(response,
+                                       response.url, response.puppeteer_request,
+                                       response.context_id, page_id,
+                                       sub_response=response)
 
     def _submit_recaptcha(self, request, response, spider):
         response_data = response.data
@@ -288,6 +307,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                                            close_page=False,
                                            meta={'_captcha_submission': True})
             raise IgnoreRequest("No submit selector found to click on the page but captcha found")
+        print(f"Found no captcha to solve")
         return self._gen_response(response)
 
     def _gen_response(self, response):
@@ -300,14 +320,23 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         context_id = main_response.context_id
         page_id = main_response.page_id
 
-        main_response_data = dict()
-        if isinstance(response.puppeteer_request.action, Click):
-            main_response_data['body'] = response.body
-        else:
-            main_response_data['body'] = response.data['html']
-        main_response_data['html'] = ''
-        main_response_data['cookies'] = main_response.cookies
+        return self.__replace_response(main_response,
+                                       main_response.url, puppeteer_request,
+                                       context_id, page_id,
+                                       sub_response=response)
 
-        return main_response.replace(main_response.url, puppeteer_request,
-                                     context_id, page_id,
-                                     **main_response_data)
+    @staticmethod
+    def __replace_response(response, *args, sub_response):
+        print(f"We are in replace method")
+        main_response_data = dict()
+        if isinstance(sub_response.puppeteer_request.action, RecaptchaSolver):
+            main_response_data['body'] = sub_response.data['html']
+        elif isinstance(sub_response.puppeteer_request.action, Click):
+            main_response_data['body'] = sub_response.body
+        main_response_data['cookies'] = response.cookies
+        main_response_data['html'] = ''
+        return response.replace(*args, **main_response_data)
+
+    @staticmethod
+    def __get_page_id(response):
+        return response.page_id or response.puppeteer_request.page_id
