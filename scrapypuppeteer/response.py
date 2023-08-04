@@ -38,11 +38,7 @@ class PuppeteerResponse(Response):
         else:
             kwargs['url'] = self.url
             kwargs['dont_filter'] = True
-        try:
-            kwargs['meta'] = self.meta | kwargs.pop('meta', {})
-        except Exception as e:
-            print(e)
-            raise e
+        kwargs['meta'] = self.meta | kwargs.pop('meta', {})
         return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, **kwargs)
 
@@ -80,9 +76,11 @@ class PuppeteerJsonResponse(PuppeteerResponse):
     """
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
-        self.data = kwargs
         headers = {'Content-Type': 'application/json'}
-        super().__init__(url, puppeteer_request, context_id, page_id, headers=headers)
+        request = kwargs['request']
+        self.data = kwargs
+        super().__init__(url, puppeteer_request, context_id, page_id,
+                         headers=headers, request=request)
 
 
 class PuppeteerScreenshotResponse(PuppeteerResponse):
