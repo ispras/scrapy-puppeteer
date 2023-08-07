@@ -7,6 +7,20 @@ from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
 
 class PuppeteerResponse(Response):
+
+    attributes: tuple[str, ...] = Response.attributes + (
+        'url',
+        'puppeteer_request',
+        'context_id',
+        'page_id'
+    )
+    """A tuple of :class:`str` objects containing the name of all public
+        attributes of the class that are also keyword parameters of the
+        ``__init__`` method.
+
+        Currently used by :meth:`PuppeteerResponse.replace`.
+        """
+
     def __init__(self,
                  url: str,
                  puppeteer_request: PuppeteerRequest,
@@ -46,16 +60,15 @@ class PuppeteerResponse(Response):
                                 context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, **kwargs)
 
-    def replace(self, *args, **kwargs):
-        """
-            Create a new PuppeteerResponse object with the same attributes
-            except for those given new values
-        """
-        for attr in self.attributes:
-            kwargs.setdefault(attr, getattr(self, attr))
-        cls = kwargs.pop("cls", self.__class__)
-        kwargs.pop('url')
-        return cls(*args, **kwargs)
+    # def replace(self, *args, **kwargs):
+    #     """
+    #         Create a new PuppeteerResponse object with the same attributes
+    #         except for those given new values
+    #     """
+    #     for attr in self.attributes:
+    #         kwargs.setdefault(attr, getattr(self, attr))
+    #     cls = kwargs.pop("cls", self.__class__)
+    #     return cls(*args, **kwargs)
 
 
 class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):

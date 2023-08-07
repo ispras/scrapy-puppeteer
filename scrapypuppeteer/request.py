@@ -10,6 +10,20 @@ class PuppeteerRequest(Request):
     Request to be executed in browser with puppeteer.
     """
 
+    attributes: tuple[str, ...] = Request.attributes + (
+        'action',
+        'context_id',
+        'page_id',
+        'close_page',
+        'include_headers'
+    )
+    """A tuple of :class:`str` objects containing the name of all public
+        attributes of the class that are also keyword parameters of the
+        ``__init__`` method.
+
+        Currently used by :meth:`PuppeteerRequest.replace`
+        """
+
     def __init__(self,
                  action: Union[str, PuppeteerServiceAction],
                  context_id: str = None,
@@ -53,6 +67,11 @@ class PuppeteerRequest(Request):
         self.include_headers = include_headers
 
     def replace(self, *args, **kwargs):
-        for x in ['action', 'context_id', 'page_id', 'close_page', 'include_headers']:
+        # TODO: possibly to delete method
+        for x in self.attributes:
             kwargs.setdefault(x, getattr(self, x))
-        return super().replace(*args, **kwargs)
+        cls = kwargs.pop("cls", self.__class__)
+        return cls(*args, **kwargs)
+
+    def __hash__(self):
+        return hash(self.url)

@@ -147,7 +147,9 @@ class PuppeteerServiceDownloaderMiddleware:
         if b'application/json' not in response.headers.get(b'Content-Type', b''):
             return response
 
+        print(f"Printing response data:")
         response_data = json.loads(response.text)
+        print(response_data)
         context_id = response_data.pop('contextId', puppeteer_request.context_id)
         page_id = response_data.pop('pageId', puppeteer_request.page_id)
         response_data['request'] = request
@@ -223,6 +225,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         self.submit_selectors = submit_selectors
         self.recaptcha_solving = recaptcha_solving
         self._page_responses = dict()
+        self._page_closing = list()
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
@@ -239,6 +242,13 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     @staticmethod
     def process_request(request, spider):
         # We don't modify any request, we only work with responses
+        print(f"Processing request in RecaptchaMiddleware")
+        if isinstance(request, PuppeteerRequest):
+            print(f"PuppeteerRequest")
+            if request.close_page:
+                print(f"Changing close_page")
+                request.replace(close_page=False)
+                print(request.close_page)
         return None
 
     def process_response(self,
@@ -264,6 +274,8 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return self._solve_recaptcha(response)
 
     def _solve_recaptcha(self, response):
+        print(f"Solving recaptcha")
+        print(response)
         self._page_responses[self.__get_page_id(response)] = response  # Saving main response to return it later
 
         recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
@@ -301,13 +313,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not isinstance(main_response, PuppeteerHtmlResponse):
             return main_response
 
-        puppeteer_request = main_response.puppeteer_request
-        context_id = main_response.context_id
-        page_id = main_response.page_id
-
         return self.__replace_response(main_response,
-                                       main_response.url, puppeteer_request,
-                                       context_id, page_id,
                                        sub_response=response)
 
     @staticmethod
