@@ -238,7 +238,6 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return cls(recaptcha_solving, submit_selectors)
 
     def process_request(self, request, spider):
-        # We don't modify any request, we only work with responses
         if isinstance(request, PuppeteerRequest):
             if request.close_page and not request.meta.get('_captcha_submission', False):
                 new_request = request.replace(close_page=False, dont_filter=True)
