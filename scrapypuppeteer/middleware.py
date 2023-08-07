@@ -73,7 +73,6 @@ class PuppeteerServiceDownloaderMiddleware:
         return middleware
 
     def process_request(self, request, spider):
-        print(f"Processing request in ServiceMiddleware")
         if not isinstance(request, PuppeteerRequest):
             return
 
@@ -240,12 +239,8 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     def process_request(self, request, spider):
         # We don't modify any request, we only work with responses
-        print(f"Processing request in RecaptchaMiddleware")
         if isinstance(request, PuppeteerRequest):
-            print(f"PuppeteerRequest")
-            print(request.close_page)
             if request.close_page and not request.meta.get('_captcha_submission', False):
-                print(f"Changing close_page")
                 new_request = request.replace(close_page=False, dont_filter=True)
                 self._page_closing.add(new_request)
                 return new_request
@@ -254,7 +249,6 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     def process_response(self,
                          request, response,
                          spider):
-        print(f"Processing response in RecaptchaMiddleware")
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
 
@@ -272,7 +266,6 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return self._solve_recaptcha(response)
 
     def _solve_recaptcha(self, response):
-        print(f"Solving recaptcha")
         self._page_responses[response.page_id] = response  # Saving main response to return it later
 
         recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
