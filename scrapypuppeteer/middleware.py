@@ -192,6 +192,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     It can submit recaptcha if "submit button" is provided.
     It will not "submit" captcha if there is no submit-selector.
 
+    If you want to turn off Recaptcha solving on the exact request provide
+    meta-key 'dont_recaptcha' with True value. The middleware will skip the request
+    through it.
+
     Settings:
 
     RECAPTCHA_ACTIVATION: bool = True - activates or not the middleware (if not - raises NotConfigured)
