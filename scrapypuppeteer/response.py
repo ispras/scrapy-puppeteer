@@ -42,7 +42,6 @@ class PuppeteerResponse(Response):
             kwargs['dont_filter'] = True
         if accumulate_meta:
             kwargs['meta'] = self.meta | kwargs.pop('meta', {})
-        print(page_id)
         return PuppeteerRequest(action,
                                 context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, **kwargs)
