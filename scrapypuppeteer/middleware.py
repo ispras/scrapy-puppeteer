@@ -250,15 +250,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     def process_request(self, request, spider):
         if isinstance(request, PuppeteerRequest):
-            print(f"Puppeteer request!")
             if request.close_page and not request.meta.get('_captcha_submission', False):
-                print(f"Adding new request")
                 new_request = request.replace(close_page=False, dont_filter=True)
                 self._page_closing.add(new_request)
-                print(self._page_closing)
                 return new_request
-            print(f"Close_page: {request.close_page}")
-            print(f"meta: {request.meta}")
         return None
 
     def process_response(self,
@@ -320,17 +315,12 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                 main_response_data['body'] = response.data['html']
             elif isinstance(response.puppeteer_request.action, Click):
                 main_response_data['body'] = response.body
-            print(main_response_data['page_id'])
 
         return main_response.replace(**main_response_data)
 
     def __is_closing(self, response) -> bool:
-        print(f"We are in closing part")
         main_request = self._page_responses[response.page_id].puppeteer_request
-        print(main_request)
-        print(self._page_closing)
         if main_request in self._page_closing:
-            print(f"Closing page")
             self._page_closing.remove(main_request)
             return True
         return False
