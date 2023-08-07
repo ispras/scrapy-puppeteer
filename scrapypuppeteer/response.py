@@ -105,6 +105,10 @@ class PuppeteerJsonResponse(PuppeteerResponse):
     Result is available via self.data object.
     """
 
+    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+        'data',
+    )
+
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         headers = {'Content-Type': 'application/json'}
         request = kwargs['request']
@@ -118,6 +122,10 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
     Response for Screenshot action.
     Screenshot is available via self.screenshot as base64 encoded string.
     """
+
+    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+        'screenshot',
+    )
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.screenshot = kwargs.pop('screenshot')

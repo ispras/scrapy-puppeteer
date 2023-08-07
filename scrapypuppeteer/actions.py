@@ -159,6 +159,9 @@ class Click(PuppeteerServiceAction):
             'navigationOptions': self.navigation_options
         }
 
+    def __bool__(self):
+        return not not self.selector
+
 
 class Scroll(PuppeteerServiceAction):
     """

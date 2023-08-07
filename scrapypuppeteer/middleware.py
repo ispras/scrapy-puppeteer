@@ -231,18 +231,34 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not activation:
             raise NotConfigured
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
+
         try:
             submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
         except ValueError:
             submit_selectors = {'': crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, '')}
+        except Exception as exception:
+            raise ValueError(f"Wrong argument(s) inside {cls.SUBMIT_SELECTORS_SETTING}: {exception}")
+
+        for key in submit_selectors.keys():
+            submit_selector = submit_selectors[key]
+            if isinstance(submit_selector, str):
+                submit_selectors[key] = Click(selector=submit_selector)
+            elif not isinstance(submit_selector, Click):
+                raise ValueError("Submit selector must be str or Click,"
+                                 f"but {type(submit_selector)} provided")
         return cls(recaptcha_solving, submit_selectors)
 
     def process_request(self, request, spider):
         if isinstance(request, PuppeteerRequest):
+            print(f"Puppeteer request!")
             if request.close_page and not request.meta.get('_captcha_submission', False):
+                print(f"Adding new request")
                 new_request = request.replace(close_page=False, dont_filter=True)
                 self._page_closing.add(new_request)
+                print(self._page_closing)
                 return new_request
+            print(f"Close_page: {request.close_page}")
+            print(f"meta: {request.meta}")
         return None
 
     def process_response(self,
@@ -281,12 +297,11 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         # Click "submit button"?
         if response_data['recaptcha_data']['captchas'] and self.submit_selectors:
             # We need to click "submit button"
-            for domain, submit_selector in self.submit_selectors.items():
+            for domain, submitting in self.submit_selectors.items():
                 if domain in response.url:
-                    if not submit_selector:
+                    if not submitting:
                         return self.__gen_response(response)
-                    submit_click = Click(submit_selector)
-                    return response.follow(action=submit_click,
+                    return response.follow(action=submitting,
                                            callback=request.callback,
                                            errback=request.errback,
                                            close_page=self.__is_closing(response),
@@ -295,22 +310,27 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return self.__gen_response(response)
 
     def __gen_response(self, response):
+        main_response_data = dict()
+        main_response_data['page_id'] = None if self.__is_closing(response) else response.page_id
+
         main_response = self._page_responses.pop(response.page_id)
 
-        if not isinstance(main_response, PuppeteerHtmlResponse):
-            return main_response
-
-        main_response_data = dict()
-        if isinstance(response.puppeteer_request.action, RecaptchaSolver):
-            main_response_data['body'] = response.data['html']
-        elif isinstance(response.puppeteer_request.action, Click):
-            main_response_data['body'] = response.body
+        if isinstance(main_response, PuppeteerHtmlResponse):
+            if isinstance(response.puppeteer_request.action, RecaptchaSolver):
+                main_response_data['body'] = response.data['html']
+            elif isinstance(response.puppeteer_request.action, Click):
+                main_response_data['body'] = response.body
+            print(main_response_data['page_id'])
 
         return main_response.replace(**main_response_data)
 
     def __is_closing(self, response) -> bool:
+        print(f"We are in closing part")
         main_request = self._page_responses[response.page_id].puppeteer_request
+        print(main_request)
+        print(self._page_closing)
         if main_request in self._page_closing:
+            print(f"Closing page")
             self._page_closing.remove(main_request)
             return True
         return False
