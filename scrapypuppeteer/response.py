@@ -14,12 +14,13 @@ class PuppeteerResponse(Response):
         'context_id',
         'page_id'
     )
-    """A tuple of :class:`str` objects containing the name of all public
+    """
+        A tuple of :class:`str` objects containing the name of all public
         attributes of the class that are also keyword parameters of the
         ``__init__`` method.
 
         Currently used by :meth:`PuppeteerResponse.replace`.
-        """
+    """
 
     def __init__(self,
                  url: str,
@@ -75,6 +76,18 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
     """
     scrapy.TextResponse capturing state of a page in browser.
     Additionally, exposes received html and cookies via corresponding attributes.
+    """
+
+    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+        'html',
+        'cookies'
+    )
+    """
+        A tuple of :class:`str` objects containing the name of all public
+        attributes of the class that are also keyword parameters of the
+        ``__init__`` method.
+
+        Currently used by :meth:`PuppeteerResponse.replace`.
     """
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):

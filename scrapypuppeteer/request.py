@@ -17,12 +17,13 @@ class PuppeteerRequest(Request):
         'close_page',
         'include_headers'
     )
-    """A tuple of :class:`str` objects containing the name of all public
+    """
+        A tuple of :class:`str` objects containing the name of all public
         attributes of the class that are also keyword parameters of the
         ``__init__`` method.
 
         Currently used by :meth:`PuppeteerRequest.replace`
-        """
+    """
 
     def __init__(self,
                  action: Union[str, PuppeteerServiceAction],
@@ -72,6 +73,3 @@ class PuppeteerRequest(Request):
             kwargs.setdefault(x, getattr(self, x))
         cls = kwargs.pop("cls", self.__class__)
         return cls(*args, **kwargs)
-
-    def __hash__(self):
-        return hash(self.url)

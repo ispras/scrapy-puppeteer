@@ -73,6 +73,7 @@ class PuppeteerServiceDownloaderMiddleware:
         return middleware
 
     def process_request(self, request, spider):
+        print(f"Processing request in ServiceMiddleware")
         if not isinstance(request, PuppeteerRequest):
             return
 
@@ -147,9 +148,7 @@ class PuppeteerServiceDownloaderMiddleware:
         if b'application/json' not in response.headers.get(b'Content-Type', b''):
             return response
 
-        print(f"Printing response data:")
         response_data = json.loads(response.text)
-        print(response_data)
         context_id = response_data.pop('contextId', puppeteer_request.context_id)
         page_id = response_data.pop('pageId', puppeteer_request.page_id)
         response_data['request'] = request
@@ -225,7 +224,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         self.submit_selectors = submit_selectors
         self.recaptcha_solving = recaptcha_solving
         self._page_responses = dict()
-        self._page_closing = list()
+        self._page_closing = set()
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
@@ -239,26 +238,25 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             submit_selectors = {'': crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, '')}
         return cls(recaptcha_solving, submit_selectors)
 
-    @staticmethod
-    def process_request(request, spider):
+    def process_request(self, request, spider):
         # We don't modify any request, we only work with responses
         print(f"Processing request in RecaptchaMiddleware")
         if isinstance(request, PuppeteerRequest):
             print(f"PuppeteerRequest")
-            if request.close_page:
+            print(request.close_page)
+            if request.close_page and not request.meta.get('_captcha_submission', False):
                 print(f"Changing close_page")
-                request.replace(close_page=False)
-                print(request.close_page)
+                new_request = request.replace(close_page=False, dont_filter=True)
+                self._page_closing.add(new_request)
+                return new_request
         return None
 
     def process_response(self,
                          request, response,
                          spider):
+        print(f"Processing response in RecaptchaMiddleware")
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
-
-        # if response.puppeteer_request.close_page:  # No need in solving captcha right before closing the page
-        #     return response
 
         if request.meta.get('dont_recaptcha', False):
             return response
@@ -275,14 +273,11 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     def _solve_recaptcha(self, response):
         print(f"Solving recaptcha")
-        print(response)
-        self._page_responses[self.__get_page_id(response)] = response  # Saving main response to return it later
+        self._page_responses[response.page_id] = response  # Saving main response to return it later
 
         recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
-        return PuppeteerRequest(recaptcha_solver,
-                                context_id=response.context_id, page_id=self.__get_page_id(response),
-                                close_page=False,
-                                url=response.url, dont_filter=True)
+        return response.follow(recaptcha_solver,
+                               close_page=False)
 
     def _submit_recaptcha(self, request, response, spider):
         response_data = response.data
@@ -302,7 +297,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                     return response.follow(action=submit_click,
                                            callback=request.callback,
                                            errback=request.errback,
-                                           close_page=False,
+                                           close_page=self.__is_closing(response),
                                            meta={'_captcha_submission': True})
             raise IgnoreRequest("No submit selector found to click on the page but captcha found")
         return self.__gen_response(response)
@@ -313,20 +308,17 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not isinstance(main_response, PuppeteerHtmlResponse):
             return main_response
 
-        return self.__replace_response(main_response,
-                                       sub_response=response)
-
-    @staticmethod
-    def __replace_response(response, *args, sub_response):
         main_response_data = dict()
-        if isinstance(sub_response.puppeteer_request.action, RecaptchaSolver):
-            main_response_data['body'] = sub_response.data['html']
-        elif isinstance(sub_response.puppeteer_request.action, Click):
-            main_response_data['body'] = sub_response.body
-        main_response_data['cookies'] = response.cookies
-        main_response_data['html'] = ''
-        return response.replace(*args, **main_response_data)
+        if isinstance(response.puppeteer_request.action, RecaptchaSolver):
+            main_response_data['body'] = response.data['html']
+        elif isinstance(response.puppeteer_request.action, Click):
+            main_response_data['body'] = response.body
 
-    @staticmethod
-    def __get_page_id(response):
-        return response.page_id or response.puppeteer_request.page_id
+        return main_response.replace(**main_response_data)
+
+    def __is_closing(self, response) -> bool:
+        main_request = self._page_responses[response.page_id].puppeteer_request
+        if main_request in self._page_closing:
+            self._page_closing.remove(main_request)
+            return True
+        return False
