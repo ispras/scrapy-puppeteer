@@ -10,7 +10,7 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer import PuppeteerHtmlResponse, PuppeteerRequest, PuppeteerResponse
-from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
+from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll
 from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
 
 
@@ -136,7 +136,7 @@ class PuppeteerServiceDownloaderMiddleware:
             return json.dumps(payload)
         return str(payload)
 
-    def process_response(self, request, response, spider):
+    def process_response(self, request: Request, response, spider):
         if not isinstance(response, TextResponse):
             return response
 
@@ -150,7 +150,8 @@ class PuppeteerServiceDownloaderMiddleware:
         response_data = json.loads(response.text)
         context_id = response_data.pop('contextId', puppeteer_request.context_id)
         page_id = response_data.pop('pageId', puppeteer_request.page_id)
-        response_data['request'] = request
+        response_data['request'] = request.replace(url=puppeteer_request.url,
+                                                   method=puppeteer_request.action.endpoint.upper())
 
         response_cls = self._get_response_class(puppeteer_request.action)
         response = response_cls(
@@ -278,7 +279,8 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     def _solve_recaptcha(self, response):
         self._page_responses[response.page_id] = response  # Saving main response to return it later
 
-        recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving)
+        recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving,
+                                           close_on_empty=self.__is_closing(response, remove_request=False))
         return response.follow(recaptcha_solver,
                                close_page=False)
 
@@ -318,9 +320,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
         return main_response.replace(**main_response_data)
 
-    def __is_closing(self, response) -> bool:
+    def __is_closing(self, response,
+                     remove_request: bool = True) -> bool:
         main_request = self._page_responses[response.page_id].puppeteer_request
-        if main_request in self._page_closing:
+        close_page = main_request in self._page_closing
+        if close_page and remove_request:
             self._page_closing.remove(main_request)
-            return True
-        return False
+        return close_page

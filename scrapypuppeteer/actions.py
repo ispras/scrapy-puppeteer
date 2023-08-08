@@ -249,12 +249,17 @@ class RecaptchaSolver(PuppeteerServiceAction):
     """
     endpoint = 'recaptcha_solver'
 
-    def __init__(self, solve_recaptcha: bool = True, **kwargs):
+    def __init__(self,
+                 solve_recaptcha: bool = True,
+                 close_on_empty: bool = False,
+                 **kwargs):
         self.solve_recaptcha = solve_recaptcha
+        self.close_on_empty = close_on_empty
 
     def payload(self):
         return {
-            'solve_recaptcha': self.solve_recaptcha
+            'solve_recaptcha': self.solve_recaptcha,
+            'close_on_empty': self.close_on_empty
         }
 
 

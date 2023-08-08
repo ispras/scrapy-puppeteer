@@ -73,3 +73,9 @@ class PuppeteerRequest(Request):
             kwargs.setdefault(x, getattr(self, x))
         cls = kwargs.pop("cls", self.__class__)
         return cls(*args, **kwargs)
+
+    # def __repr__(self):
+    #     return f"<{self.action.endpoint.upper()} {self.url}>"
+    #
+    # def __str__(self):
+    #     return self.__repr__()
