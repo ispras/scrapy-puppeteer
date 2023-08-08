@@ -9,9 +9,9 @@ from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
-from scrapypuppeteer import PuppeteerHtmlResponse, PuppeteerRequest, PuppeteerResponse
-from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll
-from scrapypuppeteer.response import PuppeteerJsonResponse, PuppeteerScreenshotResponse
+from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
+from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
+from scrapypuppeteer.response import PuppeteerHtmlResponse, PuppeteerScreenshotResponse, PuppeteerJsonResponse
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -207,7 +207,9 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             'www.google.com/recaptcha/api2/demo': '#recaptcha-demo-submit'
         it could be also squeezed to
             'ecaptcha/api2/de': '#recaptcha-demo-submit'
-        In general - unique identifying string which is contained in web-page url
+        also you can use not just strings but Click action with required parameters:
+            'ogle.com/recaptcha': Click('#recaptcha-demo-submit')
+        In general - domain is a unique identifying string which is contained in web-page url
         If there is no button to submit recaptcha then provide empty string to a domain.
         This setting can also be a string. If so the middleware will only click the button
         related to this selector.
@@ -264,7 +266,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
 
-        if request.meta.get('dont_recaptcha', False):
+        if request.meta.get('dont_recaptcha', False):  # Skip such responses
             return response
 
         if request.meta.pop('_captcha_submission', False):  # Submitted captcha
@@ -273,6 +275,14 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if isinstance(response.puppeteer_request.action, RecaptchaSolver):
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
+
+        if isinstance(response.puppeteer_request.action, (Screenshot, Scroll, CustomJsAction)):
+            # No recaptcha after these actions
+
+            # TODO: I guess there is almost no recaptcha after Click actions
+            # We can add '_captcha_solving' meta key to determine if RecaptchaSolver is ours
+            # So, after this user is able to call RecaptchaSolver on its own
+            return response
 
         # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
         return self._solve_recaptcha(response)

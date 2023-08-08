@@ -66,16 +66,3 @@ class PuppeteerRequest(Request):
         self.page_id = page_id
         self.close_page = close_page
         self.include_headers = include_headers
-
-    def replace(self, *args, **kwargs):
-        # TODO: possibly to delete method
-        for x in self.attributes:
-            kwargs.setdefault(x, getattr(self, x))
-        cls = kwargs.pop("cls", self.__class__)
-        return cls(*args, **kwargs)
-
-    # def __repr__(self):
-    #     return f"<{self.action.endpoint.upper()} {self.url}>"
-    #
-    # def __str__(self):
-    #     return self.__repr__()

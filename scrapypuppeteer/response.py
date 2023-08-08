@@ -89,6 +89,21 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
 
 
+class PuppeteerScreenshotResponse(PuppeteerResponse):
+    """
+    Response for Screenshot action.
+    Screenshot is available via self.screenshot as base64 encoded string.
+    """
+
+    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+        'screenshot',
+    )
+
+    def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
+        self.screenshot = kwargs.pop('screenshot')
+        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
+
+
 class PuppeteerJsonResponse(PuppeteerResponse):
     """
     Response for CustomJsAction and RecaptchaSolver.
@@ -121,18 +136,3 @@ class PuppeteerJsonResponse(PuppeteerResponse):
 
         cls = kwargs.pop("cls", self.__class__)
         return cls(*args, **kwargs)
-
-
-class PuppeteerScreenshotResponse(PuppeteerResponse):
-    """
-    Response for Screenshot action.
-    Screenshot is available via self.screenshot as base64 encoded string.
-    """
-
-    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
-        'screenshot',
-    )
-
-    def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
-        self.screenshot = kwargs.pop('screenshot')
-        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
