@@ -144,14 +144,15 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
+        request = request.replace(url=puppeteer_request.url,
+                                  method=puppeteer_request.action.endpoint.upper())
         if b'application/json' not in response.headers.get(b'Content-Type', b''):
-            return response
+            return response.replace(request=request)
 
         response_data = json.loads(response.text)
         context_id = response_data.pop('contextId', puppeteer_request.context_id)
         page_id = response_data.pop('pageId', puppeteer_request.page_id)
-        response_data['request'] = request.replace(url=puppeteer_request.url,
-                                                   method=puppeteer_request.action.endpoint.upper())
+        response_data['request'] = request
 
         response_cls = self._get_response_class(puppeteer_request.action)
         response = response_cls(
