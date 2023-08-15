@@ -159,9 +159,6 @@ class Click(PuppeteerServiceAction):
             'navigationOptions': self.navigation_options
         }
 
-    def __bool__(self):
-        return not not self.selector
-
 
 class Scroll(PuppeteerServiceAction):
     """
@@ -241,6 +238,7 @@ class RecaptchaSolver(PuppeteerServiceAction):
             solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
                 If false is provided recaptcha will still be detected on the page but not solved.
                 You can get info about found recaptchas via return value.
+            close_on_empty - bool = False: whether to close page or not if there was no captcha on the page.
 
         Response for this action is PuppeteerJsonResponse. You can get the return values
         via self.data['recaptcha_data'].

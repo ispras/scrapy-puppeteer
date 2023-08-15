@@ -9,9 +9,9 @@ from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
-from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
 from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
-from scrapypuppeteer.response import PuppeteerHtmlResponse, PuppeteerScreenshotResponse, PuppeteerJsonResponse
+from scrapypuppeteer.response import PuppeteerResponse, PuppeteerHtmlResponse, PuppeteerScreenshotResponse, PuppeteerJsonResponse
+from scrapypuppeteer.request import ActionRequest, PuppeteerRequest
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -97,8 +97,9 @@ class PuppeteerServiceDownloaderMiddleware:
                 **meta
             }
 
-        return Request(
+        return ActionRequest(
             url=service_url,
+            action=action,
             method='POST',
             headers=Headers({'Content-Type': action.content_type}),
             body=self._serialize_body(action, request),
@@ -140,7 +141,7 @@ class PuppeteerServiceDownloaderMiddleware:
             return json.dumps(payload)
         return str(payload)
 
-    def process_response(self, request: Request, response, spider):
+    def process_response(self, request, response, spider):
         if not isinstance(response, TextResponse):
             return response
 
@@ -148,8 +149,6 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
-        request = request.replace(url=puppeteer_request.url,
-                                  method=puppeteer_request.action.endpoint.upper())
         if b'application/json' not in response.headers.get(b'Content-Type', b''):
             return response.replace(request=request)
 
@@ -314,7 +313,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             # We need to click "submit button"
             for domain, submitting in self.submit_selectors.items():
                 if domain in response.url:
-                    if not submitting:
+                    if not submitting.selector:
                         return self.__gen_response(response)
                     return response.follow(action=submitting,
                                            callback=request.callback,

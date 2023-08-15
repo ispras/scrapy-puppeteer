@@ -1,14 +1,14 @@
-from typing import Union
+from typing import Tuple, Union
 
-from scrapy.http import Response, TextResponse
+from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
 
-class PuppeteerResponse(Response):
+class PuppeteerResponse(TextResponse):
 
-    attributes: tuple[str, ...] = Response.attributes + (
+    attributes: Tuple[str, ...] = TextResponse.attributes + (
         'url',
         'puppeteer_request',
         'context_id',
@@ -62,13 +62,13 @@ class PuppeteerResponse(Response):
                                 close_page=close_page, **kwargs)
 
 
-class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
+class PuppeteerHtmlResponse(PuppeteerResponse):
     """
     scrapy.TextResponse capturing state of a page in browser.
     Additionally, exposes received html and cookies via corresponding attributes.
     """
 
-    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + (
         'html',
         'cookies'
     )
@@ -95,7 +95,7 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
     Screenshot is available via self.screenshot as base64 encoded string.
     """
 
-    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + (
         'screenshot',
     )
 
@@ -110,7 +110,7 @@ class PuppeteerJsonResponse(PuppeteerResponse):
     Result is available via self.data object.
     """
 
-    attributes: tuple[str, ...] = PuppeteerResponse.attributes + (
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + (
         'data',
     )
 

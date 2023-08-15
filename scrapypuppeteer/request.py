@@ -1,17 +1,44 @@
-from typing import List, Union
+from typing import Tuple, List, Union
 
 from scrapy.http import Request
 
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
 
-class PuppeteerRequest(Request):
+class ActionRequest(Request):
     """
-    Request to be executed in browser with puppeteer.
+        Request with puppeteer action parameter and
+    beautified representation
     """
 
-    attributes: tuple[str, ...] = Request.attributes + (
+    attributes: Tuple[str, ...] = Request.attributes + (
         'action',
+    )
+    """
+        A tuple of :class:`str` objects containing the name of all public
+        attributes of the class that are also keyword parameters of the
+        ``__init__`` method.
+
+        Currently used by :meth:`ActionRequest.__repr__` and `ActionRequest.__str__`
+    """
+
+    def __init__(self,
+                 url: str,
+                 action: Union[str, PuppeteerServiceAction],
+                 **kwargs):
+        self.action = action
+        super().__init__(url, **kwargs)
+
+    def __repr__(self):
+        return f"<{self.action.endpoint.upper()} {self.meta.get('puppeteer_request', self).url}>"
+
+
+class PuppeteerRequest(ActionRequest):
+    """
+        Request to be executed in browser with puppeteer.
+    """
+
+    attributes: Tuple[str, ...] = Request.attributes + (
         'context_id',
         'page_id',
         'close_page',
@@ -60,8 +87,7 @@ class PuppeteerRequest(Request):
             raise ValueError('Undefined browser action')
         if url is None:
             raise ValueError('Request is not a goto-request and does not follow a response')
-        super().__init__(url, **kwargs)
-        self.action = action
+        super().__init__(url, action, **kwargs)
         self.context_id = context_id
         self.page_id = page_id
         self.close_page = close_page
