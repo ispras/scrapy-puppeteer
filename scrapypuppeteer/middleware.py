@@ -22,6 +22,10 @@ class PuppeteerServiceDownloaderMiddleware:
     that spider uses and performs cleanup request to service once spider
     is closed.
 
+        Additionally, the middleware uses these meta-keys, do not use them, because their changing
+    could possibly (almost probably) break determined behaviour:
+    'puppeteer_request', 'dont_obey_robotstxt', 'proxy'
+
     Settings:
 
     PUPPETEER_SERVICE_URL (str)
@@ -188,26 +192,29 @@ class PuppeteerServiceDownloaderMiddleware:
 
 class PuppeteerRecaptchaDownloaderMiddleware:
     """
-    This middleware is supposed to solve recaptcha on the page automatically.
-    If there is no captcha on the page then this middleware will do nothing on
-    the page, so your 2captcha balance will remain the same.
+        This middleware is supposed to solve recaptcha on the page automatically.
+    If there is no captcha on the page then this middleware will do nothing
+    on the page, so your 2captcha balance will remain the same.
     It can submit recaptcha if "submit button" is provided.
     It will not "submit" captcha if there is no submit-selector.
 
-    If you want to turn off Recaptcha solving on the exact request provide
+        If you want to turn Recaptcha solving off on the exact request provide
     meta-key 'dont_recaptcha' with True value. The middleware will skip the request
-    through it.
+    through itself.
 
-    Settings:
+        The middleware uses additionally these meta-keys, do not use them, because their changing
+    could possibly (almost probably) break determined behaviour: '_captcha_submission'
+
+        Settings:
 
     RECAPTCHA_ACTIVATION: bool = True - activates or not the middleware (if not - raises NotConfigured)
     RECAPTCHA_SOLVING: bool = True - whether solve captcha automatically or not
-    RECAPTCHA_SUBMIT_SELECTOR: str | dict = {} - dictionary consisting of domains and
+    RECAPTCHA_SUBMIT_SELECTORS: str | dict = {} - dictionary consisting of domains and
         these domains' submit selectors, e.g.
             'www.google.com/recaptcha/api2/demo': '#recaptcha-demo-submit'
         it could be also squeezed to
             'ecaptcha/api2/de': '#recaptcha-demo-submit'
-        also you can use not just strings but Click action with required parameters:
+        also you can use not just strings but Click actions with required parameters:
             'ogle.com/recaptcha': Click('#recaptcha-demo-submit')
         In general - domain is a unique identifying string which is contained in web-page url
         If there is no button to submit recaptcha then provide empty string to a domain.

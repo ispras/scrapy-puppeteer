@@ -39,7 +39,7 @@ class PuppeteerResponse(Response):
                accumulate_meta: bool = False,
                **kwargs) -> PuppeteerRequest:
         """
-        Execute action in same browser page.
+        Execute action on the same browser page.
 
         :param action: URL (maybe relative) or browser action.
         :param close_page: whether to close page after request completion
