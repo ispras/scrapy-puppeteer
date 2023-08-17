@@ -114,25 +114,8 @@ class PuppeteerJsonResponse(PuppeteerResponse):
         'data',
     )
 
-    def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
+    def __init__(self, url, puppeteer_request, context_id, page_id, data, **kwargs):
         headers = {'Content-Type': 'application/json'}
-        request = kwargs['request']
-        self.data = kwargs
+        self.data = data
         super().__init__(url, puppeteer_request, context_id, page_id,
-                         headers=headers, request=request)
-
-    def replace(self, *args, **kwargs):
-        """
-            Create a new PuppeteerJsonResponse object with the same attributes
-            except for those given new values
-        """
-        for attr in self.attributes:
-            kwargs.setdefault(attr, getattr(self, attr))
-
-        kwargs = {
-            **kwargs.pop('data'),
-            **kwargs
-        }
-
-        cls = kwargs.pop("cls", self.__class__)
-        return cls(*args, **kwargs)
+                         headers=headers, **kwargs)

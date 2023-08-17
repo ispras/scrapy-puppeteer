@@ -153,22 +153,34 @@ class PuppeteerServiceDownloaderMiddleware:
             return response.replace(request=request)
 
         response_data = json.loads(response.text)
-        context_id = response_data.pop('contextId', puppeteer_request.context_id)
-        page_id = response_data.pop('pageId', puppeteer_request.page_id)
+        response_data['puppeteer_request'] = puppeteer_request
         response_data['request'] = request
 
         response_cls = self._get_response_class(puppeteer_request.action)
-        response = response_cls(
+
+        return self._form_response(response_cls, response_data, spider)
+
+    def _form_response(self, response_cls, response_data, spider):
+        puppeteer_request = response_data.pop('puppeteer_request')
+        context_id = response_data.pop('contextId', puppeteer_request.context_id)
+        page_id = response_data.pop('pageId', puppeteer_request.page_id)
+
+        attributes = dict()
+        for attr in response_cls.attributes:
+            if attr in response_data:
+                attributes[attr] = response_data.pop(attr)
+        if response_data:
+            attributes['data'] = response_data
+
+        self.used_contexts[id(spider)].add(context_id)
+
+        return response_cls(
             url=puppeteer_request.url,
             puppeteer_request=puppeteer_request,
             context_id=context_id,
             page_id=page_id,
-            **response_data
+            **attributes
         )
-
-        self.used_contexts[id(spider)].add(context_id)
-
-        return response
 
     @staticmethod
     def _get_response_class(request_action):
@@ -282,12 +294,8 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(response.puppeteer_request.action, (Screenshot, Scroll, CustomJsAction)):
-            # No recaptcha after these actions
-
-            # TODO: I guess there is almost no recaptcha after Click actions
-            # We can add '_captcha_solving' meta key to determine if RecaptchaSolver is ours
-            # So, after this user is able to call RecaptchaSolver on its own
+        if isinstance(response.puppeteer_request.action, Screenshot):
+            # No recaptcha after this action
             return response
 
         # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse

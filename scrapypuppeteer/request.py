@@ -8,7 +8,7 @@ from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 class ActionRequest(Request):
     """
         Request with puppeteer action parameter and
-    beautified representation
+    beautified representation.
     """
 
     attributes: Tuple[str, ...] = Request.attributes + (
@@ -32,13 +32,16 @@ class ActionRequest(Request):
     def __repr__(self):
         return f"<{self.action.endpoint.upper()} {self.meta.get('puppeteer_request', self).url}>"
 
+    def __str__(self):
+        return self.__repr__()
+
 
 class PuppeteerRequest(ActionRequest):
     """
         Request to be executed in browser with puppeteer.
     """
 
-    attributes: Tuple[str, ...] = Request.attributes + (
+    attributes: Tuple[str, ...] = ActionRequest.attributes + (
         'context_id',
         'page_id',
         'close_page',
