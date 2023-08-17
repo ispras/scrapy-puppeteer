@@ -115,7 +115,6 @@ class PuppeteerJsonResponse(PuppeteerResponse):
     )
 
     def __init__(self, url, puppeteer_request, context_id, page_id, data, **kwargs):
-        headers = {'Content-Type': 'application/json'}
+        kwargs['headers'] = {'Content-Type': 'application/json'}
         self.data = data
-        super().__init__(url, puppeteer_request, context_id, page_id,
-                         headers=headers, **kwargs)
+        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
