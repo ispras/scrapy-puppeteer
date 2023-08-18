@@ -16,7 +16,7 @@ setup(
     maintainer='Maksim Varlamov',
     maintainer_email='varlamov@ispras.ru',
     packages=['scrapypuppeteer'],
-    requires=['scrapy>=2.6'],
+    requires=['scrapy'],
     python_requires='>=3.6',
     license='BSD',
     classifiers=[
