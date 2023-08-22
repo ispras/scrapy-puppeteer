@@ -153,8 +153,6 @@ class PuppeteerServiceDownloaderMiddleware:
             return response.replace(request=request)
 
         response_data = json.loads(response.text)
-        response_data['puppeteer_request'] = puppeteer_request
-        response_data['request'] = request
 
         response_cls = self._get_response_class(puppeteer_request.action)
 
