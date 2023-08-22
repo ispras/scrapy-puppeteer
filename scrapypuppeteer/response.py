@@ -1,12 +1,27 @@
-from typing import Union
+from typing import Tuple, Union
 
-from scrapy.http import Response, TextResponse
+from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
 
-class PuppeteerResponse(Response):
+class PuppeteerResponse(TextResponse):
+
+    attributes: Tuple[str, ...] = TextResponse.attributes + (
+        'url',
+        'puppeteer_request',
+        'context_id',
+        'page_id'
+    )
+    """
+        A tuple of :class:`str` objects containing the name of all public
+        attributes of the class that are also keyword parameters of the
+        ``__init__`` method.
+
+        Currently used by :meth:`PuppeteerResponse.replace`.
+    """
+
     def __init__(self,
                  url: str,
                  puppeteer_request: PuppeteerRequest,
@@ -21,12 +36,14 @@ class PuppeteerResponse(Response):
     def follow(self,
                action: Union[str, PuppeteerServiceAction],
                close_page=True,
+               accumulate_meta: bool = False,
                **kwargs) -> PuppeteerRequest:
         """
-        Execute action in same browser page.
+        Execute action on the same browser page.
 
         :param action: URL (maybe relative) or browser action.
         :param close_page: whether to close page after request completion
+        :param accumulate_meta: whether to accumulate meta from response
         :param kwargs:
         :return:
         """
@@ -38,14 +55,32 @@ class PuppeteerResponse(Response):
         else:
             kwargs['url'] = self.url
             kwargs['dont_filter'] = True
-        return PuppeteerRequest(action, context_id=self.context_id, page_id=page_id,
+        if accumulate_meta:
+            kwargs['meta'] = {
+                **self.meta,
+                **kwargs.pop('meta', {})
+            }
+        return PuppeteerRequest(action,
+                                context_id=self.context_id, page_id=page_id,
                                 close_page=close_page, **kwargs)
 
 
-class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
+class PuppeteerHtmlResponse(PuppeteerResponse):
     """
     scrapy.TextResponse capturing state of a page in browser.
     Additionally, exposes received html and cookies via corresponding attributes.
+    """
+
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + (
+        'html',
+        'cookies'
+    )
+    """
+        A tuple of :class:`str` objects containing the name of all public
+        attributes of the class that are also keyword parameters of the
+        ``__init__`` method.
+
+        Currently used by :meth:`PuppeteerResponse.replace`.
     """
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
@@ -57,24 +92,32 @@ class PuppeteerHtmlResponse(PuppeteerResponse, TextResponse):
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
 
 
-class PuppeteerJsonResponse(PuppeteerResponse):
-    """
-    Response for CustomJsAction and RecaptchaSolver.
-    Result is available via self.data object.
-    """
-
-    def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
-        self.data = kwargs
-        headers = {'Content-Type': 'application/json'}
-        super().__init__(url, puppeteer_request, context_id, page_id, headers=headers)
-
-
 class PuppeteerScreenshotResponse(PuppeteerResponse):
     """
     Response for Screenshot action.
     Screenshot is available via self.screenshot as base64 encoded string.
     """
 
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + (
+        'screenshot',
+    )
+
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.screenshot = kwargs.pop('screenshot')
+        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
+
+
+class PuppeteerJsonResponse(PuppeteerResponse):
+    """
+    Response for CustomJsAction and RecaptchaSolver.
+    Result is available via self.data object.
+    """
+
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + (
+        'data',
+    )
+
+    def __init__(self, url, puppeteer_request, context_id, page_id, data, **kwargs):
+        kwargs['headers'] = {'Content-Type': 'application/json'}
+        self.data = data
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)

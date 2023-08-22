@@ -7,7 +7,7 @@ with open("README.md", "r") as readme:
 
 setup(
     name='scrapy-puppeteer-client',
-    version='0.1.1',
+    version='0.1.2',
     description='A library to use Puppeteer-managed browser in Scrapy spiders',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -16,13 +16,12 @@ setup(
     maintainer='Maksim Varlamov',
     maintainer_email='varlamov@ispras.ru',
     packages=['scrapypuppeteer'],
-    requires=['scrapy'],
-    python_requires='>=3.5',
+    install_requires=['scrapy>=2.6'],
+    python_requires='>=3.6',
     license='BSD',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',

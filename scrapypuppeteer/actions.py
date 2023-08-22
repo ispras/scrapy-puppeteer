@@ -238,6 +238,7 @@ class RecaptchaSolver(PuppeteerServiceAction):
             solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
                 If false is provided recaptcha will still be detected on the page but not solved.
                 You can get info about found recaptchas via return value.
+            close_on_empty - bool = False: whether to close page or not if there was no captcha on the page.
 
         Response for this action is PuppeteerJsonResponse. You can get the return values
         via self.data['recaptcha_data'].
@@ -246,12 +247,17 @@ class RecaptchaSolver(PuppeteerServiceAction):
     """
     endpoint = 'recaptcha_solver'
 
-    def __init__(self, solve_recaptcha: bool = True, **kwargs):
+    def __init__(self,
+                 solve_recaptcha: bool = True,
+                 close_on_empty: bool = False,
+                 **kwargs):
         self.solve_recaptcha = solve_recaptcha
+        self.close_on_empty = close_on_empty
 
     def payload(self):
         return {
-            'solve_recaptcha': self.solve_recaptcha
+            'solve_recaptcha': self.solve_recaptcha,
+            'close_on_empty': self.close_on_empty
         }
 
 
@@ -261,7 +267,11 @@ class CustomJsAction(PuppeteerServiceAction):
 
     :param str js_action: JavaScript function.
 
-    Expected signature: ``async function action(page, request)``
+    Expected signature: ``async function action(page, request)``.
+
+    JavaScript function should not return object with attributes
+    of ``scrapypuppeteer.PuppeteerJsonResponse``.
+    Otherwise, undefined behaviour is possible.
 
     Response for this action contains result of the function.
 
