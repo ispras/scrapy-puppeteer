@@ -343,7 +343,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     def __gen_response(self, response):
         main_response_data = dict()
-        main_response_data['page_id'] = None if self.__is_closing(response) else response.page_id
+        main_response_data['page_id'] = None if self.__is_closing(response) else response.puppeteer_request.page_id
 
         main_response = self._page_responses.pop(response.page_id)
 
