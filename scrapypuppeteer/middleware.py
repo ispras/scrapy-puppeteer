@@ -153,7 +153,6 @@ class PuppeteerServiceDownloaderMiddleware:
             return response.replace(request=request)
 
         response_data = json.loads(response.text)
-
         response_cls = self._get_response_class(puppeteer_request.action)
 
         return self._form_response(response_cls, response_data,
@@ -279,9 +278,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
         if isinstance(request, PuppeteerRequest):
             if request.close_page and not request.meta.get('_captcha_submission', False):
-                new_request = request.replace(close_page=False, dont_filter=True)
-                self._page_closing.add(new_request)
-                return new_request
+                request.close_page = False
+                request.dont_filter = True
+                self._page_closing.add(request)
+                return request
         return None
 
     def process_response(self,
