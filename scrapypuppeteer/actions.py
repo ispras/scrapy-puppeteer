@@ -267,7 +267,10 @@ class CustomJsAction(PuppeteerServiceAction):
 
     :param str js_action: JavaScript function.
 
-    Expected signature: ``async function action(page, request)``
+    Expected signature: ``async function action(page, request)``.
+
+    JavaScript function should not return object with attributes
+    of ``scrapy.TextResponse``. Otherwise, undefined behaviour is possible.
 
     Response for this action contains result of the function.
 

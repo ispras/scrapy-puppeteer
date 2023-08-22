@@ -214,7 +214,8 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     through itself.
 
         The middleware uses additionally these meta-keys, do not use them, because their changing
-    could possibly (almost probably) break determined behaviour: '_captcha_submission'
+    could possibly (almost probably) break determined behaviour:
+    '_captcha_submission', '_captcha_solving'
 
         Settings:
 
@@ -271,6 +272,9 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return cls(recaptcha_solving, submit_selectors)
 
     def process_request(self, request, spider):
+        if request.meta.get('dont_recaptcha', False):
+            return None
+
         if isinstance(request, PuppeteerRequest):
             if request.close_page and not request.meta.get('_captcha_submission', False):
                 new_request = request.replace(close_page=False, dont_filter=True)
@@ -290,11 +294,12 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if request.meta.pop('_captcha_submission', False):  # Submitted captcha
             return self.__gen_response(response)
 
-        if isinstance(response.puppeteer_request.action, RecaptchaSolver):
+        if request.meta.pop('_captcha_solving', False):
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(response.puppeteer_request.action, Screenshot):
+        if isinstance(response.puppeteer_request.action,
+                      (Screenshot, Scroll, CustomJsAction, RecaptchaSolver)):
             # No recaptcha after this action
             return response
 
@@ -307,6 +312,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving,
                                            close_on_empty=self.__is_closing(response, remove_request=False))
         return response.follow(recaptcha_solver,
+                               meta={'_captcha_solving': True},
                                close_page=False)
 
     def _submit_recaptcha(self, request, response, spider):

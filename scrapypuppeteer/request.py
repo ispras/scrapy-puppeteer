@@ -18,8 +18,6 @@ class ActionRequest(Request):
         A tuple of :class:`str` objects containing the name of all public
         attributes of the class that are also keyword parameters of the
         ``__init__`` method.
-
-        Currently used by :meth:`ActionRequest.__repr__` and `ActionRequest.__str__`
     """
 
     def __init__(self,
