@@ -158,10 +158,13 @@ class PuppeteerServiceDownloaderMiddleware:
 
         response_cls = self._get_response_class(puppeteer_request.action)
 
-        return self._form_response(response_cls, response_data, spider)
+        return self._form_response(response_cls, response_data,
+                                   puppeteer_request.url, request, puppeteer_request,
+                                   spider)
 
-    def _form_response(self, response_cls, response_data, spider):
-        puppeteer_request = response_data.pop('puppeteer_request')
+    def _form_response(self, response_cls, response_data,
+                       url, request, puppeteer_request,
+                       spider):
         context_id = response_data.pop('contextId', puppeteer_request.context_id)
         page_id = response_data.pop('pageId', puppeteer_request.page_id)
 
@@ -175,10 +178,11 @@ class PuppeteerServiceDownloaderMiddleware:
         self.used_contexts[id(spider)].add(context_id)
 
         return response_cls(
-            url=puppeteer_request.url,
+            url=url,
             puppeteer_request=puppeteer_request,
             context_id=context_id,
             page_id=page_id,
+            request=request,
             **attributes
         )
 
