@@ -1,4 +1,4 @@
-# scrapy-puppeteer-client
+# Scrapy-puppeteer-client
 This package aims to manage Chrome browser with [Puppeteer](https://github.com/GoogleChrome/puppeteer) from [Scrapy](https://github.com/scrapy/scrapy/) spiders. 
 This allows to scrape sites that require JS to function properly and to make the scraper more similar to humans.
 It is a client library for [scrapy-puppeteer-service](https://github.com/ispras/scrapy-puppeteer-service).
