@@ -152,7 +152,7 @@ class PuppeteerServiceDownloaderMiddleware:
         response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
 
-        if response.status != 200:  # TODO: to debate about "good" responses
+        if response.status != 200:
             self.used_contexts[id(spider)].add(response_data['contextId'])
             return response
 
