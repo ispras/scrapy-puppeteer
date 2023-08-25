@@ -149,11 +149,12 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
-        if b'application/json' not in response.headers.get(b'Content-Type', b''):
-            return response.replace(request=request)
-
         response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
+
+        if response.status != 200:  # TODO: to debate about "good" responses
+            self.used_contexts[id(spider)].add(response_data['contextId'])
+            return response
 
         return self._form_response(response_cls, response_data,
                                    puppeteer_request.url, request, puppeteer_request,
