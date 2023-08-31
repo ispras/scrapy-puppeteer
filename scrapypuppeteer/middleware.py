@@ -155,6 +155,10 @@ class PuppeteerServiceDownloaderMiddleware:
         response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
 
+        if response.status != 200:
+            self.used_contexts[id(spider)].add(response_data['contextId'])
+            return response
+
         return self._form_response(response_cls, response_data,
                                    puppeteer_request.url, request, puppeteer_request,
                                    spider)
