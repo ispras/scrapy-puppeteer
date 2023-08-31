@@ -149,6 +149,9 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
+        if b'application/json' not in response.headers.get(b'Content-Type', b''):
+            return response.replace(request=request)
+
         response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
 
