@@ -7,7 +7,7 @@ with open("README.md", "r") as readme:
 
 setup(
     name='scrapy-puppeteer-client',
-    version='0.1.2',
+    version='0.1.3',
     description='A library to use Puppeteer-managed browser in Scrapy spiders',
     long_description=long_description,
     long_description_content_type="text/markdown",
