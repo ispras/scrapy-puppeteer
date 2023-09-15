@@ -50,8 +50,8 @@ class PayloadResource(resource.Resource):
 
     def render(self, request):
         data = request.content.read()
-        contentLength = request.requestHeaders.getRawHeaders(b"content-length")[0]
-        if len(data) != 100 or int(contentLength) != 100:
+        content_length = request.requestHeaders.getRawHeaders(b"content-length")[0]
+        if len(data) != 100 or int(content_length) != 100:
             return b"ERROR"
         return data
 
@@ -228,10 +228,8 @@ class MockServer:
             env=get_mockserver_env(),
         )
         http_address = self.proc.stdout.readline().strip().decode("ascii")
-        https_address = self.proc.stdout.readline().strip().decode("ascii")
 
         self.http_address = http_address
-        self.https_address = https_address
 
         return self
 
@@ -245,73 +243,22 @@ class MockServer:
         return host + path
 
 
-class MockDNSResolver:
-    """
-    Implements twisted.internet.interfaces.IResolver partially
-    """
-
-    def _resolve(self, name):
-        record = dns.Record_A(address=b"127.0.0.1")
-        answer = dns.RRHeader(name=name, payload=record)
-        return [answer], [], []
-
-    def query(self, query, timeout=None):
-        if query.type == dns.A:
-            return defer.succeed(self._resolve(query.name.name))
-        return defer.fail(error.DomainError())
-
-    def lookupAllRecords(self, name, timeout=None):
-        return defer.succeed(self._resolve(name))
-
-
-def ssl_context_factory(
-    keyfile="keys/localhost.key", certfile="keys/localhost.crt", cipher_string=None
-):
-    factory = ssl.DefaultOpenSSLContextFactory(
-        str(Path(__file__).parent / keyfile),
-        str(Path(__file__).parent / certfile),
-    )
-    if cipher_string:
-        ctx = factory.getContext()
-        # disabling TLS1.3 because it unconditionally enables some strong ciphers
-        ctx.set_options(SSL.OP_CIPHER_SERVER_PREFERENCE | SSL.OP_NO_TLSv1_3)
-        ctx.set_cipher_list(to_bytes(cipher_string))
-    return factory
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-t", "--type", type=str, choices=("http", "dns"), default="http"
+        "-t", "--type", type=str, choices=("http",), default="http"
     )
     args = parser.parse_args()
 
-    factory: ServerFactory
-
     if args.type == "http":
         root = Root()
-        factory = Site(root)
+        factory: ServerFactory = Site(root)
         httpPort = reactor.listenTCP(0, factory)
-        contextFactory = ssl_context_factory()
-        # httpsPort = reactor.listenSSL(0, factory, contextFactory)
 
         def print_listening():
-            httpHost = httpPort.getHost()
-            # httpsHost = httpsPort.getHost()
-            httpAddress = f"http://{httpHost.host}:{httpHost.port}"
-            # httpsAddress = f"https://{httpsHost.host}:{httpsHost.port}"
-            print(httpAddress)
-            # print(httpsAddress)
-
-    elif args.type == "dns":
-        clients = [MockDNSResolver()]
-        factory = DNSServerFactory(clients=clients)
-        protocol = dns.DNSDatagramProtocol(controller=factory)
-        listener = reactor.listenUDP(0, protocol)
-
-        def print_listening():
-            host = listener.getHost()
-            print(f"{host.host}:{host.port}")
+            http_host = httpPort.getHost()
+            http_address = f"http://{http_host.host}:{http_host.port}"
+            print(http_address)
 
     reactor.callWhenRunning(print_listening)
     reactor.run()
