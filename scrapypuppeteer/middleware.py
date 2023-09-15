@@ -97,6 +97,7 @@ class PuppeteerServiceDownloaderMiddleware:
                 **meta
             }
 
+        print(service_url)
         return ActionRequest(
             url=service_url,
             action=action,
@@ -142,19 +143,25 @@ class PuppeteerServiceDownloaderMiddleware:
         return str(payload)
 
     def process_response(self, request, response, spider):
+        print("WE GOT INTO process_response")
         if not isinstance(response, TextResponse):
             return response
 
+        print("WE ARE GETTING puppeteer_request")
         puppeteer_request = request.meta.get('puppeteer_request')
         if puppeteer_request is None:
             return response
 
+        print("WE GOT puppeteer_request")
         if b'application/json' not in response.headers.get(b'Content-Type', b''):
+            print("WE DO NOT HAVE CORRECT HEADER")
             return response.replace(request=request)
 
+        print("WE ARE GETTING response_data")
         response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
 
+        print("WE GOT response_data")
         if response.status != 200:
             self.used_contexts[id(spider)].add(response_data['contextId'])
             return response
