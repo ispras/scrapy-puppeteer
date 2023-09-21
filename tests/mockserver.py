@@ -8,18 +8,17 @@ from subprocess import PIPE, Popen
 from typing import Dict
 from urllib.parse import urlencode
 
-from OpenSSL import SSL
-from twisted.internet import defer, reactor, ssl
+from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 from twisted.internet.task import deferLater
-from twisted.names import dns, error
-from twisted.names.server import DNSServerFactory
 from twisted.web import resource
 from twisted.web.server import NOT_DONE_YET, GzipEncoderFactory, Site
 from twisted.web.static import File
 from twisted.web.util import redirectTo
 
 from scrapy.utils.python import to_bytes, to_unicode
+
+from secrets import token_hex
 
 
 def getarg(request, name, default=None, type=None):
@@ -68,6 +67,86 @@ class LeafResource(resource.Resource):
         d = deferLater(reactor, delay, f, *a, **kw)
         request.notifyFinish().addErrback(_cancelrequest)
         return d
+
+
+class GoTo(LeafResource):
+    def render_POST(self, request):
+        page_id = getarg(request, b"pageId", default=None, type=str)
+        context_id = getarg(request, b"contextId", default=None, type=str)
+        close_page = getarg(request, b"closePage", default=0, type=bool)
+
+        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        return NOT_DONE_YET
+
+    def _render_request(self, request, page_id, context_id, close_page):
+        request.setHeader(b"Content-Type", b"application/json")
+        html = '''
+            <html> <head></head> <body></body>
+        '''
+        from json import dumps
+        response_data = {
+            'contextId': token_hex(20),
+            'pageId': token_hex(20),
+            'html': html,
+            'cookies': None
+        }
+        request.write(to_bytes(dumps(response_data)))
+        request.finish()
+
+
+class Click(LeafResource):
+    def render_POST(self, request):
+        page_id = getarg(request, b"pageId", default=None, type=str)
+        context_id = getarg(request, b"contextId", default=None, type=str)
+        close_page = getarg(request, b"closePage", default=0, type=bool)
+
+        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        return NOT_DONE_YET
+
+    def _render_request(self, request, page_id, context_id, close_page):
+        request.setHeader(b"Content-Type", b"application/json")
+        html = '''
+            <html> <head></head> <body>clicked</body>
+        '''
+        from json import dumps
+        response_data = {
+            'contextId': context_id,
+            'pageId': page_id,
+            'html': html,
+            'cookies': None
+        }
+        request.write(to_bytes(dumps(response_data)))
+        request.finish()
+
+
+class CloseContext(LeafResource):
+    def render_POST(self, request):
+        self.deferRequest(request, 0, self._render_request, request)
+        return NOT_DONE_YET
+
+    def _render_request(self, request):
+        request.finish()
+
+
+class Screenshot(LeafResource):
+    def render_POST(self, request):
+        page_id = getarg(request, b"pageId", default=None, type=str)
+        context_id = getarg(request, b"contextId", default=None, type=str)
+        close_page = getarg(request, b"closePage", default=0, type=bool)
+
+        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        return NOT_DONE_YET
+
+    def _render_request(self, request, page_id, context_id, close_page):
+        request.setHeader(b"Content-Type", b"application/json")
+        from base64 import b64encode
+        from json import dumps
+        with open("./tests/scrapy_logo.png", 'rb') as image:
+            response_data = {
+                'screenshot': b64encode(image.read()),
+            }
+        request.write(to_bytes(dumps(response_data)))
+        request.finish()
 
 
 class Follow(LeafResource):
@@ -192,6 +271,10 @@ class ArbitraryLengthPayloadResource(LeafResource):
 class Root(resource.Resource):
     def __init__(self):
         resource.Resource.__init__(self)
+        self.putChild(b"goto", GoTo())
+        self.putChild(b"click", Click())
+        self.putChild(b"close_context", CloseContext())
+        self.putChild(b"screenshot", Screenshot())
         self.putChild(b"status", Status())
         self.putChild(b"follow", Follow())
         self.putChild(b"delay", Delay())
@@ -216,9 +299,6 @@ class Root(resource.Resource):
     def getChild(self, name, request):
         return self
 
-    def render(self, request):
-        return b"Scrapy mock HTTP server\n"
-
 
 class MockServer:
     def __enter__(self):
@@ -227,9 +307,7 @@ class MockServer:
             stdout=PIPE,
             env=get_mockserver_env(),
         )
-        http_address = self.proc.stdout.readline().strip().decode("ascii")
-
-        self.http_address = http_address
+        self.http_address = self.proc.stdout.readline().strip().decode("ascii")
 
         return self
 
@@ -237,9 +315,8 @@ class MockServer:
         self.proc.kill()
         self.proc.communicate()
 
-    def url(self, path, is_secure=False):
-        host = self.https_address if is_secure else self.http_address
-        host = host.replace("0.0.0.0", "127.0.0.1")
+    def url(self, path):
+        host = self.http_address.replace("0.0.0.0", "127.0.0.1")
         return host + path
 
 
@@ -254,6 +331,7 @@ if __name__ == "__main__":
         root = Root()
         factory: ServerFactory = Site(root)
         httpPort = reactor.listenTCP(0, factory)
+
 
         def print_listening():
             http_host = httpPort.getHost()
