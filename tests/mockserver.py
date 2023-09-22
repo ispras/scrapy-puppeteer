@@ -143,7 +143,7 @@ class Screenshot(LeafResource):
         from json import dumps
         with open("./tests/scrapy_logo.png", 'rb') as image:
             response_data = {
-                'screenshot': b64encode(image.read()),
+                'screenshot': b64encode(image.read()).decode(),
             }
         request.write(to_bytes(dumps(response_data)))
         request.finish()

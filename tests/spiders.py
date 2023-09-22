@@ -117,7 +117,7 @@ class ScreenshotSpider(MetaSpider):
     def parse(self, response, **kwargs):
         from base64 import b64encode
         with open("./tests/scrapy_logo.png", 'rb') as image:
-            if b64encode(image.read()) == response.screenshot:
+            if b64encode(image.read()).decode() == response.screenshot:
                 self.urls_visited.append(response.url)
 
     def errback(self, failure):
