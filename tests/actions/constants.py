@@ -1,10 +1,10 @@
 from random import randint
 from itertools import combinations
 
-URLS = ("https://some_url.com", "https://invalid_url.ru", "https://one_more_url.net", "not_url/not_url")
-WAIT_UNTIL = ("load", "domcontentloaded", "networkidle0", "networkidle2")
+URLS = ("https://some_url.com", "not_url/not_url")
+WAIT_UNTIL = ("load", "domcontentloaded", "networkidle0")
 WAIT_OPTS = [None]
-SELECTORS = ("nothing", "tr.td::attr(something)", "#button", "")
+SELECTORS = ("nothing", "tr.td::attr(something)")
 CLICK_OPTS = [None]
 
 

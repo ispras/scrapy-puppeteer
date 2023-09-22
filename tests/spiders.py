@@ -1,11 +1,13 @@
-from typing import Iterable
-from urllib.parse import urlencode
-from scrapy import Spider, Request
-from scrapy.linkextractors import LinkExtractor
+from scrapy import Spider
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import GoTo, Click, Screenshot, CustomJsAction, GoBack, GoForward
-
-import time
+from scrapypuppeteer.actions import (
+    GoTo,
+    GoForward,
+    GoBack,
+    Click,
+    Screenshot,
+    CustomJsAction,
+)
 
 
 class MockServerSpider(Spider):
@@ -25,27 +27,6 @@ class MetaSpider(MockServerSpider):
         self.meta["close_reason"] = reason
 
 
-class FollowAllSpider(MetaSpider):
-    name = "follow"
-    link_extractor = LinkExtractor()
-
-    def __init__(
-            self, total=10, show=20, order="rand", maxlatency=0.0, *args, **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.urls_visited = []
-        self.times = []
-        qargs = {"total": total, "show": show, "order": order, "maxlatency": maxlatency}
-        url = self.mockserver.url(f"/follow?{urlencode(qargs, doseq=True)}")
-        self.start_urls = [url]
-
-    def parse(self, response, **kwargs):
-        self.urls_visited.append(response.url)
-        self.times.append(time.time())
-        for link in self.link_extractor.extract_links(response):
-            yield Request(link.url, callback=self.parse)
-
-
 class GoToSpider(MetaSpider):
     name = "goto"
 
@@ -53,7 +34,7 @@ class GoToSpider(MetaSpider):
         super().__init__(*args, **kwargs)
         self.urls_visited = []
 
-    def start_requests(self) -> Iterable[Request]:
+    def start_requests(self):
         yield PuppeteerRequest(GoTo("https://some_url.com"),
                                callback=self.parse, errback=self.errback,
                                close_page=False)
@@ -76,7 +57,7 @@ class ClickSpider(MetaSpider):
         super().__init__(*args, **kwargs)
         self.urls_visited = []
 
-    def start_requests(self) -> Iterable[Request]:
+    def start_requests(self):
         yield PuppeteerRequest(GoTo("https://some_url.com"),
                                callback=self.click, errback=self.errback,
                                close_page=False)
@@ -104,7 +85,7 @@ class ScreenshotSpider(MetaSpider):
         super().__init__(*args, **kwargs)
         self.urls_visited = []
 
-    def start_requests(self) -> Iterable[Request]:
+    def start_requests(self):
         yield PuppeteerRequest(GoTo("https://some_url.com"),
                                callback=self.screenshot, errback=self.errback,
                                close_page=False)
@@ -131,7 +112,7 @@ class CustomJsActionSpider(MetaSpider):
         super().__init__(*args, **kwargs)
         self.urls_visited = []
 
-    def start_requests(self) -> Iterable[Request]:
+    def start_requests(self):
         yield PuppeteerRequest(GoTo("https://some_url.com"),
                                callback=self.action, errback=self.errback,
                                close_page=False)
@@ -162,7 +143,7 @@ class GoBackForwardSpider(MetaSpider):
         super().__init__(*args, **kwargs)
         self.urls_visited = []
 
-    def start_requests(self) -> Iterable[Request]:
+    def start_requests(self):
         yield PuppeteerRequest(GoTo("https://some_url.com"),
                                callback=self.go_next, errback=self.errback,
                                close_page=False)
