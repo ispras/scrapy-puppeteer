@@ -31,7 +31,7 @@ def getarg(request, name, default=None, type=None):
 
 
 def get_mockserver_env() -> Dict[str, str]:
-    """Return a OS environment dict suitable to run mockserver processes."""
+    """Return an OS environment dict suitable to run mockserver processes."""
 
     tests_path = Path(__file__).parent.parent
     pythonpath = str(tests_path) + os.pathsep + os.environ.get("PYTHONPATH", "")
@@ -94,6 +94,56 @@ class GoTo(LeafResource):
         request.finish()
 
 
+class GoForward(LeafResource):
+    def render_POST(self, request):
+        page_id = getarg(request, b"pageId", default=None, type=str)
+        context_id = getarg(request, b"contextId", default=None, type=str)
+        close_page = getarg(request, b"closePage", default=0, type=bool)
+        request.setHeader(b"Content-Type", b"application/json")
+
+        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        return NOT_DONE_YET
+
+    def _render_request(self, request, page_id, context_id, close_page):
+        html = '''
+            <html> <head></head> <body>went forward</body>
+        '''
+        from json import dumps
+        response_data = {
+            'contextId': context_id,
+            'pageId': page_id,
+            'html': html,
+            'cookies': None
+        }
+        request.write(to_bytes(dumps(response_data)))
+        request.finish()
+
+
+class Back(LeafResource):
+    def render_POST(self, request):
+        page_id = getarg(request, b"pageId", default=None, type=str)
+        context_id = getarg(request, b"contextId", default=None, type=str)
+        close_page = getarg(request, b"closePage", default=0, type=bool)
+        request.setHeader(b"Content-Type", b"application/json")
+
+        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        return NOT_DONE_YET
+
+    def _render_request(self, request, page_id, context_id, close_page):
+        html = '''
+            <html> <head></head> <body>went back</body>
+        '''
+        from json import dumps
+        response_data = {
+            'contextId': context_id,
+            'pageId': page_id,
+            'html': html,
+            'cookies': None
+        }
+        request.write(to_bytes(dumps(response_data)))
+        request.finish()
+
+
 class Click(LeafResource):
     def render_POST(self, request):
         page_id = getarg(request, b"pageId", default=None, type=str)
@@ -133,18 +183,37 @@ class Screenshot(LeafResource):
         page_id = getarg(request, b"pageId", default=None, type=str)
         context_id = getarg(request, b"contextId", default=None, type=str)
         close_page = getarg(request, b"closePage", default=0, type=bool)
+        request.setHeader(b"Content-Type", b"application/json")
 
         self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
         return NOT_DONE_YET
 
     def _render_request(self, request, page_id, context_id, close_page):
-        request.setHeader(b"Content-Type", b"application/json")
         from base64 import b64encode
         from json import dumps
         with open("./tests/scrapy_logo.png", 'rb') as image:
             response_data = {
                 'screenshot': b64encode(image.read()).decode(),
             }
+        request.write(to_bytes(dumps(response_data)))
+        request.finish()
+
+
+class Action(LeafResource):
+    def render_POST(self, request):
+        page_id = getarg(request, b"pageId", default=None, type=str)
+        context_id = getarg(request, b"contextId", default=None, type=str)
+        close_page = getarg(request, b"closePage", default=0, type=bool)
+
+        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        return NOT_DONE_YET
+
+    def _render_request(self, request, page_id, context_id, close_page):
+        request.setHeader(b"Content-Type", b"application/json")
+        from json import dumps
+        response_data = {
+            'field': "Hello!",
+        }
         request.write(to_bytes(dumps(response_data)))
         request.finish()
 
@@ -272,9 +341,12 @@ class Root(resource.Resource):
     def __init__(self):
         resource.Resource.__init__(self)
         self.putChild(b"goto", GoTo())
+        self.putChild(b"forward", GoForward())
+        self.putChild(b"back", Back())
         self.putChild(b"click", Click())
         self.putChild(b"close_context", CloseContext())
         self.putChild(b"screenshot", Screenshot())
+        self.putChild(b"action", Action())
         self.putChild(b"status", Status())
         self.putChild(b"follow", Follow())
         self.putChild(b"delay", Delay())
