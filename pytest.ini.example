@@ -1,0 +1,6 @@
+Maybe you want to test new features or minor changes on your local PC.
+In this case you need to provide `pytest.ini` file in the root of the project:
+
+[pytest]
+
+pythonpath = <path to the project>
