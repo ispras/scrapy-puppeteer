@@ -296,17 +296,18 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
 
-        if request.meta.get('dont_recaptcha', False):  # Skip such responses
+        puppeteer_request = response.puppeteer_request
+        if puppeteer_request.meta.get('dont_recaptcha', False):  # Skip such responses
             return response
 
-        if request.meta.pop('_captcha_submission', False):  # Submitted captcha
+        if puppeteer_request.meta.pop('_captcha_submission', False):  # Submitted captcha
             return self.__gen_response(response)
 
-        if request.meta.pop('_captcha_solving', False):
+        if puppeteer_request.meta.pop('_captcha_solving', False):
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(response.puppeteer_request.action,
+        if isinstance(puppeteer_request.action,
                       (Screenshot, Scroll, CustomJsAction, RecaptchaSolver)):
             # No recaptcha after this action
             return response
