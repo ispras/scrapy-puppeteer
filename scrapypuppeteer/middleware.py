@@ -296,30 +296,34 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
             return response
 
-        if request.meta.get('dont_recaptcha', False):  # Skip such responses
+        puppeteer_request = response.puppeteer_request
+        if puppeteer_request.meta.get('dont_recaptcha', False):  # Skip such responses
             return response
 
-        if request.meta.pop('_captcha_submission', False):  # Submitted captcha
+        if puppeteer_request.meta.pop('_captcha_submission', False):  # Submitted captcha
             return self.__gen_response(response)
 
-        if request.meta.pop('_captcha_solving', False):
+        if puppeteer_request.meta.pop('_captcha_solving', False):
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(response.puppeteer_request.action,
+        if isinstance(puppeteer_request.action,
                       (Screenshot, Scroll, CustomJsAction, RecaptchaSolver)):
             # No recaptcha after this action
             return response
 
         # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
-        return self._solve_recaptcha(response)
+        return self._solve_recaptcha(request, response)
 
-    def _solve_recaptcha(self, response):
+    def _solve_recaptcha(self, request, response):
         self._page_responses[response.page_id] = response  # Saving main response to return it later
 
         recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving,
                                            close_on_empty=self.__is_closing(response, remove_request=False))
         return response.follow(recaptcha_solver,
+                               callback=request.callback,
+                               cb_kwargs=request.cb_kwargs,
+                               errback=request.errback,
                                meta={'_captcha_solving': True},
                                close_page=False)
 
@@ -339,6 +343,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                         return self.__gen_response(response)
                     return response.follow(action=submitting,
                                            callback=request.callback,
+                                           cb_kwargs=request.cb_kwargs,
                                            errback=request.errback,
                                            close_page=self.__is_closing(response),
                                            meta={'_captcha_submission': True})
