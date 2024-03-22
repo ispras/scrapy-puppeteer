@@ -132,6 +132,8 @@ class Screenshot(LeafResource):
         from json import dumps
         with open("./tests/scrapy_logo.png", 'rb') as image:
             response_data = {
+                'contextId': context_id,
+                'pageId': page_id,
                 'screenshot': b64encode(image.read()).decode(),
             }
         request.write(to_bytes(dumps(response_data)))
@@ -142,7 +144,9 @@ class Action(LeafResource):
     def _render_request(self, request, page_id, context_id, close_page):
         from json import dumps
         response_data = {
-            'field': "Hello!",
+            'contextId': context_id,
+            'pageId': page_id,
+            'data': {'field': "Hello!"},
         }
         request.write(to_bytes(dumps(response_data)))
         request.finish()
