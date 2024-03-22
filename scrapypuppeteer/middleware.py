@@ -171,13 +171,6 @@ class PuppeteerServiceDownloaderMiddleware:
         context_id = response_data.pop('contextId', puppeteer_request.context_id)
         page_id = response_data.pop('pageId', puppeteer_request.page_id)
 
-        attributes = dict()
-        for attr in response_cls.attributes:
-            if attr in response_data:
-                attributes[attr] = response_data.pop(attr)
-        if response_data:
-            attributes['data'] = response_data
-
         self.used_contexts[id(spider)].add(context_id)
 
         return response_cls(
@@ -186,7 +179,7 @@ class PuppeteerServiceDownloaderMiddleware:
             context_id=context_id,
             page_id=page_id,
             request=request,
-            **attributes
+            **response_data
         )
 
     @staticmethod
