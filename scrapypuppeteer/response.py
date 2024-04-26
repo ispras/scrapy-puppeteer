@@ -125,7 +125,7 @@ class PuppeteerJsonResponse(PuppeteerResponse):
 class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse):
     """
     Response for RecaptchaSolver.
-    Result is available via self.recaptcha_data and self.data (deprecated, to be deleted in next versions) object.
+    Result is available via self.recaptcha_data and self.data["recaptcha_data"] (deprecated, to be deleted in next versions) object.
     """
 
     attributes: Tuple[str, ...] = PuppeteerJsonResponse.attributes + ("recaptcha_data",)
@@ -133,17 +133,21 @@ class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse):
     @property
     def data(self):
         warnings.warn(
-            "self.data is deprecated and staged to remove in next versions."
+            "self.data[\"recaptcha_data\"] is deprecated and staged to remove in next versions. "
             "Use self.recaptcha_data instead.",
             DeprecationWarning,
         )
         return self._data
 
+    @data.setter
+    def data(self, value):
+        self._data = value
+
     def __init__(
         self, url, puppeteer_request, context_id, page_id, recaptcha_data, **kwargs
     ):
         kwargs["headers"] = {"Content-Type": "application/json"}
-        self._data = recaptcha_data
+        self._data = {"recaptcha_data": recaptcha_data}
         self.recaptcha_data = recaptcha_data
         super().__init__(
             url, puppeteer_request, context_id, page_id, self._data, **kwargs

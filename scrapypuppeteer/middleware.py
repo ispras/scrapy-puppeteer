@@ -23,6 +23,7 @@ from scrapypuppeteer.response import (
     PuppeteerResponse,
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
+    PuppeteerRecaptchaSolverResponse,
     PuppeteerJsonResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest
@@ -213,6 +214,8 @@ class PuppeteerServiceDownloaderMiddleware:
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
+        if isinstance(request_action, RecaptchaSolver):
+            return PuppeteerRecaptchaSolverResponse
         return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
