@@ -14,16 +14,16 @@ from scrapy.utils.test import get_crawler
 
 class PuppeteerCrawlTest(TestCase):
     SETTINGS = {
-        'DOWNLOADER_MIDDLEWARES': {
-            'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+        "DOWNLOADER_MIDDLEWARES": {
+            "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042
         },
-        'PUPPETEER_SERVICE_URL': None,
+        "PUPPETEER_SERVICE_URL": None,
     }
 
     def setUp(self):
         self.mockserver = MockServer()
         self.mockserver.__enter__()
-        self.SETTINGS['PUPPETEER_SERVICE_URL'] = self.mockserver.http_address
+        self.SETTINGS["PUPPETEER_SERVICE_URL"] = self.mockserver.http_address
 
     def tearDown(self):
         self.mockserver.__exit__(None, None, None)

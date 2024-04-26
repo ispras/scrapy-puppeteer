@@ -47,7 +47,9 @@ class LeafResource(resource.Resource):
 
         request.setHeader(b"Content-Type", b"application/json")
 
-        self.defer_request(request, 0, self.render_request, request, page_id, context_id, close_page)
+        self.defer_request(
+            request, 0, self.render_request, request, page_id, context_id, close_page
+        )
         return NOT_DONE_YET
 
     @staticmethod
@@ -62,7 +64,9 @@ class LeafResource(resource.Resource):
         return d
 
     def render_request(self, request, page_id, context_id, close_page):
-        request.write(to_bytes(dumps(self._form_response(page_id, context_id, close_page))))
+        request.write(
+            to_bytes(dumps(self._form_response(page_id, context_id, close_page)))
+        )
         request.finish()
 
     def _form_response(self, page_id, context_id, close_page):
@@ -71,74 +75,74 @@ class LeafResource(resource.Resource):
 
 class GoTo(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
-        html = '''
+        html = """
             <html> <head></head> <body></body>
-        '''
+        """
         return {
-            'contextId': token_hex(20),
-            'pageId': token_hex(20),
-            'html': html,
-            'cookies': None
+            "contextId": token_hex(20),
+            "pageId": token_hex(20),
+            "html": html,
+            "cookies": None,
         }
 
 
 class GoForward(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
-        html = '''
+        html = """
             <html> <head></head> <body>went forward</body>
-        '''
+        """
         return {
-            'contextId': context_id,
-            'pageId': page_id,
-            'html': html,
-            'cookies': None
+            "contextId": context_id,
+            "pageId": page_id,
+            "html": html,
+            "cookies": None,
         }
 
 
 class Back(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
-        html = '''
+        html = """
             <html> <head></head> <body>went back</body>
-        '''
+        """
         return {
-            'contextId': context_id,
-            'pageId': page_id,
-            'html': html,
-            'cookies': None
+            "contextId": context_id,
+            "pageId": page_id,
+            "html": html,
+            "cookies": None,
         }
 
 
 class Click(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
-        html = '''
+        html = """
             <html> <head></head> <body>clicked</body>
-        '''
+        """
         return {
-            'contextId': context_id,
-            'pageId': page_id,
-            'html': html,
-            'cookies': None
+            "contextId": context_id,
+            "pageId": page_id,
+            "html": html,
+            "cookies": None,
         }
 
 
 class Screenshot(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
-        with open("./tests/scrapy_logo.png", 'rb') as image:
+        with open("./tests/scrapy_logo.png", "rb") as image:
             return {
-                'contextId': context_id,
-                'pageId': page_id,
-                'screenshot': b64encode(image.read()).decode(),
+                "contextId": context_id,
+                "pageId": page_id,
+                "screenshot": b64encode(image.read()).decode(),
             }
 
 
 class RecaptchaSolver(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
         return {
-            'contextId': context_id,
-            'pageId': page_id,
-            'recaptcha_data': {
-                'captchas': [1],  # 1 captcha
-                'some_other_fields': [],
+            "contextId": context_id,
+            "pageId": page_id,
+            "recaptcha_data": {
+                "captchas": [1],  # 1 captcha
+                "some_other_fields": [],
             },
         }
 
@@ -146,9 +150,9 @@ class RecaptchaSolver(LeafResource):
 class CustomJsAction(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
         return {
-            'contextId': context_id,
-            'pageId': page_id,
-            'data': {'field': "Hello!"},
+            "contextId": context_id,
+            "pageId": page_id,
+            "data": {"field": "Hello!"},
         }
 
 
@@ -195,9 +199,7 @@ class MockServer:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-t", "--type", type=str, choices=("http",), default="http"
-    )
+    parser.add_argument("-t", "--type", type=str, choices=("http",), default="http")
     args = parser.parse_args()
 
     if args.type == "http":
