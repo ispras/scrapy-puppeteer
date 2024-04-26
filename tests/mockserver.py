@@ -6,6 +6,8 @@ from pathlib import Path
 from subprocess import PIPE, Popen
 from typing import Dict
 from secrets import token_hex
+from json import dumps
+from base64 import b64encode
 
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
@@ -16,11 +18,11 @@ from twisted.web.server import NOT_DONE_YET, Site
 from scrapy.utils.python import to_bytes
 
 
-def getarg(request, name, default=None, type=None):
+def get_arg(request, name, default=None, arg_type=None):
     if name in request.args:
         value = request.args[name][0]
-        if type is not None:
-            value = type(value)
+        if arg_type is not None:
+            value = arg_type(value)
         return value
     return default
 
@@ -29,9 +31,9 @@ def get_mockserver_env() -> Dict[str, str]:
     """Return an OS environment dict suitable to run mockserver processes."""
 
     tests_path = Path(__file__).parent.parent
-    pythonpath = str(tests_path) + os.pathsep + os.environ.get("PYTHONPATH", "")
+    python_path = str(tests_path) + os.pathsep + os.environ.get("PYTHONPATH", "")
     env = os.environ.copy()
-    env["PYTHONPATH"] = pythonpath
+    env["PYTHONPATH"] = python_path
     return env
 
 
@@ -39,121 +41,119 @@ class LeafResource(resource.Resource):
     isLeaf = True
 
     def render_POST(self, request):
-        page_id = getarg(request, b"pageId", default=None, type=str)
-        context_id = getarg(request, b"contextId", default=None, type=str)
-        close_page = getarg(request, b"closePage", default=0, type=bool)
+        page_id = get_arg(request, b"pageId", default=None, arg_type=str)
+        context_id = get_arg(request, b"contextId", default=None, arg_type=str)
+        close_page = get_arg(request, b"closePage", default=0, arg_type=bool)
 
         request.setHeader(b"Content-Type", b"application/json")
 
-        self.deferRequest(request, 0, self._render_request, request, page_id, context_id, close_page)
+        self.defer_request(request, 0, self.render_request, request, page_id, context_id, close_page)
         return NOT_DONE_YET
 
-    def deferRequest(self, request, delay, f, *a, **kw):
-        def _cancelrequest(_):
+    @staticmethod
+    def defer_request(request, delay, render_func, *args, **kwargs):
+        def _cancel_request(_):
             # silence CancelledError
             d.addErrback(lambda _: None)
             d.cancel()
 
-        d = deferLater(reactor, delay, f, *a, **kw)
-        request.notifyFinish().addErrback(_cancelrequest)
+        d = deferLater(reactor, delay, render_func, *args, **kwargs)
+        request.notifyFinish().addErrback(_cancel_request)
         return d
 
-    def _render_request(self, request, page_id, context_id, close_page):
+    def render_request(self, request, page_id, context_id, close_page):
+        request.write(to_bytes(dumps(self._form_response(page_id, context_id, close_page))))
+        request.finish()
+
+    def _form_response(self, page_id, context_id, close_page):
         raise NotImplementedError
 
 
 class GoTo(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
+    def _form_response(self, page_id, context_id, close_page):
         html = '''
             <html> <head></head> <body></body>
         '''
-        from json import dumps
-        response_data = {
+        return {
             'contextId': token_hex(20),
             'pageId': token_hex(20),
             'html': html,
             'cookies': None
         }
-        request.write(to_bytes(dumps(response_data)))
-        request.finish()
 
 
 class GoForward(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
+    def _form_response(self, page_id, context_id, close_page):
         html = '''
             <html> <head></head> <body>went forward</body>
         '''
-        from json import dumps
-        response_data = {
+        return {
             'contextId': context_id,
             'pageId': page_id,
             'html': html,
             'cookies': None
         }
-        request.write(to_bytes(dumps(response_data)))
-        request.finish()
 
 
 class Back(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
+    def _form_response(self, page_id, context_id, close_page):
         html = '''
             <html> <head></head> <body>went back</body>
         '''
-        from json import dumps
-        response_data = {
+        return {
             'contextId': context_id,
             'pageId': page_id,
             'html': html,
             'cookies': None
         }
-        request.write(to_bytes(dumps(response_data)))
-        request.finish()
 
 
 class Click(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
+    def _form_response(self, page_id, context_id, close_page):
         html = '''
             <html> <head></head> <body>clicked</body>
         '''
-        from json import dumps
-        response_data = {
+        return {
             'contextId': context_id,
             'pageId': page_id,
             'html': html,
             'cookies': None
         }
-        request.write(to_bytes(dumps(response_data)))
-        request.finish()
 
 
 class Screenshot(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
-        from base64 import b64encode
-        from json import dumps
+    def _form_response(self, page_id, context_id, close_page):
         with open("./tests/scrapy_logo.png", 'rb') as image:
-            response_data = {
+            return {
                 'contextId': context_id,
                 'pageId': page_id,
                 'screenshot': b64encode(image.read()).decode(),
             }
-        request.write(to_bytes(dumps(response_data)))
-        request.finish()
 
 
-class Action(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
-        from json import dumps
-        response_data = {
+class RecaptchaSolver(LeafResource):
+    def _form_response(self, page_id, context_id, close_page):
+        return {
+            'contextId': context_id,
+            'pageId': page_id,
+            'recaptcha_data': {
+                'captchas': [1],  # 1 captcha
+                'some_other_fields': [],
+            },
+        }
+
+
+class CustomJsAction(LeafResource):
+    def _form_response(self, page_id, context_id, close_page):
+        return {
             'contextId': context_id,
             'pageId': page_id,
             'data': {'field': "Hello!"},
         }
-        request.write(to_bytes(dumps(response_data)))
-        request.finish()
 
 
 class CloseContext(LeafResource):
-    def _render_request(self, request, page_id, context_id, close_page):
+    def render_request(self, request, page_id, context_id, close_page):
         request.finish()
 
 
@@ -165,7 +165,8 @@ class Root(resource.Resource):
         self.putChild(b"back", Back())
         self.putChild(b"click", Click())
         self.putChild(b"screenshot", Screenshot())
-        self.putChild(b"action", Action())
+        self.putChild(b"action", CustomJsAction())
+        self.putChild(b"recaptcha_solver", RecaptchaSolver())
         self.putChild(b"close_context", CloseContext())
 
     def getChild(self, name, request):
@@ -192,7 +193,7 @@ class MockServer:
         return host + path
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-t", "--type", type=str, choices=("http",), default="http"
@@ -202,13 +203,16 @@ if __name__ == "__main__":
     if args.type == "http":
         root = Root()
         factory: ServerFactory = Site(root)
-        httpPort = reactor.listenTCP(0, factory)
-
+        http_port = reactor.listenTCP(0, factory)
 
         def print_listening():
-            http_host = httpPort.getHost()
+            http_host = http_port.getHost()
             http_address = f"http://{http_host.host}:{http_host.port}"
             print(http_address)
 
     reactor.callWhenRunning(print_listening)
     reactor.run()
+
+
+if __name__ == "__main__":
+    main()

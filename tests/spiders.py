@@ -7,6 +7,7 @@ from scrapypuppeteer.actions import (
     Click,
     Screenshot,
     CustomJsAction,
+    RecaptchaSolver,
 )
 
 
@@ -25,6 +26,10 @@ class MetaSpider(MockServerSpider):
 
     def closed(self, reason):
         self.meta["close_reason"] = reason
+
+    @staticmethod
+    def errback(failure):
+        print(failure)
 
 
 class GoToSpider(MetaSpider):
@@ -45,9 +50,6 @@ class GoToSpider(MetaSpider):
         '''
         if response.body == body:
             self.urls_visited.append(response.url)
-
-    def errback(self, failure):
-        print(failure)
 
 
 class ClickSpider(MetaSpider):
@@ -74,9 +76,6 @@ class ClickSpider(MetaSpider):
         if response.body == body:
             self.urls_visited.append(response.url)
 
-    def errback(self, failure):
-        print(failure)
-
 
 class ScreenshotSpider(MetaSpider):
     name = "screenshot"
@@ -100,9 +99,6 @@ class ScreenshotSpider(MetaSpider):
         with open("./tests/scrapy_logo.png", 'rb') as image:
             if b64encode(image.read()).decode() == response.screenshot:
                 self.urls_visited.append(response.url)
-
-    def errback(self, failure):
-        print(failure)
 
 
 class CustomJsActionSpider(MetaSpider):
@@ -131,9 +127,6 @@ class CustomJsActionSpider(MetaSpider):
         }
         if response.data == response_data:
             self.urls_visited.append(response.url)
-
-    def errback(self, failure):
-        print(failure)
 
 
 class GoBackForwardSpider(MetaSpider):
@@ -175,5 +168,24 @@ class GoBackForwardSpider(MetaSpider):
         if response.body == body:
             self.urls_visited.append(response.url)
 
-    def errback(self, failure):
-        print(failure)
+
+class RecaptchaSolverSpider(MetaSpider):
+    name = "recaptcha_solver"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.urls_visited = []
+
+    def start_requests(self):
+        yield PuppeteerRequest(GoTo("https://some_url.com/with_captcha"),
+                               callback=self.solve_recaptcha, errback=self.errback,
+                               close_page=False)
+
+    def solve_recaptcha(self, response, **kwargs):
+        yield response.follow(RecaptchaSolver(solve_recaptcha=True),
+                              callback=self.parse, errback=self.errback,
+                              close_page=False)
+
+    def parse(self, response, **kwargs):
+        if response.data['recaptcha_data']['captchas'] == [1]:
+            self.urls_visited.append(response.url)
