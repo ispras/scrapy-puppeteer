@@ -5,9 +5,10 @@ from scrapy.http import TextResponse
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
+import warnings
+
 
 class PuppeteerResponse(TextResponse):
-
     attributes: Tuple[str, ...] = TextResponse.attributes + (
         'url',
         'puppeteer_request',
@@ -109,7 +110,7 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
 
 class PuppeteerJsonResponse(PuppeteerResponse):
     """
-    Response for CustomJsAction and RecaptchaSolver.
+    Response for CustomJsAction.
     Result is available via self.data object.
     """
 
@@ -121,3 +122,26 @@ class PuppeteerJsonResponse(PuppeteerResponse):
         kwargs['headers'] = {'Content-Type': 'application/json'}
         self.data = data
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
+
+
+class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse):
+    """
+    Response for RecaptchaSolver.
+    Result is available via self.recaptcha_data and self.data (deprecated, to be deleted in next versions) object.
+    """
+    attributes: Tuple[str, ...] = PuppeteerJsonResponse.attributes + (
+        'recaptcha_data',
+    )
+
+    @property
+    def data(self):
+        warnings.warn("self.data is deprecated and staged to remove in next versions."
+                      "Use self.recaptcha_data instead.",
+                      DeprecationWarning)
+        return self._data
+
+    def __init__(self, url, puppeteer_request, context_id, page_id, recaptcha_data, **kwargs):
+        kwargs['headers'] = {'Content-Type': 'application/json'}
+        self._data = recaptcha_data
+        self.recaptcha_data = recaptcha_data
+        super().__init__(url, puppeteer_request, context_id, page_id, self._data, **kwargs)
