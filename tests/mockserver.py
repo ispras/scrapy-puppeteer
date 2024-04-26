@@ -137,9 +137,14 @@ class Screenshot(LeafResource):
 
 class RecaptchaSolver(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
+        html = """
+            <html> <head></head> <body>clicked</body>
+        """
         return {
             "contextId": context_id,
             "pageId": page_id,
+            "html": html,
+            "cookies": None,
             "recaptcha_data": {
                 "captchas": [1],  # 1 captcha
                 "some_other_fields": [],

@@ -122,7 +122,7 @@ class PuppeteerJsonResponse(PuppeteerResponse):
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
 
 
-class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse):
+class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse):  # TODO: to inherit from HTMLResponse (or think about better solution to the problem!)
     """
     Response for RecaptchaSolver.
     Result is available via self.recaptcha_data and self.data["recaptcha_data"]
