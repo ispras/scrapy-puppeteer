@@ -369,16 +369,15 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         )
 
     def _submit_recaptcha(self, request, response, spider):
-        response_data = response.data
         if not response.puppeteer_request.action.solve_recaptcha:
             spider.log(
-                message=f"Found {len(response_data['recaptcha_data']['captchas'])} captcha "
+                message=f"Found {len(response.recaptcha_data['captchas'])} captcha "
                 f"but did not solve due to argument",
                 level=logging.INFO,
             )
             return self.__gen_response(response)
         # Click "submit button"?
-        if response_data["recaptcha_data"]["captchas"] and self.submit_selectors:
+        if response.recaptcha_data["captchas"] and self.submit_selectors:
             # We need to click "submit button"
             for domain, submitting in self.submit_selectors.items():
                 if domain in response.url:

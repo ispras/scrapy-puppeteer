@@ -216,5 +216,7 @@ class RecaptchaSolverSpider(MetaSpider):
         )
 
     def parse(self, response, **kwargs):
-        if response.data["recaptcha_data"]["captchas"] == [1] and response.recaptcha_data["captchas"] == [1]:
+        if response.data["recaptcha_data"]["captchas"] == [
+            1
+        ] and response.recaptcha_data["captchas"] == [1]:
             self.urls_visited.append(response.url)
