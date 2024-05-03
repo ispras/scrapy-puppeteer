@@ -138,7 +138,7 @@ class Screenshot(LeafResource):
 class RecaptchaSolver(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
         html = """
-            <html> <head></head> <body>clicked</body>
+            <html> <head></head> <body>there is recaptcha on the page!</body>
         """
         return {
             "contextId": context_id,

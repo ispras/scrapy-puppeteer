@@ -344,10 +344,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             puppeteer_request.action,
             (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
         ):
-            # No recaptcha after this action
+            # No recaptcha after these actions
             return response
 
-        # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
+        # Any puppeteer response besides PuppeteerRecaptchaSolverResponse
         return self._solve_recaptcha(request, response)
 
     def _solve_recaptcha(self, request, response):
@@ -406,7 +406,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
         if isinstance(main_response, PuppeteerHtmlResponse):
             if isinstance(response.puppeteer_request.action, RecaptchaSolver):
-                main_response_data["body"] = response.data["html"]
+                main_response_data["body"] = response.html
             elif isinstance(response.puppeteer_request.action, Click):
                 main_response_data["body"] = response.body
 
