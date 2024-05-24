@@ -1,3 +1,4 @@
+import http
 import json
 import logging
 from collections import defaultdict
@@ -371,3 +372,124 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if close_page and remove_request:
             self._page_closing.remove(main_request)
         return close_page
+
+
+class PuppeteerContextRecoveryDownloaderMiddleware:  # TODO: change name?
+    """
+        This middleware allows you to recover puppeteer context.
+
+        If you want to recover puppeteer context starting from the specified first request provide
+    `recover_context` meta-key with `True` value.
+
+        The middleware uses additionally these meta-keys, do not use them, because their changing
+    could possibly (almost probably) break determined behaviour:
+    ...
+
+        Settings:
+
+    N_RECOVERY: int = 1 - number of recoverable requests
+    """
+
+    """
+        WORK SCHEME:
+
+        cases:
+        1.) First PptrReq (without Context), Its response is good. After some request-response sequence it fails. Trying to recover it N times.
+        2.) First PptrReq (without Context), Its response is bad. We need to try to recover it N times.
+        
+        For recovering we use context. If we have it we get first request in sequence and trying to recover everything from the beginning.
+        If we don't have it then we can send the request One more time in process_response until we get it.
+    """
+
+    N_RECOVERY_SETTING = "N_RECOVERY"
+
+    def __init__(self, n_recovery):
+        self.n_recovery = n_recovery
+        self.context_requests = {}
+        self.context_counters = {}
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler):
+        n_recovery = crawler.settings.get(cls.N_RECOVERY_SETTING, 1)
+        if not isinstance(n_recovery, int):
+            raise TypeError(f"`n_recovery` must be an integer, got {type(n_recovery)}")
+        elif n_recovery < 1:
+            raise ValueError("`n_recovery` must be greater than or equal to 1")
+        return cls(n_recovery)
+
+    @staticmethod
+    def process_request(request, spider):
+        if not isinstance(request, PuppeteerRequest):
+            return None
+
+        if not request.meta.pop('recover_context', False):
+            return None
+
+        if request.context_id or request.page_id:
+            raise IgnoreRequest(f"Request {request} is not in the beginning of the request-response sequence")
+
+        print("HERE 6!!!")
+        request.meta['__request_binding'] = True
+        return None
+
+    def process_response(self, request, response, spider):
+        puppeteer_request = request.meta.get('puppeteer_request', None)
+        __request_binding = puppeteer_request.meta.get('__request_binding', False) if puppeteer_request is not None else None
+        if isinstance(response, PuppeteerResponse):
+            if __request_binding:
+                print("HERE 5!!!")
+                request.dont_filter = True
+                request.meta['__restore_count'] = 0
+                self.context_requests[response.context_id] = request
+                self.context_counters[response.context_id] = 1
+                return response
+            else:
+                # everything is OK
+                if response.context_id in self.context_counters:
+                    self.context_counters[response.context_id] += 1
+                return response
+        elif puppeteer_request is not None:
+            print("HERE 1!!!")
+            # There is an error
+            if response.status == 422:
+                print("HERE 2!!!")
+                # Corrupted context
+                if __request_binding:
+                    # We did not get context
+                    if request.meta.get('__restore_count', 0) < 1:
+                        request.dont_filter = True
+                        request.meta['__restore_count'] = 1
+                        return request
+                    else:
+                        # No more restoring
+                        return response
+                else:
+                    # We probably know this sequence
+                    print("HERE 3!!!")
+                    context_id = json.loads(response.text).get('contextId')
+                    if context_id in self.context_requests:  # TODO: context_id is updating after it restarts!!!
+                        # We know this sequence
+                        if self.context_counters[context_id] <= self.n_recovery:
+                            restoring_request = self.context_requests[context_id]
+                            if restoring_request.meta['__restore_count'] < 5:
+                                # Restoring!
+                                print("HERE 4!!!")
+                                restoring_request.meta['__restore_count'] += 1
+                                print(f"Restoring the request {restoring_request}")
+                                self.context_counters[context_id] = 1
+                                return restoring_request
+                            else:
+                                # No more restoring
+                                return response
+                        else:
+                            # We cannot restore the sequence as it is too long
+                            del self.context_counters[context_id]
+                            del self.context_requests[context_id]
+                            return response
+                    else:
+                        # We cannot restore this sequence as we don't know id
+                        return response
+            else:
+                # some other error
+                return response
+        return response
