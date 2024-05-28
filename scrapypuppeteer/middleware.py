@@ -11,7 +11,8 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
-from scrapypuppeteer.response import PuppeteerResponse, PuppeteerHtmlResponse, PuppeteerScreenshotResponse, PuppeteerJsonResponse
+from scrapypuppeteer.response import PuppeteerResponse, PuppeteerHtmlResponse, PuppeteerScreenshotResponse, \
+    PuppeteerJsonResponse
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest
 
 
@@ -445,79 +446,59 @@ class PuppeteerContextRestoreDownloaderMiddleware:
     def process_response(self, request: Request, response, spider):
         puppeteer_request: Union[PuppeteerRequest, None] = request.meta.get('puppeteer_request', None)
         __request_binding = puppeteer_request and puppeteer_request.meta.get('__request_binding', False)
+
         if isinstance(response, PuppeteerResponse):
-            if __request_binding:
-                if request.meta.get('__context_id', None) is not None:
-                    # Restoring corrupted context
-                    print("HERE 7!!!")
-                    restoring_request = request.copy()
-                    old_context_id = restoring_request.meta['__context_id']
-                    del self.context_requests[old_context_id]
-                    del self.context_counters[old_context_id]
-                    restoring_request.meta['__context_id'] = response.context_id
-                    self.context_requests[response.context_id] = restoring_request
-                    self.context_counters[response.context_id] = 1
-                    return response
-                else:
-                    # Just first request-response in the sequence
-                    restoring_request = request.copy()
-                    print("HERE 5!!!")
-                    restoring_request.dont_filter = True
-                    restoring_request.meta['__restore_count'] = 0
-                    restoring_request.meta['__context_id'] = response.context_id
-                    self.context_requests[response.context_id] = restoring_request
-                    self.context_counters[response.context_id] = 1
-                    return response
-            else:
-                # everything is OK
-                if response.context_id in self.context_counters:
-                    self.context_counters[response.context_id] += 1
-                return response
-        elif puppeteer_request is not None:
-            print("HERE 1!!!")
-            # There is an error
-            if response.status == 422:
-                print("HERE 2!!!")
-                # Corrupted context
-                if __request_binding:
-                    # We did not get context
-                    if request.meta.get('__restore_count', 0) < 1:
-                        request.meta['__restore_count'] += 1
-                        return request
-                    else:
-                        # No more restoring
-                        return response
-                else:
-                    # We probably know this sequence
-                    print("HERE 3!!!")
-                    context_id = json.loads(response.text).get('contextId')
-                    if context_id in self.context_requests:
-                        # We know this sequence
-                        if self.context_counters[context_id] <= self.restoring_length:
-                            restoring_request = self.context_requests[context_id]
-                            if restoring_request.meta['__restore_count'] < self.n_retry_restoring:
-                                # Restoring!
-                                print("HERE 4!!!")
-                                restoring_request.meta['__restore_count'] += 1
-                                print(f"Restoring the request {restoring_request}")
-                                self.context_counters[context_id] = 1
-                                return restoring_request
-                            else:
-                                print("HERE 9!!!")
-                                print(f"`{self.N_RETRY_RESTORING_SETTING}` number is exceeded!")
-                                # No more restoring
-                                return response
-                        else:
-                            print("HERE 8!!!")
-                            print(f"`{self.RESTORING_LENGTH_SETTING}` number is exceeded!")
-                            # We cannot restore the sequence as it is too long
-                            del self.context_counters[context_id]
-                            del self.context_requests[context_id]
-                            return response
-                    else:
-                        # We cannot restore this sequence as we don't know id
-                        return response
-            else:
-                # some other error
-                return response
+            self._bind_context(request, response, __request_binding)
+        elif puppeteer_request is not None and response.status == 422:
+            # Corrupted context
+            return self._restore_context(request, response, __request_binding)
+        return response
+
+    def _bind_context(self,
+                      request, response,
+                      __request_binding):
+        if __request_binding:
+            if request.meta.get('__context_id', None) is not None:
+                print("HERE 7!!!")
+                # Restoring corrupted context
+                old_context_id = request.meta['__context_id']
+                del self.context_requests[old_context_id]
+                del self.context_counters[old_context_id]
+            restoring_request = request.copy()
+            restoring_request.meta['__restore_count'] = restoring_request.meta.get('__restore_count',
+                                                                                   0)  # TODO: can we use just meta instead of self.(...)?
+            restoring_request.meta['__context_id'] = response.context_id
+            self.context_requests[response.context_id] = restoring_request
+            self.context_counters[response.context_id] = 0
+        # everything is OK
+        if response.context_id in self.context_counters:  # TODO: I don't like this code here.
+            self.context_counters[response.context_id] += 1
+
+    def _restore_context(self,
+                         request, response,
+                         __request_binding):
+        if __request_binding:  # TODO: this is not restoring context. This is binding.
+            # We did not get context
+            if request.meta.get('__restore_count', 0) < self.n_retry_restoring:
+                request.meta['__restore_count'] += 1
+                return request
+        else:
+            # We probably know this sequence
+            print("HERE 3!!!")
+            context_id = json.loads(response.text).get('contextId', None)
+            if context_id in self.context_requests:
+                # We know this sequence
+                restoring_request = self.context_requests[context_id]
+                if self.context_counters[context_id] <= self.restoring_length and \
+                        restoring_request.meta['__restore_count'] < self.n_retry_restoring:
+                    # Restoring!
+                    print("HERE 4!!!")
+                    restoring_request.meta['__restore_count'] += 1
+                    print(f"Restoring the request {restoring_request}")
+                    self.context_counters[context_id] = 1
+                    return restoring_request
+                else:  # TODO: to determine the reason of disability to restore the sequence.
+                    # We cannot restore the sequence as it is too long
+                    del self.context_counters[context_id]
+                    del self.context_requests[context_id]
         return response
