@@ -374,7 +374,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         return close_page
 
 
-class PuppeteerContextRecoveryDownloaderMiddleware:  # TODO: change name?
+class PuppeteerContextRestoreDownloaderMiddleware:
     """
         This middleware allows you to recover puppeteer context.
 
@@ -432,15 +432,19 @@ class PuppeteerContextRecoveryDownloaderMiddleware:  # TODO: change name?
         request.meta['__request_binding'] = True
         return None
 
-    def process_response(self, request, response, spider):
+    def process_response(self, request: Request, response, spider):
         puppeteer_request = request.meta.get('puppeteer_request', None)
-        __request_binding = puppeteer_request.meta.get('__request_binding', False) if puppeteer_request is not None else None
+        __request_binding = puppeteer_request.meta.get('__request_binding', False) if puppeteer_request is not None else None  # TODO: to fix NoneType AttributeError
         if isinstance(response, PuppeteerResponse):
             if __request_binding:
+                restoring_request = request.copy()
+                # TODO: here we need to add meta-key `__original_context_id`
+                #  (or smth like this) in order to distinguish when context
                 print("HERE 5!!!")
-                request.dont_filter = True
-                request.meta['__restore_count'] = 0
-                self.context_requests[response.context_id] = request
+                restoring_request.dont_filter = True
+                restoring_request.meta['__restore_count'] = 0
+                restoring_request.meta['__context_id'] = response.context_id
+                self.context_requests[response.context_id] = restoring_request
                 self.context_counters[response.context_id] = 1
                 return response
             else:
@@ -466,7 +470,7 @@ class PuppeteerContextRecoveryDownloaderMiddleware:  # TODO: change name?
                 else:
                     # We probably know this sequence
                     print("HERE 3!!!")
-                    context_id = json.loads(response.text).get('contextId')
+                    context_id = json.loads(response.text).get('contextId')  # TODO: to check if context_id is not None!
                     if context_id in self.context_requests:  # TODO: context_id is updating after it restarts!!!
                         # We know this sequence
                         if self.context_counters[context_id] <= self.n_recovery:
