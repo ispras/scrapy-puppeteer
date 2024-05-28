@@ -404,8 +404,8 @@ class PuppeteerContextRestoreDownloaderMiddleware:
     N_RETRY_RESTORING_SETTING = "N_RETRY_RESTORING"
     RESTORING_LENGTH_SETTING = "RESTORING_LENGTH"
 
-    def __init__(self, n_recovery: int, n_retry_restoring: int):
-        self.n_recovery = n_recovery
+    def __init__(self, restoring_length: int, n_retry_restoring: int):
+        self.restoring_length = restoring_length
         self.n_retry_restoring = n_retry_restoring
         self.context_requests = {}
         self.context_counters = {}
@@ -414,15 +414,15 @@ class PuppeteerContextRestoreDownloaderMiddleware:
     def from_crawler(cls, crawler: Crawler):
         restoring_length = crawler.settings.get(cls.RESTORING_LENGTH_SETTING, 1)
         if not isinstance(restoring_length, int):
-            raise TypeError(f"`n_recovery` must be an integer, got {type(restoring_length)}")
+            raise TypeError(f"`{cls.RESTORING_LENGTH_SETTING}` must be an integer, got {type(restoring_length)}")
         elif restoring_length < 1:
-            raise ValueError("`n_recovery` must be greater than or equal to 1")
+            raise ValueError(f"`{cls.RESTORING_LENGTH_SETTING}` must be greater than or equal to 1")
 
         n_retry_restoring = crawler.settings.get(cls.N_RETRY_RESTORING_SETTING, 1)
         if not isinstance(n_retry_restoring, int):
-            raise TypeError(f"`n_recovery` must be an integer, got {type(n_retry_restoring)}")
+            raise TypeError(f"`{cls.N_RETRY_RESTORING_SETTING}` must be an integer, got {type(n_retry_restoring)}")
         elif n_retry_restoring < 1:
-            raise ValueError("`n_recovery` must be greater than or equal to 1")
+            raise ValueError(f"`{cls.N_RETRY_RESTORING_SETTING}` must be greater than or equal to 1")
 
         return cls(restoring_length, n_retry_restoring)
 
@@ -444,7 +444,6 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
     def process_response(self, request: Request, response, spider):
         puppeteer_request: Union[PuppeteerRequest, None] = request.meta.get('puppeteer_request', None)
-        # __request_binding = puppeteer_request.meta.get('__request_binding', False) if puppeteer_request is not None else None  # TODO: to fix NoneType AttributeError
         __request_binding = puppeteer_request and puppeteer_request.meta.get('__request_binding', False)
         if isinstance(response, PuppeteerResponse):
             if __request_binding:
@@ -453,11 +452,11 @@ class PuppeteerContextRestoreDownloaderMiddleware:
                     print("HERE 7!!!")
                     restoring_request = request.copy()
                     old_context_id = restoring_request.meta['__context_id']
+                    del self.context_requests[old_context_id]
+                    del self.context_counters[old_context_id]
                     restoring_request.meta['__context_id'] = response.context_id
                     self.context_requests[response.context_id] = restoring_request
                     self.context_counters[response.context_id] = 1
-                    del self.context_requests[old_context_id]
-                    del self.context_counters[old_context_id]
                     return response
                 else:
                     # Just first request-response in the sequence
@@ -494,9 +493,9 @@ class PuppeteerContextRestoreDownloaderMiddleware:
                     context_id = json.loads(response.text).get('contextId')
                     if context_id in self.context_requests:
                         # We know this sequence
-                        if self.context_counters[context_id] < self.n_recovery:
+                        if self.context_counters[context_id] <= self.restoring_length:
                             restoring_request = self.context_requests[context_id]
-                            if restoring_request.meta['__restore_count'] < 3:
+                            if restoring_request.meta['__restore_count'] < self.n_retry_restoring:
                                 # Restoring!
                                 print("HERE 4!!!")
                                 restoring_request.meta['__restore_count'] += 1
@@ -504,11 +503,13 @@ class PuppeteerContextRestoreDownloaderMiddleware:
                                 self.context_counters[context_id] = 1
                                 return restoring_request
                             else:
+                                print("HERE 9!!!")
+                                print(f"`{self.N_RETRY_RESTORING_SETTING}` number is exceeded!")
                                 # No more restoring
                                 return response
                         else:
                             print("HERE 8!!!")
-                            print("N_RECOVERY number is exceeded!")
+                            print(f"`{self.RESTORING_LENGTH_SETTING}` number is exceeded!")
                             # We cannot restore the sequence as it is too long
                             del self.context_counters[context_id]
                             del self.context_requests[context_id]
