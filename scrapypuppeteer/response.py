@@ -1,5 +1,6 @@
 from typing import Tuple, Union
 
+from scrapy.exceptions import ScrapyDeprecationWarning
 from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
@@ -138,7 +139,8 @@ class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlRespo
         warnings.warn(
             "self.data['recaptcha_data'] is deprecated and staged to remove in next versions. "
             "Use self.recaptcha_data instead.",
-            DeprecationWarning,
+            ScrapyDeprecationWarning,
+            stacklevel=2,
         )
         return self._data
 
