@@ -275,8 +275,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             if isinstance(submit_selector, str):
                 submit_selectors[key] = Click(selector=submit_selector)
             elif not isinstance(submit_selector, Click):
-                raise ValueError("Submit selector must be str or Click,"
-                                 f"but {type(submit_selector)} provided")
+                raise TypeError(f"Submit selector must be str or Click, got {type(submit_selector)}")
         return cls(recaptcha_solving, submit_selectors)
 
     def process_request(self, request, spider):
@@ -387,7 +386,8 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
         Settings:
 
-    N_RECOVERY: int = 1 - number of recoverable requests
+    RESTORING_LENGTH: int = 1 - number of restorable requests in a sequence.
+    N_RETRY_RESTORING: int = 1 - number of tries to restore a context.
     """
 
     """
@@ -401,21 +401,30 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         If we don't have it then we can send the request One more time in process_response until we get it.
     """
 
-    N_RECOVERY_SETTING = "N_RECOVERY"
+    N_RETRY_RESTORING_SETTING = "N_RETRY_RESTORING"
+    RESTORING_LENGTH_SETTING = "RESTORING_LENGTH"
 
-    def __init__(self, n_recovery):
+    def __init__(self, n_recovery: int, n_retry_restoring: int):
         self.n_recovery = n_recovery
+        self.n_retry_restoring = n_retry_restoring
         self.context_requests = {}
         self.context_counters = {}
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
-        n_recovery = crawler.settings.get(cls.N_RECOVERY_SETTING, 1)
-        if not isinstance(n_recovery, int):
-            raise TypeError(f"`n_recovery` must be an integer, got {type(n_recovery)}")
-        elif n_recovery < 1:
+        restoring_length = crawler.settings.get(cls.RESTORING_LENGTH_SETTING, 1)
+        if not isinstance(restoring_length, int):
+            raise TypeError(f"`n_recovery` must be an integer, got {type(restoring_length)}")
+        elif restoring_length < 1:
             raise ValueError("`n_recovery` must be greater than or equal to 1")
-        return cls(n_recovery)
+
+        n_retry_restoring = crawler.settings.get(cls.N_RETRY_RESTORING_SETTING, 1)
+        if not isinstance(n_retry_restoring, int):
+            raise TypeError(f"`n_recovery` must be an integer, got {type(n_retry_restoring)}")
+        elif n_retry_restoring < 1:
+            raise ValueError("`n_recovery` must be greater than or equal to 1")
+
+        return cls(restoring_length, n_retry_restoring)
 
     @staticmethod
     def process_request(request, spider):
@@ -430,23 +439,36 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
         print("HERE 6!!!")
         request.meta['__request_binding'] = True
+        request.dont_filter = True
         return None
 
     def process_response(self, request: Request, response, spider):
-        puppeteer_request = request.meta.get('puppeteer_request', None)
-        __request_binding = puppeteer_request.meta.get('__request_binding', False) if puppeteer_request is not None else None  # TODO: to fix NoneType AttributeError
+        puppeteer_request: Union[PuppeteerRequest, None] = request.meta.get('puppeteer_request', None)
+        # __request_binding = puppeteer_request.meta.get('__request_binding', False) if puppeteer_request is not None else None  # TODO: to fix NoneType AttributeError
+        __request_binding = puppeteer_request and puppeteer_request.meta.get('__request_binding', False)
         if isinstance(response, PuppeteerResponse):
             if __request_binding:
-                restoring_request = request.copy()
-                # TODO: here we need to add meta-key `__original_context_id`
-                #  (or smth like this) in order to distinguish when context
-                print("HERE 5!!!")
-                restoring_request.dont_filter = True
-                restoring_request.meta['__restore_count'] = 0
-                restoring_request.meta['__context_id'] = response.context_id
-                self.context_requests[response.context_id] = restoring_request
-                self.context_counters[response.context_id] = 1
-                return response
+                if request.meta.get('__context_id', None) is not None:
+                    # Restoring corrupted context
+                    print("HERE 7!!!")
+                    restoring_request = request.copy()
+                    old_context_id = restoring_request.meta['__context_id']
+                    restoring_request.meta['__context_id'] = response.context_id
+                    self.context_requests[response.context_id] = restoring_request
+                    self.context_counters[response.context_id] = 1
+                    del self.context_requests[old_context_id]
+                    del self.context_counters[old_context_id]
+                    return response
+                else:
+                    # Just first request-response in the sequence
+                    restoring_request = request.copy()
+                    print("HERE 5!!!")
+                    restoring_request.dont_filter = True
+                    restoring_request.meta['__restore_count'] = 0
+                    restoring_request.meta['__context_id'] = response.context_id
+                    self.context_requests[response.context_id] = restoring_request
+                    self.context_counters[response.context_id] = 1
+                    return response
             else:
                 # everything is OK
                 if response.context_id in self.context_counters:
@@ -461,8 +483,7 @@ class PuppeteerContextRestoreDownloaderMiddleware:
                 if __request_binding:
                     # We did not get context
                     if request.meta.get('__restore_count', 0) < 1:
-                        request.dont_filter = True
-                        request.meta['__restore_count'] = 1
+                        request.meta['__restore_count'] += 1
                         return request
                     else:
                         # No more restoring
@@ -470,12 +491,12 @@ class PuppeteerContextRestoreDownloaderMiddleware:
                 else:
                     # We probably know this sequence
                     print("HERE 3!!!")
-                    context_id = json.loads(response.text).get('contextId')  # TODO: to check if context_id is not None!
-                    if context_id in self.context_requests:  # TODO: context_id is updating after it restarts!!!
+                    context_id = json.loads(response.text).get('contextId')
+                    if context_id in self.context_requests:
                         # We know this sequence
-                        if self.context_counters[context_id] <= self.n_recovery:
+                        if self.context_counters[context_id] < self.n_recovery:
                             restoring_request = self.context_requests[context_id]
-                            if restoring_request.meta['__restore_count'] < 5:
+                            if restoring_request.meta['__restore_count'] < 3:
                                 # Restoring!
                                 print("HERE 4!!!")
                                 restoring_request.meta['__restore_count'] += 1
@@ -486,6 +507,8 @@ class PuppeteerContextRestoreDownloaderMiddleware:
                                 # No more restoring
                                 return response
                         else:
+                            print("HERE 8!!!")
+                            print("N_RECOVERY number is exceeded!")
                             # We cannot restore the sequence as it is too long
                             del self.context_counters[context_id]
                             del self.context_requests[context_id]
