@@ -410,7 +410,7 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         self.restoring_length = restoring_length
         self.n_retry_restoring = n_retry_restoring
         self.context_requests = {}
-        self.context_counters = {}
+        self.context_length = {}
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
@@ -450,9 +450,9 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         if isinstance(response, PuppeteerResponse):
             if request_binding:
                 self._bind_context(request, response)
-            if response.context_id in self.context_counters:
+            if response.context_id in self.context_length:
                 # Update number of actions in context
-                self.context_counters[response.context_id] += 1
+                self.context_length[response.context_id] += 1
         elif puppeteer_request is not None and response.status == HTTPStatus.UNPROCESSABLE_ENTITY:
             # One PuppeteerRequest has failed with 422 error
             if request_binding:
@@ -472,7 +472,7 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         restoring_request.meta['__restore_count'] = restoring_request.meta.get('__restore_count', 0)
         restoring_request.meta['__context_id'] = response.context_id
         self.context_requests[response.context_id] = restoring_request
-        self.context_counters[response.context_id] = 0
+        self.context_length[response.context_id] = 0
 
     def _restore_context(self, response):
         context_id = json.loads(response.text).get('contextId', None)
@@ -480,21 +480,21 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         if context_id in self.context_requests:
             restoring_request = self.context_requests[context_id]
 
-            if self.context_counters[context_id] > self.restoring_length:  # TODO: not informative variables
+            if self.context_length[context_id] >= self.restoring_length + 1:
                 # Too many actions in context
                 self.__delete_context(context_id, "TOO MANY ACTIONS IN CONTEXT")
-            elif restoring_request.meta['__restore_count'] >= self.n_retry_restoring:  # TODO: try to fix the > and >= (why not the same???)
+            elif restoring_request.meta['__restore_count'] >= self.n_retry_restoring:
                 # Too many retries
                 self.__delete_context(context_id, "TOO MANY RETRIES")
             else:
                 # Restoring
                 restoring_request.meta['__restore_count'] += 1
                 print(f"Restoring the request {restoring_request}")  # TODO: to make logging
-                self.context_counters[context_id] = 1
+                self.context_length[context_id] = 1
                 return restoring_request
         return response
 
     def __delete_context(self, context_id: str, reason: str):
-        del self.context_counters[context_id]
+        del self.context_length[context_id]
         del self.context_requests[context_id]
         print(reason)
