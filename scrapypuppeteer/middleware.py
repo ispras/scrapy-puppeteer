@@ -1,9 +1,10 @@
-import http
 import json
 import logging
+
 from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urlencode, urljoin
+from http import HTTPStatus
 
 from scrapy import Request, signals
 from scrapy.crawler import Crawler
@@ -438,67 +439,62 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         if request.context_id or request.page_id:
             raise IgnoreRequest(f"Request {request} is not in the beginning of the request-response sequence")
 
-        print("HERE 6!!!")
         request.meta['__request_binding'] = True
         request.dont_filter = True
         return None
 
     def process_response(self, request: Request, response, spider):
         puppeteer_request: Union[PuppeteerRequest, None] = request.meta.get('puppeteer_request', None)
-        __request_binding = puppeteer_request and puppeteer_request.meta.get('__request_binding', False)
+        request_binding = puppeteer_request is not None and puppeteer_request.meta.get('__request_binding', False)  # TODO: it's too difficult
 
         if isinstance(response, PuppeteerResponse):
-            self._bind_context(request, response, __request_binding)
-        elif puppeteer_request is not None and response.status == 422:
-            # Corrupted context
-            return self._restore_context(request, response, __request_binding)
+            if request_binding:
+                self._bind_context(request, response)
+            if response.context_id in self.context_counters:
+                # Update number of actions in context
+                self.context_counters[response.context_id] += 1
+        elif puppeteer_request is not None and response.status == HTTPStatus.UNPROCESSABLE_ENTITY:
+            # One PuppeteerRequest has failed with 422 error
+            if request_binding:
+                # Could not get context, retry
+                if request.meta.get('__restore_count', 0) < self.n_retry_restoring:
+                    request.meta['__restore_count'] += 1
+                    return request
+            else:
+                return self._restore_context(response)
         return response
 
-    def _bind_context(self,
-                      request, response,
-                      __request_binding):
-        if __request_binding:
-            if request.meta.get('__context_id', None) is not None:
-                print("HERE 7!!!")
-                # Restoring corrupted context
-                old_context_id = request.meta['__context_id']
-                del self.context_requests[old_context_id]
-                del self.context_counters[old_context_id]
-            restoring_request = request.copy()
-            restoring_request.meta['__restore_count'] = restoring_request.meta.get('__restore_count',
-                                                                                   0)  # TODO: can we use just meta instead of self.(...)?
-            restoring_request.meta['__context_id'] = response.context_id
-            self.context_requests[response.context_id] = restoring_request
-            self.context_counters[response.context_id] = 0
-        # everything is OK
-        if response.context_id in self.context_counters:  # TODO: I don't like this code here.
-            self.context_counters[response.context_id] += 1
+    def _bind_context(self, request, response):
+        if request.meta.get('__context_id', None) is not None:
+            # Need to update context_id
+            self.__delete_context(request.meta['__context_id'], "DELETING OLD CONTEXT")
+        restoring_request = request.copy()
+        restoring_request.meta['__restore_count'] = restoring_request.meta.get('__restore_count', 0)
+        restoring_request.meta['__context_id'] = response.context_id
+        self.context_requests[response.context_id] = restoring_request
+        self.context_counters[response.context_id] = 0
 
-    def _restore_context(self,
-                         request, response,
-                         __request_binding):
-        if __request_binding:  # TODO: this is not restoring context. This is binding.
-            # We did not get context
-            if request.meta.get('__restore_count', 0) < self.n_retry_restoring:
-                request.meta['__restore_count'] += 1
-                return request
-        else:
-            # We probably know this sequence
-            print("HERE 3!!!")
-            context_id = json.loads(response.text).get('contextId', None)
-            if context_id in self.context_requests:
-                # We know this sequence
-                restoring_request = self.context_requests[context_id]
-                if self.context_counters[context_id] <= self.restoring_length and \
-                        restoring_request.meta['__restore_count'] < self.n_retry_restoring:
-                    # Restoring!
-                    print("HERE 4!!!")
-                    restoring_request.meta['__restore_count'] += 1
-                    print(f"Restoring the request {restoring_request}")
-                    self.context_counters[context_id] = 1
-                    return restoring_request
-                else:  # TODO: to determine the reason of disability to restore the sequence.
-                    # We cannot restore the sequence as it is too long
-                    del self.context_counters[context_id]
-                    del self.context_requests[context_id]
+    def _restore_context(self, response):
+        context_id = json.loads(response.text).get('contextId', None)
+
+        if context_id in self.context_requests:
+            restoring_request = self.context_requests[context_id]
+
+            if self.context_counters[context_id] > self.restoring_length:  # TODO: not informative variables
+                # Too many actions in context
+                self.__delete_context(context_id, "TOO MANY ACTIONS IN CONTEXT")
+            elif restoring_request.meta['__restore_count'] >= self.n_retry_restoring:  # TODO: try to fix the > and >= (why not the same???)
+                # Too many retries
+                self.__delete_context(context_id, "TOO MANY RETRIES")
+            else:
+                # Restoring
+                restoring_request.meta['__restore_count'] += 1
+                print(f"Restoring the request {restoring_request}")  # TODO: to make logging
+                self.context_counters[context_id] = 1
+                return restoring_request
         return response
+
+    def __delete_context(self, context_id: str, reason: str):
+        del self.context_counters[context_id]
+        del self.context_requests[context_id]
+        print(reason)
