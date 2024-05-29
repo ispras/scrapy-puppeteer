@@ -22,25 +22,12 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
         The middleware uses additionally these meta-keys, do not use them, because their changing
     could possibly (almost probably) break determined behaviour:
-    ...
+    `__request_binding`, `__restore_count`, `__context_id`.
 
         Settings:
 
     RESTORING_LENGTH: int = 1 - number of restorable requests in a sequence.
     N_RETRY_RESTORING: int = 1 - number of tries to restore a context.
-    """
-
-    """
-        WORK SCHEME:
-
-        cases:
-        1.) First PptrReq (without Context), Its response is good. After some request-response sequence it fails.
-            Trying to recover it N times.
-        2.) First PptrReq (without Context), Its response is bad. We need to try to recover it N times.
-
-        For recovering we use context. If we have it we get first request in sequence and trying to recover everything
-            from the beginning.
-        If we don't have it then we can send the request One more time in process_response until we get it.
     """
 
     N_RETRY_RESTORING_SETTING = "N_RETRY_RESTORING"
