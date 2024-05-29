@@ -13,10 +13,12 @@ def __gen_nav_opts():
     for opt_num in range(1, 5):
         for comb in combinations(WAIT_UNTIL, opt_num):
             timeout = randint(0, 100) * 1000
-            options.append({
-                'timeout': timeout,
-                'waitUntil': list(comb),
-            })
+            options.append(
+                {
+                    "timeout": timeout,
+                    "waitUntil": list(comb),
+                }
+            )
     return options
 
 
