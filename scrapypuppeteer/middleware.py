@@ -9,8 +9,23 @@ from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured
 from scrapy.http import Headers, TextResponse
 
-from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
-from scrapypuppeteer.response import PuppeteerResponse, PuppeteerHtmlResponse, PuppeteerScreenshotResponse, PuppeteerJsonResponse
+from scrapypuppeteer.actions import (
+    Click,
+    GoBack,
+    GoForward,
+    GoTo,
+    RecaptchaSolver,
+    Screenshot,
+    Scroll,
+    CustomJsAction,
+)
+from scrapypuppeteer.response import (
+    PuppeteerResponse,
+    PuppeteerHtmlResponse,
+    PuppeteerScreenshotResponse,
+    PuppeteerRecaptchaSolverResponse,
+    PuppeteerJsonResponse,
+)
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest
 
 
@@ -42,16 +57,18 @@ class PuppeteerServiceDownloaderMiddleware:
     Default to False.
     """
 
-    SERVICE_URL_SETTING = 'PUPPETEER_SERVICE_URL'
-    INCLUDE_HEADERS_SETTING = 'PUPPETEER_INCLUDE_HEADERS'
-    SERVICE_META_SETTING = 'PUPPETEER_INCLUDE_META'
-    DEFAULT_INCLUDE_HEADERS = ['Cookie']  # TODO send them separately
+    SERVICE_URL_SETTING = "PUPPETEER_SERVICE_URL"
+    INCLUDE_HEADERS_SETTING = "PUPPETEER_INCLUDE_HEADERS"
+    SERVICE_META_SETTING = "PUPPETEER_INCLUDE_META"
+    DEFAULT_INCLUDE_HEADERS = ["Cookie"]  # TODO send them separately
 
-    def __init__(self,
-                 crawler: Crawler,
-                 service_url: str,
-                 include_headers: Union[bool, List[str]],
-                 include_meta: bool):
+    def __init__(
+        self,
+        crawler: Crawler,
+        service_url: str,
+        include_headers: Union[bool, List[str]],
+        include_meta: bool,
+    ):
         self.service_base_url = service_url
         self.include_headers = include_headers
         self.include_meta = include_meta
@@ -62,7 +79,7 @@ class PuppeteerServiceDownloaderMiddleware:
     def from_crawler(cls, crawler):
         service_url = crawler.settings.get(cls.SERVICE_URL_SETTING)
         if service_url is None:
-            raise ValueError('Puppeteer service URL must be provided')
+            raise ValueError("Puppeteer service URL must be provided")
         if cls.INCLUDE_HEADERS_SETTING in crawler.settings:
             try:
                 include_headers = crawler.settings.getbool(cls.INCLUDE_HEADERS_SETTING)
@@ -72,8 +89,9 @@ class PuppeteerServiceDownloaderMiddleware:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
         middleware = cls(crawler, service_url, include_headers, include_meta)
-        crawler.signals.connect(middleware.close_used_contexts,
-                                signal=signals.spider_closed)
+        crawler.signals.connect(
+            middleware.close_used_contexts, signal=signals.spider_closed
+        )
         return middleware
 
     def process_request(self, request, spider):
@@ -84,24 +102,21 @@ class PuppeteerServiceDownloaderMiddleware:
         service_url = urljoin(self.service_base_url, action.endpoint)
         service_params = self._encode_service_params(request)
         if service_params:
-            service_url += '?' + service_params
+            service_url += "?" + service_params
 
         meta = {
-            'puppeteer_request': request,
-            'dont_obey_robotstxt': True,
-            'proxy': None
+            "puppeteer_request": request,
+            "dont_obey_robotstxt": True,
+            "proxy": None,
         }
         if self.include_meta:
-            meta = {
-                **request.meta,
-                **meta
-            }
+            meta = {**request.meta, **meta}
 
         return ActionRequest(
             url=service_url,
             action=action,
-            method='POST',
-            headers=Headers({'Content-Type': action.content_type}),
+            method="POST",
+            headers=Headers({"Content-Type": action.content_type}),
             body=self._serialize_body(action, request),
             dont_filter=True,
             cookies=request.cookies,
@@ -109,35 +124,41 @@ class PuppeteerServiceDownloaderMiddleware:
             callback=request.callback,
             cb_kwargs=request.cb_kwargs,
             errback=request.errback,
-            meta=meta
+            meta=meta,
         )
 
     @staticmethod
     def _encode_service_params(request):
         service_params = {}
         if request.context_id is not None:
-            service_params['contextId'] = request.context_id
+            service_params["contextId"] = request.context_id
         if request.page_id is not None:
-            service_params['pageId'] = request.page_id
+            service_params["pageId"] = request.page_id
         if request.close_page:
-            service_params['closePage'] = 1
+            service_params["closePage"] = 1
         return urlencode(service_params)
 
     def _serialize_body(self, action, request):
         payload = action.payload()
-        if action.content_type == 'application/json':
+        if action.content_type == "application/json":
             if isinstance(payload, dict):
                 # disallow null values in top-level request parameters
                 payload = {k: v for k, v in payload.items() if v is not None}
-            proxy = request.meta.get('proxy')
+            proxy = request.meta.get("proxy")
             if proxy:
-                payload['proxy'] = proxy
-            include_headers = self.include_headers if request.include_headers is None else request.include_headers
+                payload["proxy"] = proxy
+            include_headers = (
+                self.include_headers
+                if request.include_headers is None
+                else request.include_headers
+            )
             if include_headers:
                 headers = request.headers.to_unicode_dict()
                 if isinstance(include_headers, list):
-                    headers = {h.lower(): headers[h] for h in include_headers if h in headers}
-                payload['headers'] = headers
+                    headers = {
+                        h.lower(): headers[h] for h in include_headers if h in headers
+                    }
+                payload["headers"] = headers
             return json.dumps(payload)
         return str(payload)
 
@@ -145,38 +166,36 @@ class PuppeteerServiceDownloaderMiddleware:
         if not isinstance(response, TextResponse):
             return response
 
-        puppeteer_request = request.meta.get('puppeteer_request')
+        puppeteer_request = request.meta.get("puppeteer_request")
         if puppeteer_request is None:
             return response
 
-        if b'application/json' not in response.headers.get(b'Content-Type', b''):
+        if b"application/json" not in response.headers.get(b"Content-Type", b""):
             return response.replace(request=request)
 
         response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
 
         if response.status != 200:
-            context_id = response_data.get('contextId')
+            context_id = response_data.get("contextId")
             if context_id:
                 self.used_contexts[id(spider)].add(context_id)
             return response
 
-        return self._form_response(response_cls, response_data,
-                                   puppeteer_request.url, request, puppeteer_request,
-                                   spider)
+        return self._form_response(
+            response_cls,
+            response_data,
+            puppeteer_request.url,
+            request,
+            puppeteer_request,
+            spider,
+        )
 
-    def _form_response(self, response_cls, response_data,
-                       url, request, puppeteer_request,
-                       spider):
-        context_id = response_data.pop('contextId', puppeteer_request.context_id)
-        page_id = response_data.pop('pageId', puppeteer_request.page_id)
-
-        attributes = dict()
-        for attr in response_cls.attributes:
-            if attr in response_data:
-                attributes[attr] = response_data.pop(attr)
-        if response_data:
-            attributes['data'] = response_data
+    def _form_response(
+        self, response_cls, response_data, url, request, puppeteer_request, spider
+    ):
+        context_id = response_data.pop("contextId", puppeteer_request.context_id)
+        page_id = response_data.pop("pageId", puppeteer_request.page_id)
 
         self.used_contexts[id(spider)].add(context_id)
 
@@ -186,7 +205,7 @@ class PuppeteerServiceDownloaderMiddleware:
             context_id=context_id,
             page_id=page_id,
             request=request,
-            **attributes
+            **response_data,
         )
 
     @staticmethod
@@ -195,16 +214,20 @@ class PuppeteerServiceDownloaderMiddleware:
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
+        if isinstance(request_action, RecaptchaSolver):
+            return PuppeteerRecaptchaSolverResponse
         return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
         contexts = list(self.used_contexts[id(spider)])
         if contexts:
-            request = Request(urljoin(self.service_base_url, '/close_context'),
-                              method='POST',
-                              headers=Headers({'Content-Type': 'application/json'}),
-                              meta={"proxy": None},
-                              body=json.dumps(contexts))
+            request = Request(
+                urljoin(self.service_base_url, "/close_context"),
+                method="POST",
+                headers=Headers({"Content-Type": "application/json"}),
+                meta={"proxy": None},
+                body=json.dumps(contexts),
+            )
             return self.crawler.engine.downloader.fetch(request, None)
 
 
@@ -247,9 +270,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     RECAPTCHA_SOLVING_SETTING = "RECAPTCHA_SOLVING"
     SUBMIT_SELECTORS_SETTING = "RECAPTCHA_SUBMIT_SELECTORS"
 
-    def __init__(self,
-                 recaptcha_solving: bool,
-                 submit_selectors: dict):
+    def __init__(self, recaptcha_solving: bool, submit_selectors: dict):
         self.submit_selectors = submit_selectors
         self.recaptcha_solving = recaptcha_solving
         self._page_responses = dict()
@@ -263,109 +284,135 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
 
         try:
-            submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
+            submit_selectors = crawler.settings.getdict(
+                cls.SUBMIT_SELECTORS_SETTING, dict()
+            )
         except ValueError:
-            submit_selectors = {'': crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, '')}
+            submit_selectors = {
+                "": crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, "")
+            }
         except Exception as exception:
-            raise ValueError(f"Wrong argument(s) inside {cls.SUBMIT_SELECTORS_SETTING}: {exception}")
+            raise ValueError(
+                f"Wrong argument(s) inside {cls.SUBMIT_SELECTORS_SETTING}: {exception}"
+            )
 
         for key in submit_selectors.keys():
             submit_selector = submit_selectors[key]
             if isinstance(submit_selector, str):
                 submit_selectors[key] = Click(selector=submit_selector)
             elif not isinstance(submit_selector, Click):
-                raise ValueError("Submit selector must be str or Click,"
-                                 f"but {type(submit_selector)} provided")
+                raise ValueError(
+                    "Submit selector must be str or Click,"
+                    f"but {type(submit_selector)} provided"
+                )
         return cls(recaptcha_solving, submit_selectors)
 
     def process_request(self, request, spider):
-        if request.meta.get('dont_recaptcha', False):
+        if request.meta.get("dont_recaptcha", False):
             return None
 
         if isinstance(request, PuppeteerRequest):
-            if request.close_page and not request.meta.get('_captcha_submission', False):
+            if request.close_page and not request.meta.get(
+                "_captcha_submission", False
+            ):
                 request.close_page = False
                 request.dont_filter = True
                 self._page_closing.add(request)
                 return request
         return None
 
-    def process_response(self,
-                         request, response,
-                         spider):
-        if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
+    def process_response(self, request, response, spider):
+        if not isinstance(
+            response, PuppeteerResponse
+        ):  # We only work with PuppeteerResponses
             return response
 
         puppeteer_request = response.puppeteer_request
-        if puppeteer_request.meta.get('dont_recaptcha', False):  # Skip such responses
+        if puppeteer_request.meta.get("dont_recaptcha", False):  # Skip such responses
             return response
 
-        if puppeteer_request.meta.pop('_captcha_submission', False):  # Submitted captcha
+        if puppeteer_request.meta.pop(
+            "_captcha_submission", False
+        ):  # Submitted captcha
             return self.__gen_response(response)
 
-        if puppeteer_request.meta.pop('_captcha_solving', False):
+        if puppeteer_request.meta.pop("_captcha_solving", False):
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(puppeteer_request.action,
-                      (Screenshot, Scroll, CustomJsAction, RecaptchaSolver)):
-            # No recaptcha after this action
+        if isinstance(
+            puppeteer_request.action,
+            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
+        ):
+            # No recaptcha after these actions
             return response
 
-        # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
+        # Any puppeteer response besides PuppeteerRecaptchaSolverResponse
         return self._solve_recaptcha(request, response)
 
     def _solve_recaptcha(self, request, response):
-        self._page_responses[response.page_id] = response  # Saving main response to return it later
+        self._page_responses[response.page_id] = (
+            response  # Saving main response to return it later
+        )
 
-        recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving,
-                                           close_on_empty=self.__is_closing(response, remove_request=False))
-        return response.follow(recaptcha_solver,
-                               callback=request.callback,
-                               cb_kwargs=request.cb_kwargs,
-                               errback=request.errback,
-                               meta={'_captcha_solving': True},
-                               close_page=False)
+        recaptcha_solver = RecaptchaSolver(
+            solve_recaptcha=self.recaptcha_solving,
+            close_on_empty=self.__is_closing(response, remove_request=False),
+        )
+        return response.follow(
+            recaptcha_solver,
+            callback=request.callback,
+            cb_kwargs=request.cb_kwargs,
+            errback=request.errback,
+            meta={"_captcha_solving": True},
+            close_page=False,
+        )
 
     def _submit_recaptcha(self, request, response, spider):
-        response_data = response.data
         if not response.puppeteer_request.action.solve_recaptcha:
-            spider.log(message=f"Found {len(response_data['recaptcha_data']['captchas'])} captcha "
-                               f"but did not solve due to argument",
-                       level=logging.INFO)
+            spider.log(
+                message=f"Found {len(response.recaptcha_data['captchas'])} captcha "
+                f"but did not solve due to argument",
+                level=logging.INFO,
+            )
             return self.__gen_response(response)
         # Click "submit button"?
-        if response_data['recaptcha_data']['captchas'] and self.submit_selectors:
+        if response.recaptcha_data["captchas"] and self.submit_selectors:
             # We need to click "submit button"
             for domain, submitting in self.submit_selectors.items():
                 if domain in response.url:
                     if not submitting.selector:
                         return self.__gen_response(response)
-                    return response.follow(action=submitting,
-                                           callback=request.callback,
-                                           cb_kwargs=request.cb_kwargs,
-                                           errback=request.errback,
-                                           close_page=self.__is_closing(response),
-                                           meta={'_captcha_submission': True})
-            raise IgnoreRequest("No submit selector found to click on the page but captcha found")
+                    return response.follow(
+                        action=submitting,
+                        callback=request.callback,
+                        cb_kwargs=request.cb_kwargs,
+                        errback=request.errback,
+                        close_page=self.__is_closing(response),
+                        meta={"_captcha_submission": True},
+                    )
+            raise IgnoreRequest(
+                "No submit selector found to click on the page but captcha found"
+            )
         return self.__gen_response(response)
 
     def __gen_response(self, response):
         main_response_data = dict()
-        main_response_data['page_id'] = None if self.__is_closing(response) else response.puppeteer_request.page_id
+        main_response_data["page_id"] = (
+            None if self.__is_closing(response) else response.puppeteer_request.page_id
+        )
 
         main_response = self._page_responses.pop(response.page_id)
 
         if isinstance(main_response, PuppeteerHtmlResponse):
             if isinstance(response.puppeteer_request.action, RecaptchaSolver):
-                main_response_data['body'] = response.data['html']
+                main_response_data["body"] = response.html
             elif isinstance(response.puppeteer_request.action, Click):
-                main_response_data['body'] = response.body
+                main_response_data["body"] = response.body
 
         return main_response.replace(**main_response_data)
 
-    def __is_closing(self, response,
-                     remove_request: bool = True) -> bool:
+    def __is_closing(self, response, remove_request: bool = True) -> bool:
         main_request = self._page_responses[response.page_id].puppeteer_request
         close_page = main_request in self._page_closing
         if close_page and remove_request:

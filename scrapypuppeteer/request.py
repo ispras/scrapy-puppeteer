@@ -11,19 +11,14 @@ class ActionRequest(Request):
     beautified representation.
     """
 
-    attributes: Tuple[str, ...] = Request.attributes + (
-        'action',
-    )
+    attributes: Tuple[str, ...] = Request.attributes + ("action",)
     """
         A tuple of :class:`str` objects containing the name of all public
         attributes of the class that are also keyword parameters of the
         ``__init__`` method.
     """
 
-    def __init__(self,
-                 url: str,
-                 action: Union[str, PuppeteerServiceAction],
-                 **kwargs):
+    def __init__(self, url: str, action: Union[str, PuppeteerServiceAction], **kwargs):
         self.action = action
         super().__init__(url, **kwargs)
 
@@ -36,14 +31,14 @@ class ActionRequest(Request):
 
 class PuppeteerRequest(ActionRequest):
     """
-        Request to be executed in browser with puppeteer.
+    Request to be executed in browser with puppeteer.
     """
 
     attributes: Tuple[str, ...] = ActionRequest.attributes + (
-        'context_id',
-        'page_id',
-        'close_page',
-        'include_headers'
+        "context_id",
+        "page_id",
+        "close_page",
+        "include_headers",
     )
     """
         A tuple of :class:`str` objects containing the name of all public
@@ -53,13 +48,15 @@ class PuppeteerRequest(ActionRequest):
         Currently used by :meth:`PuppeteerRequest.replace`
     """
 
-    def __init__(self,
-                 action: Union[str, PuppeteerServiceAction],
-                 context_id: str = None,
-                 page_id: str = None,
-                 close_page: bool = True,
-                 include_headers: Union[bool, List[str]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        action: Union[str, PuppeteerServiceAction],
+        context_id: str = None,
+        page_id: str = None,
+        close_page: bool = True,
+        include_headers: Union[bool, List[str]] = None,
+        **kwargs,
+    ):
         """
 
         :param action: URL or browser action
@@ -76,18 +73,22 @@ class PuppeteerRequest(ActionRequest):
                                 or None (default, let middleware decide)
         :param kwargs:
         """
-        url = kwargs.pop('url', None)
+        url = kwargs.pop("url", None)
         if isinstance(action, str):
             url = action
-            navigation_options = kwargs.pop('navigation_options', None)
-            wait_options = kwargs.pop('wait_options', None)
-            action = GoTo(url, navigation_options=navigation_options, wait_options=wait_options)
+            navigation_options = kwargs.pop("navigation_options", None)
+            wait_options = kwargs.pop("wait_options", None)
+            action = GoTo(
+                url, navigation_options=navigation_options, wait_options=wait_options
+            )
         elif isinstance(action, GoTo):
             url = action.url
         elif not isinstance(action, PuppeteerServiceAction):
-            raise ValueError('Undefined browser action')
+            raise ValueError("Undefined browser action")
         if url is None:
-            raise ValueError('Request is not a goto-request and does not follow a response')
+            raise ValueError(
+                "Request is not a goto-request and does not follow a response"
+            )
         super().__init__(url, action, **kwargs)
         self.context_id = context_id
         self.page_id = page_id

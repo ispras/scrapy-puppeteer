@@ -5,14 +5,12 @@ class PuppeteerServiceAction(ABC):
 
     @property
     @abstractmethod
-    def endpoint(self):
-        ...
+    def endpoint(self): ...
 
-    content_type = 'application/json'
+    content_type = "application/json"
 
     @abstractmethod
-    def payload(self):
-        ...
+    def payload(self): ...
 
 
 class GoTo(PuppeteerServiceAction):
@@ -57,18 +55,20 @@ class GoTo(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'goto'
+    endpoint = "goto"
 
-    def __init__(self, url: str, navigation_options: dict = None, wait_options: dict = None):
+    def __init__(
+        self, url: str, navigation_options: dict = None, wait_options: dict = None
+    ):
         self.url = url
         self.navigation_options = navigation_options
         self.wait_options = wait_options
 
     def payload(self):
         return {
-            'url': self.url,
-            'navigationOptions': self.navigation_options,
-            'waitOptions': self.wait_options
+            "url": self.url,
+            "navigationOptions": self.navigation_options,
+            "waitOptions": self.wait_options,
         }
 
 
@@ -81,7 +81,7 @@ class GoForward(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'forward'
+    endpoint = "forward"
 
     def __init__(self, navigation_options: dict = None, wait_options: dict = None):
         self.navigation_options = navigation_options
@@ -89,8 +89,8 @@ class GoForward(PuppeteerServiceAction):
 
     def payload(self):
         return {
-            'navigationOptions': self.navigation_options,
-            'waitOptions': self.wait_options
+            "navigationOptions": self.navigation_options,
+            "waitOptions": self.wait_options,
         }
 
 
@@ -103,7 +103,7 @@ class GoBack(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'back'
+    endpoint = "back"
 
     def __init__(self, navigation_options: dict = None, wait_options: dict = None):
         self.navigation_options = navigation_options
@@ -111,8 +111,8 @@ class GoBack(PuppeteerServiceAction):
 
     def payload(self):
         return {
-            'navigationOptions': self.navigation_options,
-            'waitOptions': self.wait_options
+            "navigationOptions": self.navigation_options,
+            "waitOptions": self.wait_options,
         }
 
 
@@ -140,12 +140,15 @@ class Click(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'click'
+    endpoint = "click"
 
-    def __init__(self, selector: str,
-                 click_options: dict = None,
-                 wait_options: dict = None,
-                 navigation_options: dict = None):
+    def __init__(
+        self,
+        selector: str,
+        click_options: dict = None,
+        wait_options: dict = None,
+        navigation_options: dict = None,
+    ):
         self.selector = selector
         self.click_options = click_options
         self.wait_options = wait_options
@@ -153,10 +156,10 @@ class Click(PuppeteerServiceAction):
 
     def payload(self):
         return {
-            'selector': self.selector,
-            'clickOptions': self.click_options,
-            'waitOptions': self.wait_options,
-            'navigationOptions': self.navigation_options
+            "selector": self.selector,
+            "clickOptions": self.click_options,
+            "waitOptions": self.wait_options,
+            "navigationOptions": self.navigation_options,
         }
 
 
@@ -172,17 +175,14 @@ class Scroll(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'scroll'
+    endpoint = "scroll"
 
     def __init__(self, selector: str = None, wait_options: dict = None):
         self.selector = selector
         self.wait_options = wait_options
 
     def payload(self):
-        return {
-            'selector': self.selector,
-            'waitOptions': self.wait_options
-        }
+        return {"selector": self.selector, "waitOptions": self.wait_options}
 
 
 class Screenshot(PuppeteerServiceAction):
@@ -213,51 +213,49 @@ class Screenshot(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'screenshot'
+    endpoint = "screenshot"
 
     def __init__(self, options: dict = None, **kwargs):
         self.options = options or {}
         self.options.update(kwargs)
 
     def payload(self):
-        return {
-            'options': self.options
-        }
+        return {"options": self.options}
 
 
 class RecaptchaSolver(PuppeteerServiceAction):
     """
-        Tries to solve recaptcha on the page.
-        First it tries to find recaptcha. If it couldn't find a recaptcha nothing
-        will happen to your 2captcha balance.
-        Then it solves recaptcha with 2captcha service and inserts the special code
-        into the page automatically.
-        Note that it does not click buttons like "submit buttons".
+    Tries to solve recaptcha on the page.
+    First it tries to find recaptcha. If it couldn't find a recaptcha nothing
+    will happen to your 2captcha balance.
+    Then it solves recaptcha with 2captcha service and inserts the special code
+    into the page automatically.
+    Note that it does not click buttons like "submit buttons".
 
-        Params:
-            solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
-                If false is provided recaptcha will still be detected on the page but not solved.
-                You can get info about found recaptchas via return value.
-            close_on_empty - bool = False: whether to close page or not if there was no captcha on the page.
+    Params:
+        solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
+            If false is provided recaptcha will still be detected on the page but not solved.
+            You can get info about found recaptchas via return value.
+        close_on_empty - bool = False: whether to close page or not if there was no captcha on the page.
 
-        Response for this action is PuppeteerJsonResponse. You can get the return values
-        via self.data['recaptcha_data'].
-        You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
-        to get information about return value.
+    Response for this action is PuppeteerJsonResponse. You can get the return values
+    via self.data['recaptcha_data'].
+    You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
+    to get information about return value.
     """
-    endpoint = 'recaptcha_solver'
 
-    def __init__(self,
-                 solve_recaptcha: bool = True,
-                 close_on_empty: bool = False,
-                 **kwargs):
+    endpoint = "recaptcha_solver"
+
+    def __init__(
+        self, solve_recaptcha: bool = True, close_on_empty: bool = False, **kwargs
+    ):
         self.solve_recaptcha = solve_recaptcha
         self.close_on_empty = close_on_empty
 
     def payload(self):
         return {
-            'solve_recaptcha': self.solve_recaptcha,
-            'close_on_empty': self.close_on_empty
+            "solve_recaptcha": self.solve_recaptcha,
+            "close_on_empty": self.close_on_empty,
         }
 
 
@@ -277,8 +275,8 @@ class CustomJsAction(PuppeteerServiceAction):
 
     """
 
-    endpoint = 'action'
-    content_type = 'application/javascript'
+    endpoint = "action"
+    content_type = "application/javascript"
 
     def __init__(self, js_action: str):
         self.js_action = js_action

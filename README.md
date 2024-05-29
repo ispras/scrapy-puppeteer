@@ -46,7 +46,7 @@ class MySpider(scrapy.Spider):
 ## Advanced usage
 
 `PuppeteerRequest`'s first argument is a browser action.
-Avalable actions are defined in `scrapypuppeteer.actions` module as subclasses of `PuppeteerServiceAction`.
+Available actions are defined in `scrapypuppeteer.actions` module as subclasses of `PuppeteerServiceAction`.
 Passing a URL into request is a shortcut for `GoTo(url)` action. 
 
 Here is the list of available actions:

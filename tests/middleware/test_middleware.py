@@ -4,6 +4,7 @@ from tests.spiders import (
     ClickSpider,
     ScreenshotSpider,
     CustomJsActionSpider,
+    RecaptchaSolverSpider,
 )
 from tests.mockserver import MockServer
 from twisted.trial.unittest import TestCase
@@ -13,16 +14,16 @@ from scrapy.utils.test import get_crawler
 
 class PuppeteerCrawlTest(TestCase):
     SETTINGS = {
-        'DOWNLOADER_MIDDLEWARES': {
-            'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+        "DOWNLOADER_MIDDLEWARES": {
+            "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042
         },
-        'PUPPETEER_SERVICE_URL': None,
+        "PUPPETEER_SERVICE_URL": None,
     }
 
     def setUp(self):
         self.mockserver = MockServer()
         self.mockserver.__enter__()
-        self.SETTINGS['PUPPETEER_SERVICE_URL'] = self.mockserver.http_address
+        self.SETTINGS["PUPPETEER_SERVICE_URL"] = self.mockserver.http_address
 
     def tearDown(self):
         self.mockserver.__exit__(None, None, None)
@@ -30,7 +31,7 @@ class PuppeteerCrawlTest(TestCase):
     def _start_testing(self, spider_cls, expected):
         crawler = get_crawler(spider_cls, self.SETTINGS)
         yield crawler.crawl(mockserver=self.mockserver)
-        self.assertEqual(len(crawler.spider.urls_visited), expected)
+        self.assertEqual(expected, len(crawler.spider.urls_visited))
 
     @defer.inlineCallbacks
     def test_goto(self):
@@ -51,3 +52,7 @@ class PuppeteerCrawlTest(TestCase):
     @defer.inlineCallbacks
     def test_custom_js_action(self):
         yield from self._start_testing(CustomJsActionSpider, 1)
+
+    @defer.inlineCallbacks
+    def test_recaptcha_solver(self):
+        yield from self._start_testing(RecaptchaSolverSpider, 1)
