@@ -3,7 +3,13 @@ import logging
 from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured
 
-from scrapypuppeteer.actions import Click, RecaptchaSolver, Screenshot, Scroll, CustomJsAction
+from scrapypuppeteer.actions import (
+    Click,
+    RecaptchaSolver,
+    Screenshot,
+    Scroll,
+    CustomJsAction,
+)
 from scrapypuppeteer.response import PuppeteerResponse, PuppeteerHtmlResponse
 from scrapypuppeteer.request import PuppeteerRequest
 
@@ -49,9 +55,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     RECAPTCHA_SOLVING_SETTING = "RECAPTCHA_SOLVING"
     SUBMIT_SELECTORS_SETTING = "RECAPTCHA_SUBMIT_SELECTORS"
 
-    def __init__(self,
-                 recaptcha_solving: bool,
-                 submit_selectors: dict):
+    def __init__(self, recaptcha_solving: bool, submit_selectors: dict):
         self.submit_selectors = submit_selectors
         self.recaptcha_solving = recaptcha_solving
         self._page_responses = dict()
@@ -65,109 +69,134 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
 
         try:
-            submit_selectors = crawler.settings.getdict(cls.SUBMIT_SELECTORS_SETTING, dict())
+            submit_selectors = crawler.settings.getdict(
+                cls.SUBMIT_SELECTORS_SETTING, dict()
+            )
         except ValueError:
-            submit_selectors = {'': crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, '')}
+            submit_selectors = {
+                "": crawler.settings.get(cls.SUBMIT_SELECTORS_SETTING, "")
+            }
         except Exception as exception:
-            raise ValueError(f"Wrong argument(s) inside {cls.SUBMIT_SELECTORS_SETTING}: {exception}")
+            raise ValueError(
+                f"Wrong argument(s) inside {cls.SUBMIT_SELECTORS_SETTING}: {exception}"
+            )
 
         for key in submit_selectors.keys():
             submit_selector = submit_selectors[key]
             if isinstance(submit_selector, str):
                 submit_selectors[key] = Click(selector=submit_selector)
             elif not isinstance(submit_selector, Click):
-                raise TypeError(f"Submit selector must be str or Click, got {type(submit_selector)}")
+                raise TypeError(
+                    f"Submit selector must be str or Click, got {type(submit_selector)}"
+                )
         return cls(recaptcha_solving, submit_selectors)
 
     def process_request(self, request, spider):
-        if request.meta.get('dont_recaptcha', False):
+        if request.meta.get("dont_recaptcha", False):
             return None
 
         if isinstance(request, PuppeteerRequest):
-            if request.close_page and not request.meta.get('_captcha_submission', False):
+            if request.close_page and not request.meta.get(
+                "_captcha_submission", False
+            ):
                 request.close_page = False
                 request.dont_filter = True
                 self._page_closing.add(request)
                 return request
         return None
 
-    def process_response(self,
-                         request, response,
-                         spider):
-        if not isinstance(response, PuppeteerResponse):  # We only work with PuppeteerResponses
+    def process_response(self, request, response, spider):
+        if not isinstance(
+            response, PuppeteerResponse
+        ):  # We only work with PuppeteerResponses
             return response
 
         puppeteer_request = response.puppeteer_request
-        if puppeteer_request.meta.get('dont_recaptcha', False):  # Skip such responses
+        if puppeteer_request.meta.get("dont_recaptcha", False):  # Skip such responses
             return response
 
-        if puppeteer_request.meta.pop('_captcha_submission', False):  # Submitted captcha
+        if puppeteer_request.meta.pop(
+            "_captcha_submission", False
+        ):  # Submitted captcha
             return self.__gen_response(response)
 
-        if puppeteer_request.meta.pop('_captcha_solving', False):
+        if puppeteer_request.meta.pop("_captcha_solving", False):
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(puppeteer_request.action,
-                      (Screenshot, Scroll, CustomJsAction, RecaptchaSolver)):
-            # No recaptcha after this action
+        if isinstance(
+            puppeteer_request.action,
+            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
+        ):
+            # No recaptcha after these actions
             return response
 
-        # Any puppeteer response besides RecaptchaSolver's PuppeteerResponse
+        # Any puppeteer response besides PuppeteerRecaptchaSolverResponse
         return self._solve_recaptcha(request, response)
 
     def _solve_recaptcha(self, request, response):
-        self._page_responses[response.page_id] = response  # Saving main response to return it later
+        self._page_responses[response.page_id] = (
+            response  # Saving main response to return it later
+        )
 
-        recaptcha_solver = RecaptchaSolver(solve_recaptcha=self.recaptcha_solving,
-                                           close_on_empty=self.__is_closing(response, remove_request=False))
-        return response.follow(recaptcha_solver,
-                               callback=request.callback,
-                               cb_kwargs=request.cb_kwargs,
-                               errback=request.errback,
-                               meta={'_captcha_solving': True},
-                               close_page=False)
+        recaptcha_solver = RecaptchaSolver(
+            solve_recaptcha=self.recaptcha_solving,
+            close_on_empty=self.__is_closing(response, remove_request=False),
+        )
+        return response.follow(
+            recaptcha_solver,
+            callback=request.callback,
+            cb_kwargs=request.cb_kwargs,
+            errback=request.errback,
+            meta={"_captcha_solving": True},
+            close_page=False,
+        )
 
     def _submit_recaptcha(self, request, response, spider):
-        response_data = response.data
         if not response.puppeteer_request.action.solve_recaptcha:
-            recaptcha_logger.log(level=logging.INFO,
-                                 msg=f"Found {len(response_data['recaptcha_data']['captchas'])} captcha "
-                                     f"but did not solve due to argument",
-                                 )
+            recaptcha_logger.log(
+                level=logging.INFO,
+                msg=f"Found {len(response.recaptcha_data['captchas'])} captcha "
+                f"but did not solve due to argument",
+            )
             return self.__gen_response(response)
         # Click "submit button"?
-        if response_data['recaptcha_data']['captchas'] and self.submit_selectors:
+        if response.recaptcha_data["captchas"] and self.submit_selectors:
             # We need to click "submit button"
             for domain, submitting in self.submit_selectors.items():
                 if domain in response.url:
                     if not submitting.selector:
                         return self.__gen_response(response)
-                    return response.follow(action=submitting,
-                                           callback=request.callback,
-                                           cb_kwargs=request.cb_kwargs,
-                                           errback=request.errback,
-                                           close_page=self.__is_closing(response),
-                                           meta={'_captcha_submission': True})
-            raise IgnoreRequest("No submit selector found to click on the page but captcha found")
+                    return response.follow(
+                        action=submitting,
+                        callback=request.callback,
+                        cb_kwargs=request.cb_kwargs,
+                        errback=request.errback,
+                        close_page=self.__is_closing(response),
+                        meta={"_captcha_submission": True},
+                    )
+            raise IgnoreRequest(
+                "No submit selector found to click on the page but captcha found"
+            )
         return self.__gen_response(response)
 
     def __gen_response(self, response):
         main_response_data = dict()
-        main_response_data['page_id'] = None if self.__is_closing(response) else response.puppeteer_request.page_id
+        main_response_data["page_id"] = (
+            None if self.__is_closing(response) else response.puppeteer_request.page_id
+        )
 
         main_response = self._page_responses.pop(response.page_id)
 
         if isinstance(main_response, PuppeteerHtmlResponse):
             if isinstance(response.puppeteer_request.action, RecaptchaSolver):
-                main_response_data['body'] = response.data['html']
+                main_response_data["body"] = response.html
             elif isinstance(response.puppeteer_request.action, Click):
-                main_response_data['body'] = response.body
+                main_response_data["body"] = response.body
 
         return main_response.replace(**main_response_data)
 
-    def __is_closing(self, response,
-                     remove_request: bool = True) -> bool:
+    def __is_closing(self, response, remove_request: bool = True) -> bool:
         main_request = self._page_responses[response.page_id].puppeteer_request
         close_page = main_request in self._page_closing
         if close_page and remove_request:
