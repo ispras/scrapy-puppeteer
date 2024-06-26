@@ -18,6 +18,7 @@ from scrapypuppeteer.actions import (
     Screenshot,
     Scroll,
     CustomJsAction,
+    CloseContext,
 )
 from scrapypuppeteer.response import (
     PuppeteerResponse,
@@ -34,12 +35,12 @@ class PuppeteerServiceDownloaderMiddleware:
     This downloader middleware converts PuppeteerRequest instances to
     Puppeteer service API requests and then converts its responses to
     PuppeteerResponse instances. Additionally, it tracks all browser contexts
-    that spider uses and performs cleanup request to service once spider
-    is closed.
+    that spider uses and performs cleanup request to service right before
+    spider is closed.
 
         Additionally, the middleware uses these meta-keys, do not use them, because their changing
     could possibly (almost probably) break determined behaviour:
-    'puppeteer_request', 'dont_obey_robotstxt', 'proxy'
+    'puppeteer_request', 'dont_obey_robotstxt', 'proxy', '__closing_contexts'
 
     Settings:
 
@@ -163,9 +164,6 @@ class PuppeteerServiceDownloaderMiddleware:
         return str(payload)
 
     def process_response(self, request, response, spider):
-        if request.meta.get("__closing_contexts", False) and response.status == 200:
-            raise IgnoreRequest()
-
         if not isinstance(response, TextResponse):
             return response
 
@@ -173,10 +171,23 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
-        if b"application/json" not in response.headers.get(b"Content-Type", b""):
+        if (  # TODO: Meta-key for differentiating our requests from spider's
+            isinstance(puppeteer_request.action, CloseContext)
+            and response.status == 200
+        ):
+            raise IgnoreRequest()
+
+        if b"application/json" in response.headers.get(b"Content-Type", b""):
+            response_data = json.loads(response.text)
+        elif b"text/html" in response.headers.get(b"Content-Type", b""):
+            response_data = {
+                "html": response.text,
+                "cookies": [],
+                "contextId": None,
+            }
+        else:
             return response.replace(request=request)
 
-        response_data = json.loads(response.text)
         response_cls = self._get_response_class(puppeteer_request.action)
 
         if response.status != 200:
@@ -213,7 +224,9 @@ class PuppeteerServiceDownloaderMiddleware:
 
     @staticmethod
     def _get_response_class(request_action):
-        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll)):
+        if isinstance(
+            request_action, (GoTo, GoForward, GoBack, Click, Scroll, CloseContext)
+        ):
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
@@ -222,14 +235,13 @@ class PuppeteerServiceDownloaderMiddleware:
         return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
-        contexts = list(self.used_contexts.pop(id(spider), ()))
+        contexts = list(self.used_contexts.pop(id(spider), set()))
         if contexts:
-            request = Request(
-                urljoin(self.service_base_url, "/close_context"),
-                method="POST",
-                headers=Headers({"Content-Type": "application/json"}),
-                meta={"proxy": None, "__closing_contexts": True},
-                body=json.dumps(contexts),
+            request = PuppeteerRequest(
+                CloseContext(contexts),
+                include_headers=False,
+                url=self.service_base_url,
+                meta={"__closing_contexts": True},
             )
             self.crawler.engine.crawl(request=request)
             raise DontCloseSpider()

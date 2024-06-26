@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from typing import List
 
 
 class PuppeteerServiceAction(ABC):
@@ -283,3 +284,20 @@ class CustomJsAction(PuppeteerServiceAction):
 
     def payload(self):
         return self.js_action
+
+
+class CloseContext(PuppeteerServiceAction):
+    """
+    Close contexts in the puppeteer-service.
+    """
+
+    endpoint = "close_context"
+
+    def __init__(self, contexts: List):
+        """
+        :param set contexts: Contexts to close.
+        """
+        self.contexts = contexts
+
+    def payload(self):
+        return self.contexts
