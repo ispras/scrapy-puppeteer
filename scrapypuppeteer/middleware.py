@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urlencode, urljoin
 
-from scrapy import Request, signals
+from scrapy import signals
 from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
 from scrapy.http import Headers, TextResponse
@@ -62,6 +62,8 @@ class PuppeteerServiceDownloaderMiddleware:
     INCLUDE_HEADERS_SETTING = "PUPPETEER_INCLUDE_HEADERS"
     SERVICE_META_SETTING = "PUPPETEER_INCLUDE_META"
     DEFAULT_INCLUDE_HEADERS = ["Cookie"]  # TODO send them separately
+
+    service_logger = logging.getLogger(__name__)
 
     def __init__(
         self,
@@ -171,15 +173,9 @@ class PuppeteerServiceDownloaderMiddleware:
         if puppeteer_request is None:
             return response
 
-        if (  # TODO: Meta-key for differentiating our requests from spider's
-            isinstance(puppeteer_request.action, CloseContext)
-            and response.status == 200
-        ):
-            raise IgnoreRequest()
-
         if b"application/json" in response.headers.get(b"Content-Type", b""):
             response_data = json.loads(response.text)
-        elif b"text/html" in response.headers.get(b"Content-Type", b""):
+        elif isinstance(puppeteer_request.action, CloseContext):
             response_data = {
                 "html": response.text,
                 "cookies": [],
@@ -188,13 +184,20 @@ class PuppeteerServiceDownloaderMiddleware:
         else:
             return response.replace(request=request)
 
-        response_cls = self._get_response_class(puppeteer_request.action)
-
         if response.status != 200:
             context_id = response_data.get("contextId")
             if context_id:
                 self.used_contexts[id(spider)].add(context_id)
             return response
+
+        if puppeteer_request.meta.get("__closing_contexts", False):
+            self.service_logger.log(
+                level=logging.DEBUG,
+                msg=f"Successfully closed {len(puppeteer_request.action.payload())} contexts with puppeteer request {puppeteer_request}",
+            )
+            raise IgnoreRequest()
+
+        response_cls = self._get_response_class(puppeteer_request.action)
 
         return self._form_response(
             response_cls,
@@ -239,6 +242,7 @@ class PuppeteerServiceDownloaderMiddleware:
         if contexts:
             request = PuppeteerRequest(
                 CloseContext(contexts),
+                close_page=False,  # To not write `...?closePage=1` in logs
                 include_headers=False,
                 url=self.service_base_url,
                 meta={"__closing_contexts": True},
