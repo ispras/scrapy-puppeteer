@@ -289,13 +289,15 @@ class CustomJsAction(PuppeteerServiceAction):
 class CloseContext(PuppeteerServiceAction):
     """
     Close contexts in the puppeteer-service.
+
+    Response for this action is PuppeteerHtmlResponse.
     """
 
     endpoint = "close_context"
 
     def __init__(self, contexts: List):
         """
-        :param set contexts: Contexts to close.
+        :param list contexts: Contexts to close.
         """
         self.contexts = contexts
 

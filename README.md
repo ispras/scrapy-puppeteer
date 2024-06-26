@@ -58,6 +58,7 @@ Here is the list of available actions:
 - `Screenshot(options)` - take screenshot
 - `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
+- `CloseContext(contexts)` - close active contexts in the service
 
 Available options essentially mirror [service](https://github.com/ispras/scrapy-puppeteer-service) method parameters, which in turn mirror puppeteer API functions to some extent.
 See `scrapypuppeteer.actions` module for details.
