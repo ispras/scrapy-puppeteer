@@ -6,7 +6,7 @@ from urllib.parse import urlencode, urljoin
 
 from scrapy import Request, signals
 from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest, NotConfigured
+from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
 from scrapy.http import Headers, TextResponse
 
 from scrapypuppeteer.actions import (
@@ -90,7 +90,7 @@ class PuppeteerServiceDownloaderMiddleware:
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
         middleware = cls(crawler, service_url, include_headers, include_meta)
         crawler.signals.connect(
-            middleware.close_used_contexts, signal=signals.spider_closed
+            middleware.close_used_contexts, signal=signals.spider_idle
         )
         return middleware
 
@@ -163,6 +163,9 @@ class PuppeteerServiceDownloaderMiddleware:
         return str(payload)
 
     def process_response(self, request, response, spider):
+        if request.meta.get("__closing_contexts", False) and response.status == 200:
+            raise IgnoreRequest()
+
         if not isinstance(response, TextResponse):
             return response
 
@@ -219,16 +222,17 @@ class PuppeteerServiceDownloaderMiddleware:
         return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
-        contexts = list(self.used_contexts[id(spider)])
+        contexts = list(self.used_contexts.pop(id(spider), ()))
         if contexts:
             request = Request(
                 urljoin(self.service_base_url, "/close_context"),
                 method="POST",
                 headers=Headers({"Content-Type": "application/json"}),
-                meta={"proxy": None},
+                meta={"proxy": None, "__closing_contexts": True},
                 body=json.dumps(contexts),
             )
-            return self.crawler.engine.downloader.fetch(request, None)
+            self.crawler.engine.crawl(request=request)
+            raise DontCloseSpider()
 
 
 class PuppeteerRecaptchaDownloaderMiddleware:
