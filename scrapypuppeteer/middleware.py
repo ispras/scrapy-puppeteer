@@ -3,7 +3,6 @@ import logging
 from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urlencode, urljoin
-from http import HTTPStatus
 
 from scrapy import Request, signals
 from scrapy.crawler import Crawler
@@ -181,8 +180,9 @@ class PuppeteerServiceDownloaderMiddleware:
 
         if response.status != 200:
             reason = response_data.pop("error", f"undefined, status {response.status}")
-            self.service_logger.warning(f"Request {request} is not succeeded. "
-                                        f"Reason: {reason}")
+            self.service_logger.warning(
+                f"Request {request} is not succeeded. Reason: {reason}"
+            )
             context_id = response_data.get("contextId")
             if context_id:
                 self.used_contexts[id(spider)].add(context_id)

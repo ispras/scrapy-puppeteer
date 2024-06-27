@@ -1,6 +1,5 @@
-import base64
-
 import scrapy
+import base64
 from twisted.python.failure import Failure
 
 from scrapypuppeteer import PuppeteerRequest
@@ -37,7 +36,7 @@ class AutoRecaptchaSpider(scrapy.Spider):
             )
 
     def parse_html(self, response: PuppeteerResponse, **kwargs):
-        with open(f"recaptcha_page.html", "wb") as f:
+        with open("recaptcha_page.html", "wb") as f:
             f.write(response.body)
         action = Screenshot(
             options={
@@ -57,4 +56,4 @@ class AutoRecaptchaSpider(scrapy.Spider):
 
     @staticmethod
     def error(failure: Failure):
-        print(f"We are in error function!")
+        print("We are in error function!")
