@@ -179,7 +179,7 @@ class PuppeteerServiceDownloaderMiddleware:
             response_data = {
                 "html": response.text,
                 "cookies": [],
-                "contextId": None,
+                "contextId": puppeteer_request.context_id,
             }
         else:
             return response.replace(request=request)
