@@ -1,4 +1,4 @@
-from .request import PuppeteerRequest
+from .request import PuppeteerRequest, CloseContextRequest
 from .response import (
     PuppeteerResponse,
     PuppeteerHtmlResponse,

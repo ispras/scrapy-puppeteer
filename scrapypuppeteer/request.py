@@ -94,3 +94,33 @@ class PuppeteerRequest(ActionRequest):
         self.page_id = page_id
         self.close_page = close_page
         self.include_headers = include_headers
+
+
+class CloseContextRequest(Request):
+    """
+    This request is used to close the browser contexts.
+
+    The response for this request is a regular Scrapy HTMLResponse.
+    """
+
+    attributes: Tuple[str, ...] = Request.attributes + ("contexts",)
+
+    def __init__(self, contexts: List, **kwargs):
+        """
+        :param contexts: list of puppeteer contexts to close.
+
+        :param kwargs: arguments of scrapy.Request.
+        """
+        self.contexts = contexts
+        self.is_valid_url = False
+
+        if "url" in kwargs:
+            self.is_valid_url = True
+        url = kwargs.pop("url", "://")  # Incorrect url. To be replaced in middleware
+        super().__init__(url, **kwargs)
+
+    def __repr__(self):
+        return f"<CLOSE CONTEXT {self.url if self.is_valid_url else 'undefined url'}>"
+
+    def __str__(self):
+        return self.__repr__()

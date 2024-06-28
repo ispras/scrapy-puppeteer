@@ -284,22 +284,3 @@ class CustomJsAction(PuppeteerServiceAction):
 
     def payload(self):
         return self.js_action
-
-
-class CloseContext(PuppeteerServiceAction):
-    """
-    Close contexts in the puppeteer-service.
-
-    Response for this action is PuppeteerHtmlResponse.
-    """
-
-    endpoint = "close_context"
-
-    def __init__(self, contexts: List):
-        """
-        :param list contexts: Contexts to close.
-        """
-        self.contexts = contexts
-
-    def payload(self):
-        return self.contexts
