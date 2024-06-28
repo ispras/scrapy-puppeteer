@@ -59,6 +59,5 @@ class ManualRecaptchaSpider(scrapy.Spider):
         with open("imageToSave.png", "wb") as fh:
             fh.write(base64.b64decode(data))
 
-    @staticmethod
-    def error(failure: Failure):
-        print("We are in error function!")
+    def error(self, failure: Failure):
+        self.log("We are in error function!")
