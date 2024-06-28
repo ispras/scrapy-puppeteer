@@ -58,7 +58,6 @@ Here is the list of available actions:
 - `Screenshot(options)` - take screenshot
 - `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
-- `CloseContext(contexts)` - close active contexts in the service
 
 Available options essentially mirror [service](https://github.com/ispras/scrapy-puppeteer-service) method parameters, which in turn mirror puppeteer API functions to some extent.
 See `scrapypuppeteer.actions` module for details.
@@ -102,6 +101,9 @@ By default, only cookies are sent.
 
 You would also like to send meta with your request. By default, you are not allowed to do this
 in order to sustain backward compatibility. You can change this behaviour by setting `PUPPETEER_INCLUDE_META` to True.
+
+One your spider has done the crawling, the service middleware would close all contexts with
+`scrapypuppeteer.CloseContextRequest`. It accepts a list of all browser contexts to be closed.
 
 ## Automatic recaptcha solving
 
