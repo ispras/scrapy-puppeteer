@@ -107,9 +107,6 @@ class PuppeteerServiceDownloaderMiddleware:
         if not request.is_valid_url:
             return request.replace(
                 url=urljoin(self.service_base_url, "/close_context"),
-                method="POST",
-                headers=Headers({"Content-Type": "application/json"}),
-                body=json.dumps(request.contexts),
             )
 
     def process_puppeteer_request(self, request: PuppeteerRequest):

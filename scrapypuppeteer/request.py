@@ -1,6 +1,7 @@
+import json
 from typing import Tuple, List, Union
 
-from scrapy.http import Request
+from scrapy.http import Request, Headers
 
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
@@ -117,6 +118,11 @@ class CloseContextRequest(Request):
         if "url" in kwargs:
             self.is_valid_url = True
         url = kwargs.pop("url", "://")  # Incorrect url. To be replaced in middleware
+
+        kwargs["method"] = "POST",
+        kwargs["headers"] = Headers({"Content-Type": "application/json"}),
+        kwargs["body"] = json.dumps(self.contexts),
+
         super().__init__(url, **kwargs)
 
     def __repr__(self):
