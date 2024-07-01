@@ -249,6 +249,11 @@ class PuppeteerServiceDownloaderMiddleware:
                     msg=f"Successfully closed {len(request.contexts)} contexts with request {response.request}",
                 )
             )
+            dfd.addErrback(
+                lambda _: self.service_logger.log(
+                    level=logging.WARNING, msg="Could not close contexts"
+                )
+            )
             raise DontCloseSpider()
 
 

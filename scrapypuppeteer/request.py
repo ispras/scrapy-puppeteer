@@ -119,9 +119,9 @@ class CloseContextRequest(Request):
             self.is_valid_url = True
         url = kwargs.pop("url", "://")  # Incorrect url. To be replaced in middleware
 
-        kwargs["method"] = "POST",
-        kwargs["headers"] = Headers({"Content-Type": "application/json"}),
-        kwargs["body"] = json.dumps(self.contexts),
+        kwargs["method"] = "POST"
+        kwargs["headers"] = Headers({"Content-Type": "application/json"})
+        kwargs["body"] = json.dumps(self.contexts)
 
         super().__init__(url, **kwargs)
 
