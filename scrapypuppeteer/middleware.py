@@ -62,6 +62,8 @@ class PuppeteerServiceDownloaderMiddleware:
     SERVICE_META_SETTING = "PUPPETEER_INCLUDE_META"
     DEFAULT_INCLUDE_HEADERS = ["Cookie"]  # TODO send them separately
 
+    service_logger = logging.getLogger(__name__)
+
     def __init__(
         self,
         crawler: Crawler,
@@ -177,6 +179,10 @@ class PuppeteerServiceDownloaderMiddleware:
         response_cls = self._get_response_class(puppeteer_request.action)
 
         if response.status != 200:
+            reason = response_data.pop("error", f"undefined, status {response.status}")
+            self.service_logger.warning(
+                f"Request {request} is not succeeded. Reason: {reason}"
+            )
             context_id = response_data.get("contextId")
             if context_id:
                 self.used_contexts[id(spider)].add(context_id)
