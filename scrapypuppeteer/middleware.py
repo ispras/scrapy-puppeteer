@@ -251,7 +251,8 @@ class PuppeteerServiceDownloaderMiddleware:
             )
             dfd.addErrback(
                 lambda _: self.service_logger.log(
-                    level=logging.WARNING, msg="Could not close contexts"
+                    level=logging.WARNING,
+                    msg="Could not close contexts",
                 )
             )
             raise DontCloseSpider()
