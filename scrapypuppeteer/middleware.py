@@ -190,6 +190,10 @@ class PuppeteerServiceDownloaderMiddleware:
 
         response_data = json.loads(response.text)
         if response.status != 200:
+            reason = response_data.pop("error", f"undefined, status {response.status}")
+            self.service_logger.warning(
+                f"Request {request} is not succeeded. Reason: {reason}"
+            )
             context_id = response_data.get("contextId")
             if context_id:
                 self.used_contexts[id(spider)].add(context_id)
