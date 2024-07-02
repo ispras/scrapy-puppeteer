@@ -4,10 +4,12 @@ from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urlencode, urljoin
 
-from scrapy import Request, signals
+from scrapy import signals
 from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest, NotConfigured
-from scrapy.http import Headers, TextResponse
+from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
+from scrapy.http import Headers, TextResponse, Response
+from scrapy.utils.log import failure_to_exc_info
+from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
     Click,
@@ -26,7 +28,7 @@ from scrapypuppeteer.response import (
     PuppeteerRecaptchaSolverResponse,
     PuppeteerJsonResponse,
 )
-from scrapypuppeteer.request import ActionRequest, PuppeteerRequest
+from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -34,8 +36,8 @@ class PuppeteerServiceDownloaderMiddleware:
     This downloader middleware converts PuppeteerRequest instances to
     Puppeteer service API requests and then converts its responses to
     PuppeteerResponse instances. Additionally, it tracks all browser contexts
-    that spider uses and performs cleanup request to service once spider
-    is closed.
+    that spider uses and performs cleanup request to service right before
+    spider is closed.
 
         Additionally, the middleware uses these meta-keys, do not use them, because their changing
     could possibly (almost probably) break determined behaviour:
@@ -49,7 +51,7 @@ class PuppeteerServiceDownloaderMiddleware:
     PUPPETEER_INCLUDE_HEADERS (bool|list[str])
     Determines which request headers will be sent to remote site by puppeteer service.
     Either True (all headers), False (no headers) or list of header names.
-    May be overriden per request.
+    May be overridden per request.
     By default, only cookies are sent.
 
     PUPPETEER_INCLUDE_META (bool)
@@ -92,14 +94,24 @@ class PuppeteerServiceDownloaderMiddleware:
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
         middleware = cls(crawler, service_url, include_headers, include_meta)
         crawler.signals.connect(
-            middleware.close_used_contexts, signal=signals.spider_closed
+            middleware.close_used_contexts, signal=signals.spider_idle
         )
         return middleware
 
     def process_request(self, request, spider):
-        if not isinstance(request, PuppeteerRequest):
-            return
+        if isinstance(request, CloseContextRequest):
+            return self.process_close_context_request(request)
 
+        if isinstance(request, PuppeteerRequest):
+            return self.process_puppeteer_request(request)
+
+    def process_close_context_request(self, request: CloseContextRequest):
+        if not request.is_valid_url:
+            return request.replace(
+                url=urljoin(self.service_base_url, "/close_context"),
+            )
+
+    def process_puppeteer_request(self, request: PuppeteerRequest):
         action = request.action
         service_url = urljoin(self.service_base_url, action.endpoint)
         service_params = self._encode_service_params(request)
@@ -176,8 +188,6 @@ class PuppeteerServiceDownloaderMiddleware:
             return response.replace(request=request)
 
         response_data = json.loads(response.text)
-        response_cls = self._get_response_class(puppeteer_request.action)
-
         if response.status != 200:
             reason = response_data.pop("error", f"undefined, status {response.status}")
             self.service_logger.warning(
@@ -187,6 +197,8 @@ class PuppeteerServiceDownloaderMiddleware:
             if context_id:
                 self.used_contexts[id(spider)].add(context_id)
             return response
+
+        response_cls = self._get_response_class(puppeteer_request.action)
 
         return self._form_response(
             response_cls,
@@ -225,16 +237,28 @@ class PuppeteerServiceDownloaderMiddleware:
         return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
-        contexts = list(self.used_contexts[id(spider)])
+        contexts = list(self.used_contexts.pop(id(spider), set()))
         if contexts:
-            request = Request(
-                urljoin(self.service_base_url, "/close_context"),
-                method="POST",
-                headers=Headers({"Content-Type": "application/json"}),
+            request = CloseContextRequest(
+                contexts,
                 meta={"proxy": None},
-                body=json.dumps(contexts),
             )
-            return self.crawler.engine.downloader.fetch(request, None)
+
+            def handle_close_contexts_result(result):
+                if isinstance(result, Response):
+                    if result.status == 200:
+                        self.service_logger.debug(f"Successfully closed {len(request.contexts)} "
+                                                  f"contexts with request {result.request}")
+                    else:
+                        self.service_logger.warning(f"Could not close contexts: {result.text}")
+                elif isinstance(result, Failure):
+                    self.service_logger.warning(f"Could not close contexts: {result.value}",
+                                                exc_info=failure_to_exc_info(result))
+
+            dfd = self.crawler.engine.download(request)
+            dfd.addBoth(handle_close_contexts_result)
+
+            raise DontCloseSpider()
 
 
 class PuppeteerRecaptchaDownloaderMiddleware:
