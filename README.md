@@ -43,6 +43,16 @@ class MySpider(scrapy.Spider):
         ...
 ```
 
+## Puppeter responses
+
+There is a parent `PuppeteerResponse` class from which other response classes are inherited.
+
+Here is a list of them all:
+- `PuppeteerHtmlResponse` - has `html` and `cookies` properties
+- `PuppeteerScreenshotResponse` - has `screenshot` property
+- `PuppeteerJsonResponse` - has `data` property and `to_html()` method which tries to transform itself to `PuppeteerHtmlResponse`
+- `PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlResponse)` - has `recaptcha_data` property
+
 ## Advanced usage
 
 `PuppeteerRequest`'s first argument is a browser action.
@@ -67,24 +77,32 @@ Then use `response.follow` to continue interacting with the same tab:
 
 ```python
 import scrapy
-from scrapypuppeteer import PuppeteerRequest
+from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
 from scrapypuppeteer.actions import Click
 
 class MySpider(scrapy.Spider):
     ...
     def start_requests(self):
-        yield PuppeteerRequest('https://exapmle.com', close_page=False, callback=self.parse)
-    
-    def parse(self, response):
+        yield PuppeteerRequest(
+            'https://exapmle.com',  # will be transformed into GoTo action
+            close_page=False,
+            callback=self.parse,
+        )
+
+    def parse(self, response: PuppeteerHtmlResponse):
         ...
         # parse and yield some items
         ...
         next_page_selector = 'button.next-page-or-smth'
         if response.css(next_page_selector ):
-            yield response.follow(Click(next_page_selector ,
-                                        wait_options={'selectorOrTimeout': 3000}), # wait 3 seconds
-                                  close_page=False,
-                                  callback=self.parse)
+            yield response.follow(
+                Click(
+                    next_page_selector,
+                    wait_options={'selectorOrTimeout': 3000},  # wait 3 seconds
+                ),
+                close_page=False,
+                callback=self.parse,
+            )
 ```
 
 On your first request service will create new incognito browser context and new page in it.
@@ -92,7 +110,9 @@ Their ids will be in returned in response object as `context_id` and `page_id` a
 Following such response means passing context and page ids to next request.
 You also may specify requests context and page ids directly.
 
-Once your spider is closed, middleware will take care of closing all used browser contexts.
+Right before your spider has done the crawling, the service middleware will take care
+of closing all used browser contexts with `scrapypuppeteer.CloseContextRequest`.
+It accepts a list of all browser contexts to be closed.
 
 One may customize which `PuppeteerRequest`'s headers will be sent to remote website by the service 
 via `include_headers` attribute in request or globally with `PUPPETEER_INCLUDE_HEADERS` setting. 
@@ -101,9 +121,6 @@ By default, only cookies are sent.
 
 You would also like to send meta with your request. By default, you are not allowed to do this
 in order to sustain backward compatibility. You can change this behaviour by setting `PUPPETEER_INCLUDE_META` to True.
-
-One your spider has done the crawling, the service middleware would close all contexts with
-`scrapypuppeteer.CloseContextRequest`. It accepts a list of all browser contexts to be closed.
 
 ## Automatic recaptcha solving
 
@@ -138,5 +155,5 @@ In this case RecaptchaMiddleware will just skip the request.
 - [x] skeleton that could handle goto, click, scroll, and actions
 - [ ] headers and cookies management
 - [ ] proxy support for puppeteer
-- [ ] error handling for requests
+- [x] error handling for requests
 - [ ] har support
