@@ -247,13 +247,19 @@ class PuppeteerServiceDownloaderMiddleware:
             def handle_close_contexts_result(result):
                 if isinstance(result, Response):
                     if result.status == 200:
-                        self.service_logger.debug(f"Successfully closed {len(request.contexts)} "
-                                                  f"contexts with request {result.request}")
+                        self.service_logger.debug(
+                            f"Successfully closed {len(request.contexts)} "
+                            f"contexts with request {result.request}"
+                        )
                     else:
-                        self.service_logger.warning(f"Could not close contexts: {result.text}")
+                        self.service_logger.warning(
+                            f"Could not close contexts: {result.text}"
+                        )
                 elif isinstance(result, Failure):
-                    self.service_logger.warning(f"Could not close contexts: {result.value}",
-                                                exc_info=failure_to_exc_info(result))
+                    self.service_logger.warning(
+                        f"Could not close contexts: {result.value}",
+                        exc_info=failure_to_exc_info(result),
+                    )
 
             dfd = self.crawler.engine.download(request)
             dfd.addBoth(handle_close_contexts_result)
