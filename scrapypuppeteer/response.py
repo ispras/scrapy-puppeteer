@@ -140,7 +140,10 @@ class PuppeteerJsonResponse(PuppeteerResponse):
         for attr in PuppeteerResponse.attributes:
             kwargs[attr] = getattr(self, attr)
         kwargs["html"] = self.data["html"]
+        kwargs["body"] = kwargs["html"]
         kwargs["cookies"] = self.data["cookies"]
+        kwargs["headers"].update({"Content-Type": ["text/html"]})
+        kwargs["encoding"] = "utf-8"
 
         return PuppeteerHtmlResponse(**kwargs)
 
