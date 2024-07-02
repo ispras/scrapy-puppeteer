@@ -102,6 +102,9 @@ By default, only cookies are sent.
 You would also like to send meta with your request. By default, you are not allowed to do this
 in order to sustain backward compatibility. You can change this behaviour by setting `PUPPETEER_INCLUDE_META` to True.
 
+One your spider has done the crawling, the service middleware would close all contexts with
+`scrapypuppeteer.CloseContextRequest`. It accepts a list of all browser contexts to be closed.
+
 ## Automatic recaptcha solving
 
 Enable PuppeteerRecaptchaDownloaderMiddleware to automatically solve recaptcha during scraping. We do not recommend

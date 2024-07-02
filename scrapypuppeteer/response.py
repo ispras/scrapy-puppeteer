@@ -1,3 +1,4 @@
+import warnings
 from typing import Tuple, Union
 
 from scrapy.exceptions import ScrapyDeprecationWarning
@@ -5,8 +6,6 @@ from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
-
-import warnings
 
 
 class PuppeteerResponse(TextResponse):
