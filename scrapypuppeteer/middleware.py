@@ -7,7 +7,9 @@ from urllib.parse import urlencode, urljoin
 from scrapy import signals
 from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
-from scrapy.http import Headers, TextResponse
+from scrapy.http import Headers, TextResponse, Response
+from scrapy.utils.log import failure_to_exc_info
+from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
     Click,
@@ -242,19 +244,20 @@ class PuppeteerServiceDownloaderMiddleware:
                 meta={"proxy": None},
             )
 
+            def handle_close_contexts_result(result):
+                if isinstance(result, Response):
+                    if result.status == 200:
+                        self.service_logger.debug(f"Successfully closed {len(request.contexts)} "
+                                                  f"contexts with request {result.request}")
+                    else:
+                        self.service_logger.warning(f"Could not close contexts: {result.text}")
+                elif isinstance(result, Failure):
+                    self.service_logger.warning(f"Could not close contexts: {result.value}",
+                                                exc_info=failure_to_exc_info(result))
+
             dfd = self.crawler.engine.download(request)
-            dfd.addCallback(
-                lambda response: self.service_logger.log(
-                    level=logging.DEBUG,
-                    msg=f"Successfully closed {len(request.contexts)} contexts with request {response.request}",
-                )
-            )
-            dfd.addErrback(
-                lambda _: self.service_logger.log(
-                    level=logging.WARNING,
-                    msg="Could not close contexts",
-                )
-            )
+            dfd.addBoth(handle_close_contexts_result)
+
             raise DontCloseSpider()
 
 
