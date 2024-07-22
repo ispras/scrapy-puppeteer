@@ -98,7 +98,7 @@ class PuppeteerServiceDownloaderMiddleware:
         )
         return middleware
 
-    def process_request(self, request, spider):
+    def process_request(self, request, **_):
         if isinstance(request, CloseContextRequest):
             return self.process_close_context_request(request)
 
@@ -343,19 +343,27 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                 )
         return cls(recaptcha_solving, submit_selectors)
 
-    def process_request(self, request, spider):
+    @staticmethod
+    def is_recaptcha_producing_action(action) -> bool:
+        return not isinstance(
+            action,
+            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
+        )
+
+    def process_request(self, request, **_):
         if request.meta.get("dont_recaptcha", False):
             return None
 
+        # Checking if we need to close page after action
         if isinstance(request, PuppeteerRequest):
-            if request.close_page and not request.meta.get(
-                "_captcha_submission", False
-            ):
-                request.close_page = False
-                request.dont_filter = True
-                self._page_closing.add(request)
-                return request
-        return None
+            if self.is_recaptcha_producing_action(request.action):
+                if request.close_page and not request.meta.get(
+                    "_captcha_submission", False
+                ):
+                    request.close_page = False
+                    request.dont_filter = True
+                    self._page_closing.add(request)
+                    return request
 
     def process_response(self, request, response, spider):
         if not isinstance(
@@ -376,10 +384,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(
-            puppeteer_request.action,
-            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
-        ):
+        if not self.is_recaptcha_producing_action(puppeteer_request.action):
             # No recaptcha after these actions
             return response
 
