@@ -3,6 +3,7 @@ import logging
 from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urlencode, urljoin
+from abc import ABC, abstractmethod
 
 from scrapy import signals
 from scrapy.crawler import Crawler
@@ -31,7 +32,191 @@ from scrapypuppeteer.response import (
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 from scrapypuppeteer.scrappypyppeteer import LocalScrapyPyppeteer
 
-import asyncio
+
+class BrowserManager(ABC):
+    @abstractmethod
+    def process_request(self, request, spider):
+        pass
+    
+    @abstractmethod
+    def close_used_contexts(self):
+        pass
+
+
+class LocalBrowserManager(BrowserManager):
+    def __init__(self):
+        self.local_scrapy_pyppeteer = LocalScrapyPyppeteer()
+
+    def process_request(self, request):
+        pyp_request = self.process_puppeteer_request(request)
+        return pyp_request
+
+    def process_puppeteer_request(self, request: PuppeteerRequest):
+        action = request.action
+        service_url = 'http://_running_local_'
+        service_params = self._encode_service_params(request)
+        if service_params:
+            service_url += "?" + service_params
+
+        meta = {
+            "puppeteer_request": request,
+            "dont_obey_robotstxt": True,
+            "proxy": None,
+        }
+
+        action_request = ActionRequest(
+            url=service_url,
+            action=action,
+            cookies=request.cookies,
+            meta=meta,
+        )
+        puppeteer_response = self.local_scrapy_pyppeteer.process_puppeteer_request(action_request)
+
+        return puppeteer_response
+
+    @staticmethod
+    def _encode_service_params(request):
+        service_params = {}
+        if request.context_id is not None:
+            service_params["contextId"] = request.context_id
+        if request.page_id is not None:
+            service_params["pageId"] = request.page_id
+        if request.close_page:
+            service_params["closePage"] = 1
+        return urlencode(service_params)
+    
+    def close_used_contexts(self):
+        self.local_scrapy_pyppeteer.context_manager.close_browser()
+
+
+
+
+class ServiceBrowserManager(BrowserManager):
+    def __init__(self, service_base_url, include_meta, include_headers, crawler):
+        #### добавить передачу этих параметров ####
+        self.service_base_url = service_base_url
+        self.include_meta = include_meta
+        self.include_headers = include_headers
+        self.used_contexts = defaultdict(set)
+        self.service_logger = logging.getLogger(__name__)
+        self.crawler = crawler
+
+        if self.service_base_url is None:
+                raise ValueError("Puppeteer service URL must be provided")
+
+
+    def process_request(self, request):
+        if isinstance(request, CloseContextRequest):
+            return self.process_close_context_request(request)
+
+        if isinstance(request, PuppeteerRequest):
+            return self.process_puppeteer_request(request)
+        
+    def process_close_context_request(self, request: CloseContextRequest):
+        if not request.is_valid_url:
+            return request.replace(
+                url=urljoin(self.service_base_url, "/close_context"),
+            )
+        
+    def process_puppeteer_request(self, request: PuppeteerRequest):
+        action = request.action
+        service_url = urljoin(self.service_base_url, action.endpoint)
+        service_params = self._encode_service_params(request)
+    
+        if service_params:
+            service_url += "?" + service_params
+
+
+        meta = {
+            "puppeteer_request": request,
+            "dont_obey_robotstxt": True,
+            "proxy": None,
+        }
+        if self.include_meta:
+            meta = {**request.meta, **meta}
+
+        action_request =  ActionRequest(
+            url=service_url,
+            action=action,
+            method="POST",
+            headers=Headers({"Content-Type": action.content_type}),
+            body=self._serialize_body(action, request),
+            dont_filter=True,
+            cookies=request.cookies,
+            priority=request.priority,
+            callback=request.callback,
+            cb_kwargs=request.cb_kwargs,
+            errback=request.errback,
+            meta=meta,
+        )
+        return action_request
+    
+    @staticmethod
+    def _encode_service_params(request):
+        service_params = {}
+        if request.context_id is not None:
+            service_params["contextId"] = request.context_id
+        if request.page_id is not None:
+            service_params["pageId"] = request.page_id
+        if request.close_page:
+            service_params["closePage"] = 1
+        return urlencode(service_params)
+    
+
+    def _serialize_body(self, action, request):
+        payload = action.payload()
+        if action.content_type == "application/json":
+            if isinstance(payload, dict):
+                # disallow null values in top-level request parameters
+                payload = {k: v for k, v in payload.items() if v is not None}
+            proxy = request.meta.get("proxy")
+            if proxy:
+                payload["proxy"] = proxy
+            include_headers = (
+                self.include_headers
+                if request.include_headers is None
+                else request.include_headers
+            )
+            if include_headers:
+                headers = request.headers.to_unicode_dict()
+                if isinstance(include_headers, list):
+                    headers = {
+                        h.lower(): headers[h] for h in include_headers if h in headers
+                    }
+                payload["headers"] = headers
+            return json.dumps(payload)
+        return str(payload)
+    
+    def close_used_contexts(self, spider):
+        contexts = list(self.used_contexts.pop(id(spider), set()))
+        if contexts:
+            request = CloseContextRequest(
+                contexts,
+                meta={"proxy": None},
+            )
+
+            def handle_close_contexts_result(result):
+                if isinstance(result, Response):
+                    if result.status == 200:
+                        self.service_logger.debug(
+                            f"Successfully closed {len(request.contexts)} "
+                            f"contexts with request {result.request}"
+                        )
+                    else:
+                        self.service_logger.warning(
+                            f"Could not close contexts: {result.text}"
+                        )
+                elif isinstance(result, Failure):
+                    self.service_logger.warning(
+                        f"Could not close contexts: {result.value}",
+                        exc_info=failure_to_exc_info(result),
+                    )
+
+            dfd = self.crawler.engine.download(request)
+            dfd.addBoth(handle_close_contexts_result)
+
+            raise DontCloseSpider()
+
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -78,7 +263,7 @@ class PuppeteerServiceDownloaderMiddleware:
         include_headers: Union[bool, List[str]],
         include_meta: bool,
         local_mode: bool,
-        local_scrapy_pyppeteer: LocalScrapyPyppeteer
+        browser_manager: Union[ServiceBrowserManager, LocalBrowserManager]
     ):
         self.service_base_url = service_url
         self.include_headers = include_headers
@@ -86,22 +271,12 @@ class PuppeteerServiceDownloaderMiddleware:
         self.crawler = crawler
         self.used_contexts = defaultdict(set)
         self.local_mode = local_mode
-        self.local_scrapy_pyppeteer = local_scrapy_pyppeteer
+        self.browser_manager = browser_manager
 
     @classmethod
     def from_crawler(cls, crawler):
         service_url = crawler.settings.get(cls.SERVICE_URL_SETTING)
         local_mode = crawler.settings.getbool(cls.PUPPETEER_LOCAL_SETTING, False)
-        local_scrapy_pyppeteer = None
-        if local_mode:
-            print("\n\nLOCAL MODE\n\n")
-            local_scrapy_pyppeteer = LocalScrapyPyppeteer()
-
-        if local_mode:
-            service_url = 'http://_running_local_'
-
-        if service_url is None:
-                raise ValueError("Puppeteer service URL must be provided")
         if cls.INCLUDE_HEADERS_SETTING in crawler.settings:
             try:
                 include_headers = crawler.settings.getbool(cls.INCLUDE_HEADERS_SETTING)
@@ -110,108 +285,26 @@ class PuppeteerServiceDownloaderMiddleware:
         else:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
-        middleware = cls(crawler, service_url, include_headers, include_meta, local_mode, local_scrapy_pyppeteer)
+
+
+        if local_mode:
+            browser_manager = LocalBrowserManager()
+        else:
+            browser_manager = ServiceBrowserManager(service_url, include_meta, include_headers, crawler)
+
+        middleware = cls(crawler, service_url, include_headers, include_meta, local_mode, browser_manager)
         crawler.signals.connect(
-            middleware.close_used_contexts, signal=signals.spider_idle
+            middleware.browser_manager.close_used_contexts, signal=signals.spider_idle
         )
         return middleware
+    
+
 
     def process_request(self, request, spider):
+        return self.browser_manager.process_request(request)
         
-        if isinstance(request, CloseContextRequest):
-            return self.process_close_context_request(request)
-
-        if isinstance(request, PuppeteerRequest):
-            return self.process_puppeteer_request(request)
-
-    def process_close_context_request(self, request: CloseContextRequest):
-        if not request.is_valid_url:
-            return request.replace(
-                url=urljoin(self.service_base_url, "/close_context"),
-            )
-
-    def process_puppeteer_request(self, request: PuppeteerRequest):
-        action = request.action
-        service_url = urljoin(self.service_base_url, action.endpoint)
-        service_params = self._encode_service_params(request)
-        if service_params:
-            service_url += "?" + service_params
-
-        meta = {
-            "puppeteer_request": request,
-            "dont_obey_robotstxt": True,
-            "proxy": None,
-        }
-        if self.include_meta:
-            meta = {**request.meta, **meta}
-
-        action_request = ActionRequest(
-            url=service_url,
-            action=action,
-            method="POST",
-            headers=Headers({"Content-Type": action.content_type}),
-            body=self._serialize_body(action, request),
-            dont_filter=True,
-            cookies=request.cookies,
-            priority=request.priority,
-            callback=request.callback,
-            cb_kwargs=request.cb_kwargs,
-            errback=request.errback,
-            meta=meta,
-        )
-        print("Request\n")
-        print(action_request.url)
-        print()
-
-        if self.local_mode:
-            puppeteer_response = self.local_scrapy_pyppeteer.process_puppeteer_request(action_request)
-            print(action_request.action.payload())
-
-            return puppeteer_response
-        return action_request
-
-    @staticmethod
-    def _encode_service_params(request):
-        service_params = {}
-        if request.context_id is not None:
-            service_params["contextId"] = request.context_id
-        if request.page_id is not None:
-            service_params["pageId"] = request.page_id
-        if request.close_page:
-            service_params["closePage"] = 1
-        return urlencode(service_params)
-
-    def _serialize_body(self, action, request):
-        payload = action.payload()
-        if action.content_type == "application/json":
-            if isinstance(payload, dict):
-                # disallow null values in top-level request parameters
-                payload = {k: v for k, v in payload.items() if v is not None}
-            proxy = request.meta.get("proxy")
-            if proxy:
-                payload["proxy"] = proxy
-            include_headers = (
-                self.include_headers
-                if request.include_headers is None
-                else request.include_headers
-            )
-            if include_headers:
-                headers = request.headers.to_unicode_dict()
-                if isinstance(include_headers, list):
-                    headers = {
-                        h.lower(): headers[h] for h in include_headers if h in headers
-                    }
-                payload["headers"] = headers
-            return json.dumps(payload)
-        return str(payload)
     
-    
-
     def process_response(self, request, response, spider):
-
-        print(f"\n\n\n\nProcessing responce\nlocal_mode = {self.local_mode}\n\n\n")
-        
-
         if not isinstance(response, TextResponse):
             return response
 
@@ -271,38 +364,6 @@ class PuppeteerServiceDownloaderMiddleware:
         if isinstance(request_action, RecaptchaSolver):
             return PuppeteerRecaptchaSolverResponse
         return PuppeteerJsonResponse
-
-    def close_used_contexts(self, spider):
-        contexts = list(self.used_contexts.pop(id(spider), set()))
-        if contexts:
-            request = CloseContextRequest(
-                contexts,
-                meta={"proxy": None},
-            )
-
-            def handle_close_contexts_result(result):
-                if isinstance(result, Response):
-                    if result.status == 200:
-                        self.service_logger.debug(
-                            f"Successfully closed {len(request.contexts)} "
-                            f"contexts with request {result.request}"
-                        )
-                    else:
-                        self.service_logger.warning(
-                            f"Could not close contexts: {result.text}"
-                        )
-                elif isinstance(result, Failure):
-                    self.service_logger.warning(
-                        f"Could not close contexts: {result.value}",
-                        exc_info=failure_to_exc_info(result),
-                    )
-
-            dfd = self.crawler.engine.download(request)
-            dfd.addBoth(handle_close_contexts_result)
-
-            raise DontCloseSpider()
-
-
 
 
 
