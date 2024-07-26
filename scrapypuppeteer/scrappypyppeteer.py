@@ -42,9 +42,7 @@ import base64
 class ContextManager:
 
     def __init__(self):
-        #self.browser = "browser"
         self.browser = syncer.sync(launch())
-        #тут инициализация брацщера
         self.contexts = {}
         self.pages = {}
         self.context_page_map = {}
@@ -60,11 +58,9 @@ class ContextManager:
         context_id = uuid.uuid4().hex.upper()
         page_id = uuid.uuid4().hex.upper()
 
-        # --- Создание страницы и добавление её в структуру --- #
         self.contexts[context_id] = await self.browser.createIncognitoBrowserContext()
         self.pages[page_id] = await self.contexts[context_id].newPage()
         self.context_page_map[context_id] = page_id
-        #-------------------------------------------------------#
 
         return context_id, page_id
 
@@ -86,7 +82,6 @@ class ContextManager:
 
 
 class LocalScrapyPyppeteer:
-#class BrowserManager:
     def __init__(self):
         self.context_manager = ContextManager()
 
@@ -134,12 +129,8 @@ class LocalScrapyPyppeteer:
             cookies = action_request.cookies
             navigation_options = action_request.action.navigation_options
             await page.goto(url, navigation_options)
-
-            #Wait options
             wait_options = action_request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
-            #Wait options
-
             response_html = await page.content()
 
             puppeteer_html_response = PuppeteerHtmlResponse(service_url,
@@ -163,14 +154,9 @@ class LocalScrapyPyppeteer:
             click_options = action_request.action.click_options or {}
             navigation_options = action_request.action.navigation_options or {}
             options = merged = {**click_options, **navigation_options}
-
             await page.click(selector, options)
-            #navigation_options = action_request.action.navigation_options
-            #await page.waitForNavigation(navigation_options)
-            #Wait options
             wait_options = action_request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
-            #Wait options
             response_html = await page.content()
             service_url = action_request.url
 
@@ -195,12 +181,8 @@ class LocalScrapyPyppeteer:
             cookies = action_request.cookies
             navigation_options = action_request.action.navigation_options
             await page.goBack(navigation_options)
-
-            #Wait options
             wait_options = action_request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
-            #Wait options
-
             response_html = await page.content()
             service_url = action_request.url
             puppeteer_html_response = PuppeteerHtmlResponse(service_url,
@@ -224,12 +206,8 @@ class LocalScrapyPyppeteer:
             cookies = action_request.cookies
             navigation_options = action_request.action.navigation_options
             await page.goForward(navigation_options)
-
-            #Wait options
             wait_options = action_request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
-            #Wait options
-
             response_html = await page.content()
             service_url = action_request.url
             puppeteer_html_response = PuppeteerHtmlResponse(service_url,
@@ -251,16 +229,11 @@ class LocalScrapyPyppeteer:
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_screenshot():
-            cookies = action_request.cookies
-
             request_options = action_request.action.options or {}
             screenshot_options = {'encoding': 'binary'}
             screenshot_options.update(request_options)
-
             screenshot_bytes = await page.screenshot(screenshot_options)
             screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
-
-
             service_url = action_request.url
 
             puppeteer_screenshot_response = PuppeteerScreenshotResponse(service_url,
@@ -296,11 +269,8 @@ class LocalScrapyPyppeteer:
                 """
 
             await page.evaluate(script)
-
-            #Wait options
             wait_options = action_request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
-            #Wait options
 
             response_html = await page.content()
             service_url = action_request.url
@@ -317,7 +287,6 @@ class LocalScrapyPyppeteer:
     
 
     def action(self, action_request: ActionRequest):
-
         raise ValueError("CustomJsAction is not available in local mode")
 
 

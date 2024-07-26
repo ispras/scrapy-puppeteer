@@ -48,31 +48,21 @@ class LocalBrowserManager(BrowserManager):
         self.local_scrapy_pyppeteer = LocalScrapyPyppeteer()
 
     def process_request(self, request):
-        pyp_request = self.process_puppeteer_request(request)
-        return pyp_request
-
-    def process_puppeteer_request(self, request: PuppeteerRequest):
-        action = request.action
-        service_url = 'http://_running_local_'
-        service_params = self._encode_service_params(request)
-        if service_params:
-            service_url += "?" + service_params
-
-        meta = {
+        
+        action_request = ActionRequest(
+            url='http://_running_local_',
+            action=request.action,
+            cookies=request.cookies,
+            meta={
             "puppeteer_request": request,
             "dont_obey_robotstxt": True,
             "proxy": None,
-        }
-
-        action_request = ActionRequest(
-            url=service_url,
-            action=action,
-            cookies=request.cookies,
-            meta=meta,
+        },
         )
-        puppeteer_response = self.local_scrapy_pyppeteer.process_puppeteer_request(action_request)
+ 
+        return self.local_scrapy_pyppeteer.process_puppeteer_request(action_request)
 
-        return puppeteer_response
+
 
     @staticmethod
     def _encode_service_params(request):
@@ -89,11 +79,8 @@ class LocalBrowserManager(BrowserManager):
         self.local_scrapy_pyppeteer.context_manager.close_browser()
 
 
-
-
 class ServiceBrowserManager(BrowserManager):
     def __init__(self, service_base_url, include_meta, include_headers, crawler):
-        #### добавить передачу этих параметров ####
         self.service_base_url = service_base_url
         self.include_meta = include_meta
         self.include_headers = include_headers
