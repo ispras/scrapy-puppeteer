@@ -29,6 +29,9 @@ from scrapypuppeteer.response import (
     PuppeteerJsonResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
+from scrapypuppeteer.scrappypyppeteer import LocalScrapyPyppeteer
+
+import asyncio
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -64,6 +67,8 @@ class PuppeteerServiceDownloaderMiddleware:
     SERVICE_META_SETTING = "PUPPETEER_INCLUDE_META"
     DEFAULT_INCLUDE_HEADERS = ["Cookie"]  # TODO send them separately
 
+    PUPPETEER_LOCAL_SETTING = "PUPPETEER_LOCAL"
+
     service_logger = logging.getLogger(__name__)
 
     def __init__(
@@ -72,18 +77,31 @@ class PuppeteerServiceDownloaderMiddleware:
         service_url: str,
         include_headers: Union[bool, List[str]],
         include_meta: bool,
+        local_mode: bool,
+        local_scrapy_pyppeteer: LocalScrapyPyppeteer
     ):
         self.service_base_url = service_url
         self.include_headers = include_headers
         self.include_meta = include_meta
         self.crawler = crawler
         self.used_contexts = defaultdict(set)
+        self.local_mode = local_mode
+        self.local_scrapy_pyppeteer = local_scrapy_pyppeteer
 
     @classmethod
     def from_crawler(cls, crawler):
         service_url = crawler.settings.get(cls.SERVICE_URL_SETTING)
+        local_mode = crawler.settings.getbool(cls.PUPPETEER_LOCAL_SETTING, False)
+        local_scrapy_pyppeteer = None
+        if local_mode:
+            print("\n\nLOCAL MODE\n\n")
+            local_scrapy_pyppeteer = LocalScrapyPyppeteer()
+
+        if local_mode:
+            service_url = 'http://_running_local_'
+
         if service_url is None:
-            raise ValueError("Puppeteer service URL must be provided")
+                raise ValueError("Puppeteer service URL must be provided")
         if cls.INCLUDE_HEADERS_SETTING in crawler.settings:
             try:
                 include_headers = crawler.settings.getbool(cls.INCLUDE_HEADERS_SETTING)
@@ -92,13 +110,14 @@ class PuppeteerServiceDownloaderMiddleware:
         else:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
-        middleware = cls(crawler, service_url, include_headers, include_meta)
+        middleware = cls(crawler, service_url, include_headers, include_meta, local_mode, local_scrapy_pyppeteer)
         crawler.signals.connect(
             middleware.close_used_contexts, signal=signals.spider_idle
         )
         return middleware
 
-    def process_request(self, request, **_):
+    def process_request(self, request, spider):
+        
         if isinstance(request, CloseContextRequest):
             return self.process_close_context_request(request)
 
@@ -126,7 +145,7 @@ class PuppeteerServiceDownloaderMiddleware:
         if self.include_meta:
             meta = {**request.meta, **meta}
 
-        return ActionRequest(
+        action_request = ActionRequest(
             url=service_url,
             action=action,
             method="POST",
@@ -140,6 +159,16 @@ class PuppeteerServiceDownloaderMiddleware:
             errback=request.errback,
             meta=meta,
         )
+        print("Request\n")
+        print(action_request.url)
+        print()
+
+        if self.local_mode:
+            puppeteer_response = self.local_scrapy_pyppeteer.process_puppeteer_request(action_request)
+            print(action_request.action.payload())
+
+            return puppeteer_response
+        return action_request
 
     @staticmethod
     def _encode_service_params(request):
@@ -175,8 +204,14 @@ class PuppeteerServiceDownloaderMiddleware:
                 payload["headers"] = headers
             return json.dumps(payload)
         return str(payload)
+    
+    
 
     def process_response(self, request, response, spider):
+
+        print(f"\n\n\n\nProcessing responce\nlocal_mode = {self.local_mode}\n\n\n")
+        
+
         if not isinstance(response, TextResponse):
             return response
 
@@ -200,7 +235,7 @@ class PuppeteerServiceDownloaderMiddleware:
 
         response_cls = self._get_response_class(puppeteer_request.action)
 
-        return self._form_response(
+        res = self._form_response(
             response_cls,
             response_data,
             puppeteer_request.url,
@@ -208,6 +243,7 @@ class PuppeteerServiceDownloaderMiddleware:
             puppeteer_request,
             spider,
         )
+        return res
 
     def _form_response(
         self, response_cls, response_data, url, request, puppeteer_request, spider
@@ -265,6 +301,9 @@ class PuppeteerServiceDownloaderMiddleware:
             dfd.addBoth(handle_close_contexts_result)
 
             raise DontCloseSpider()
+
+
+
 
 
 class PuppeteerRecaptchaDownloaderMiddleware:
@@ -343,27 +382,19 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                 )
         return cls(recaptcha_solving, submit_selectors)
 
-    @staticmethod
-    def is_recaptcha_producing_action(action) -> bool:
-        return not isinstance(
-            action,
-            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
-        )
-
-    def process_request(self, request, **_):
+    def process_request(self, request, spider):
         if request.meta.get("dont_recaptcha", False):
             return None
 
-        # Checking if we need to close page after action
         if isinstance(request, PuppeteerRequest):
-            if self.is_recaptcha_producing_action(request.action):
-                if request.close_page and not request.meta.get(
-                    "_captcha_submission", False
-                ):
-                    request.close_page = False
-                    request.dont_filter = True
-                    self._page_closing.add(request)
-                    return request
+            if request.close_page and not request.meta.get(
+                "_captcha_submission", False
+            ):
+                request.close_page = False
+                request.dont_filter = True
+                self._page_closing.add(request)
+                return request
+        return None
 
     def process_response(self, request, response, spider):
         if not isinstance(
@@ -384,7 +415,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if not self.is_recaptcha_producing_action(puppeteer_request.action):
+        if isinstance(
+            puppeteer_request.action,
+            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
+        ):
             # No recaptcha after these actions
             return response
 
