@@ -24,7 +24,11 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 PUPPETEER_SERVICE_URL = 'http://localhost:3000'
-``` 
+
+#To run locally, you need to enable the setting.
+PUPPETEER_LOCAL = True
+```
+For local execution, it is also necessary to install Chromium for Pyppeteer.
 
 ## Basic usage
 
