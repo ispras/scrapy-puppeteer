@@ -78,9 +78,92 @@ class ContextManager:
         self.close_browser()
 
 
-class RequestHandler:
+
+class BrowserManager(ABC):
+    @abstractmethod
+    def process_request(self, request, spider):
+        pass
+    
+    @abstractmethod
+    def close_used_contexts(self):
+        pass
+
+
+    def process_response(self, middleware, request, response, spider):
+        if not isinstance(response, TextResponse):
+            return response
+
+        puppeteer_request = request.meta.get("puppeteer_request")
+        if puppeteer_request is None:
+            return response
+
+        if b"application/json" not in response.headers.get(b"Content-Type", b""):
+            return response.replace(request=request)
+
+        response_data = json.loads(response.text)
+        if response.status != 200:
+            reason = response_data.pop("error", f"undefined, status {response.status}")
+            middleware.service_logger.warning(
+                f"Request {request} is not succeeded. Reason: {reason}"
+            )
+            context_id = response_data.get("contextId")
+            if context_id:
+                middleware.used_contexts[id(spider)].add(context_id)
+            return response
+
+        response_cls = self._get_response_class(puppeteer_request.action)
+
+    
+        return self._form_response(
+            response_cls,
+            response_data,
+            puppeteer_request.url,
+            request,
+            puppeteer_request,
+            spider,
+        )
+
+    def _form_response(
+        self, response_cls, response_data, url, request, puppeteer_request, spider
+    ):
+        context_id = response_data.pop("contextId", puppeteer_request.context_id)
+        page_id = response_data.pop("pageId", puppeteer_request.page_id)
+
+        self.used_contexts[id(spider)].add(context_id)
+
+        return response_cls(
+            url=url,
+            puppeteer_request=puppeteer_request,
+            context_id=context_id,
+            page_id=page_id,
+            request=request,
+            **response_data,
+        )
+
+    @staticmethod
+    def _get_response_class(request_action):
+        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll)):
+            return PuppeteerHtmlResponse
+        if isinstance(request_action, Screenshot):
+            return PuppeteerScreenshotResponse
+        if isinstance(request_action, RecaptchaSolver):
+            return PuppeteerRecaptchaSolverResponse
+        return PuppeteerJsonResponse
+    
+
+class LocalBrowserManager(BrowserManager):
     def __init__(self):
         self.context_manager = ContextManager()
+
+    def process_request(self, request):
+        action_request = ActionRequest(
+            url='http://_running_local_',
+            action=request.action,
+            cookies=request.cookies,
+            meta={"puppeteer_request": request}
+        ) 
+        return self.process_puppeteer_request(action_request)
+    
 
     def process_puppeteer_request(self, action_request):
         endpoint = action_request.action.endpoint
@@ -101,6 +184,7 @@ class RequestHandler:
 
         return None
     
+
     async def wait_with_options(self, page, wait_options):
         timeout = wait_options.get("selectorOrTimeout", 1000)
         visible = wait_options.get("visible", False)
@@ -290,97 +374,6 @@ class RequestHandler:
     
     def recaptcha_solver(self, action_request: ActionRequest):
         raise ValueError("RecaptchaSolver is not available in local mode")
-    
-
-
-
-
-class BrowserManager(ABC):
-    @abstractmethod
-    def process_request(self, request, spider):
-        pass
-    
-    @abstractmethod
-    def close_used_contexts(self):
-        pass
-
-
-    def process_response(self, middleware, request, response, spider):
-        if not isinstance(response, TextResponse):
-            return response
-
-        puppeteer_request = request.meta.get("puppeteer_request")
-        if puppeteer_request is None:
-            return response
-
-        if b"application/json" not in response.headers.get(b"Content-Type", b""):
-            return response.replace(request=request)
-
-        response_data = json.loads(response.text)
-        if response.status != 200:
-            reason = response_data.pop("error", f"undefined, status {response.status}")
-            middleware.service_logger.warning(
-                f"Request {request} is not succeeded. Reason: {reason}"
-            )
-            context_id = response_data.get("contextId")
-            if context_id:
-                middleware.used_contexts[id(spider)].add(context_id)
-            return response
-
-        response_cls = self._get_response_class(puppeteer_request.action)
-
-    
-        return self._form_response(
-            response_cls,
-            response_data,
-            puppeteer_request.url,
-            request,
-            puppeteer_request,
-            spider,
-        )
-
-    def _form_response(
-        self, response_cls, response_data, url, request, puppeteer_request, spider
-    ):
-        context_id = response_data.pop("contextId", puppeteer_request.context_id)
-        page_id = response_data.pop("pageId", puppeteer_request.page_id)
-
-        self.used_contexts[id(spider)].add(context_id)
-
-        return response_cls(
-            url=url,
-            puppeteer_request=puppeteer_request,
-            context_id=context_id,
-            page_id=page_id,
-            request=request,
-            **response_data,
-        )
-
-    @staticmethod
-    def _get_response_class(request_action):
-        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll)):
-            return PuppeteerHtmlResponse
-        if isinstance(request_action, Screenshot):
-            return PuppeteerScreenshotResponse
-        if isinstance(request_action, RecaptchaSolver):
-            return PuppeteerRecaptchaSolverResponse
-        return PuppeteerJsonResponse
-
-
-class LocalBrowserManager(BrowserManager):
-    def __init__(self):
-        self.request_handler = RequestHandler()
-
-    def process_request(self, request):
-        action_request = ActionRequest(
-            url='http://_running_local_',
-            action=request.action,
-            cookies=request.cookies,
-            meta={"puppeteer_request": request}
-        )
-
- 
-        return self.request_handler.process_puppeteer_request(action_request)
 
     @staticmethod
     def _encode_service_params(request):
@@ -394,7 +387,8 @@ class LocalBrowserManager(BrowserManager):
         return urlencode(service_params)
     
     def close_used_contexts(self):
-        self.request_handler.context_manager.close_browser()
+        self.context_manager.close_browser()
+
 
 
 class ServiceBrowserManager(BrowserManager):
