@@ -224,6 +224,13 @@ class Screenshot(PuppeteerServiceAction):
     
     
 class Har(PuppeteerServiceAction):
+
+    """
+    receive har data
+    Takes only one option {"har_state" : "stop"}
+    To start: cookies = {"har":"start"} in PuppeteerRequest
+
+    """
     endpoint = "har"
 
     def __init__(self, options: dict = None):
