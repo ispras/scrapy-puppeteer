@@ -221,6 +221,18 @@ class Screenshot(PuppeteerServiceAction):
 
     def payload(self):
         return {"options": self.options}
+    
+    
+class Har(PuppeteerServiceAction):
+    endpoint = "har"
+
+    def __init__(self, options: dict = None):
+        self.options = options
+
+    def payload(self):
+        return {
+            "options": self.options,
+        }
 
 
 class RecaptchaSolver(PuppeteerServiceAction):
