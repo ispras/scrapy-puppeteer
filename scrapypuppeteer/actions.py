@@ -58,17 +58,19 @@ class GoTo(PuppeteerServiceAction):
     endpoint = "goto"
 
     def __init__(
-        self, url: str, navigation_options: dict = None, wait_options: dict = None
+        self, url: str, navigation_options: dict = None, wait_options: dict = None, har_recording: bool = False
     ):
         self.url = url
         self.navigation_options = navigation_options
         self.wait_options = wait_options
+        self.har_recording = har_recording
 
     def payload(self):
         return {
             "url": self.url,
             "navigationOptions": self.navigation_options,
             "waitOptions": self.wait_options,
+            "harRecording": self.har_recording,
         }
 
 
@@ -224,22 +226,11 @@ class Screenshot(PuppeteerServiceAction):
     
     
 class Har(PuppeteerServiceAction):
-
-    """
-    receive har data
-    Takes only one option {"har_state" : "stop"}
-    To start: cookies = {"har":"start"} in PuppeteerRequest
-
-    """
     endpoint = "har"
 
-    def __init__(self, options: dict = None):
-        self.options = options
-
     def payload(self):
-        return {
-            "options": self.options,
-        }
+        return {}
+
 
 
 class RecaptchaSolver(PuppeteerServiceAction):
