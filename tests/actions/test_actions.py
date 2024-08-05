@@ -43,7 +43,7 @@ def _gen_scroll():
         yield selector, wait_opt, expected
 
 
-@mark.parametrize("url, navigation_options, wait_options, expected", _gen_goto())
+@mark.parametrize("url, navigation_options, wait_options, har_recording, expected", _gen_goto())
 def test_goto(url, navigation_options, wait_options, har_recording, expected):
     action = GoTo(url, navigation_options, wait_options, har_recording)
     assert action.payload() == expected
