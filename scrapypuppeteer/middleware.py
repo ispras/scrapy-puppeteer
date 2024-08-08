@@ -30,7 +30,18 @@ from scrapypuppeteer.response import (
     PuppeteerJsonResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
-from scrapypuppeteer.browser_manager import BrowserManager, LocalBrowserManager, ServiceBrowserManager 
+
+
+
+
+from scrapypuppeteer.service_browser_manager import ServiceBrowserManager
+
+from scrapypuppeteer.local_browser_manager import LocalBrowserManager
+
+
+
+
+    
 
 class PuppeteerServiceDownloaderMiddleware:
     """
@@ -75,7 +86,6 @@ class PuppeteerServiceDownloaderMiddleware:
         service_url: str,
         include_headers: Union[bool, List[str]],
         include_meta: bool,
-        local_mode: bool,
         browser_manager: Union[ServiceBrowserManager, LocalBrowserManager]
     ):
         self.service_base_url = service_url
@@ -83,7 +93,6 @@ class PuppeteerServiceDownloaderMiddleware:
         self.include_meta = include_meta
         self.crawler = crawler
         self.used_contexts = defaultdict(set)
-        self.local_mode = local_mode
         self.browser_manager = browser_manager
 
     @classmethod
@@ -105,7 +114,7 @@ class PuppeteerServiceDownloaderMiddleware:
         else:
             browser_manager = ServiceBrowserManager(service_url, include_meta, include_headers, crawler)
 
-        middleware = cls(crawler, service_url, include_headers, include_meta, local_mode, browser_manager)
+        middleware = cls(crawler, service_url, include_headers, include_meta, browser_manager)
         crawler.signals.connect(
             middleware.browser_manager.close_used_contexts, signal=signals.spider_idle
         )
@@ -199,19 +208,27 @@ class PuppeteerRecaptchaDownloaderMiddleware:
                 )
         return cls(recaptcha_solving, submit_selectors)
 
-    def process_request(self, request, spider):
+    @staticmethod
+    def is_recaptcha_producing_action(action) -> bool:
+        return not isinstance(
+            action,
+            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
+        )
+
+    def process_request(self, request, **_):
         if request.meta.get("dont_recaptcha", False):
             return None
 
+        # Checking if we need to close page after action
         if isinstance(request, PuppeteerRequest):
-            if request.close_page and not request.meta.get(
-                "_captcha_submission", False
-            ):
-                request.close_page = False
-                request.dont_filter = True
-                self._page_closing.add(request)
-                return request
-        return None
+            if self.is_recaptcha_producing_action(request.action):
+                if request.close_page and not request.meta.get(
+                    "_captcha_submission", False
+                ):
+                    request.close_page = False
+                    request.dont_filter = True
+                    self._page_closing.add(request)
+                    return request
 
     def process_response(self, request, response, spider):
         if not isinstance(
@@ -232,10 +249,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             # RECaptchaSolver was called by recaptcha middleware
             return self._submit_recaptcha(request, response, spider)
 
-        if isinstance(
-            puppeteer_request.action,
-            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
-        ):
+        if not self.is_recaptcha_producing_action(puppeteer_request.action):
             # No recaptcha after these actions
             return response
 
