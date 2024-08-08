@@ -32,8 +32,7 @@ from scrapypuppeteer.response import (
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 
-from scrapypuppeteer.browser_manager import BrowserManager
-
+from scrapypuppeteer import BrowserManager
 
 
 class ServiceBrowserManager(BrowserManager):
@@ -50,6 +49,7 @@ class ServiceBrowserManager(BrowserManager):
 
 
     def process_request(self, request):
+
         if isinstance(request, CloseContextRequest):
             return self.process_close_context_request(request)
 

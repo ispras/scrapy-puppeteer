@@ -1,5 +1,3 @@
-import json
-import logging
 from collections import defaultdict
 from typing import List, Union
 from urllib.parse import urlencode, urljoin
@@ -11,18 +9,7 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
 from scrapy.http import Headers, TextResponse, Response
 from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
-import time
 
-from scrapypuppeteer.actions import (
-    Click,
-    GoBack,
-    GoForward,
-    GoTo,
-    RecaptchaSolver,
-    Screenshot,
-    Scroll,
-    CustomJsAction,
-)
 from scrapypuppeteer.response import (
     PuppeteerResponse,
     PuppeteerHtmlResponse,
@@ -41,7 +28,7 @@ import uuid
 import base64
 
 
-from scrapypuppeteer.browser_manager import BrowserManager
+from scrapypuppeteer import BrowserManager
 
 
 class ContextManager:
