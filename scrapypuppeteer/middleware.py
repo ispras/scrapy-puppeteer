@@ -20,11 +20,13 @@ from scrapypuppeteer.actions import (
     Screenshot,
     Scroll,
     CustomJsAction,
+    Har
 )
 from scrapypuppeteer.response import (
     PuppeteerResponse,
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
+    PuppeteerHarResponse,
     PuppeteerRecaptchaSolverResponse,
     PuppeteerJsonResponse,
 )
@@ -233,6 +235,8 @@ class PuppeteerServiceDownloaderMiddleware:
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
+        if isinstance(request_action, Har):
+            return PuppeteerHarResponse
         if isinstance(request_action, RecaptchaSolver):
             return PuppeteerRecaptchaSolverResponse
         return PuppeteerJsonResponse

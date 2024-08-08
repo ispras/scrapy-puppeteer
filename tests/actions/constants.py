@@ -6,6 +6,7 @@ WAIT_UNTIL = ("load", "domcontentloaded", "networkidle0")
 WAIT_OPTS = [None]
 SELECTORS = ("nothing", "tr.td::attr(something)")
 CLICK_OPTS = [None]
+HAR_RECORDING = [None]
 
 
 def __gen_nav_opts():

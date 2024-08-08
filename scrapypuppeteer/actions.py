@@ -58,17 +58,19 @@ class GoTo(PuppeteerServiceAction):
     endpoint = "goto"
 
     def __init__(
-        self, url: str, navigation_options: dict = None, wait_options: dict = None
+        self, url: str, navigation_options: dict = None, wait_options: dict = None, har_recording: bool = False
     ):
         self.url = url
         self.navigation_options = navigation_options
         self.wait_options = wait_options
+        self.har_recording = har_recording
 
     def payload(self):
         return {
             "url": self.url,
             "navigationOptions": self.navigation_options,
             "waitOptions": self.wait_options,
+            "harRecording": self.har_recording,
         }
 
 
@@ -221,6 +223,14 @@ class Screenshot(PuppeteerServiceAction):
 
     def payload(self):
         return {"options": self.options}
+    
+    
+class Har(PuppeteerServiceAction):
+    endpoint = "har"
+
+    def payload(self):
+        return {}
+
 
 
 class RecaptchaSolver(PuppeteerServiceAction):
