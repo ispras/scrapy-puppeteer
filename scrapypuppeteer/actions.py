@@ -232,7 +232,6 @@ class Har(PuppeteerServiceAction):
         return {}
 
 
-
 class RecaptchaSolver(PuppeteerServiceAction):
     """
     Tries to solve recaptcha on the page.
