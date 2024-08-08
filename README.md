@@ -24,6 +24,22 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 PUPPETEER_SERVICE_URL = 'http://localhost:3000'
+
+#To run locally (without scrapy-puppeteer-service started), you need to enable the setting:
+PUPPETEER_LOCAL = True
+```
+For local execution it is also necessary to install Chromium for Pyppeteer.
+
+## Configuration
+
+You should have [scrapy-puppeteer-service](https://github.com/ispras/scrapy-puppeteer-service) started.
+Then add its URL to `settings.py` and enable puppeteer downloader middleware:
+```python
+DOWNLOADER_MIDDLEWARES = {
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+}
+
+PUPPETEER_SERVICE_URL = 'http://localhost:3000'
 ``` 
 
 ## Basic usage
@@ -50,6 +66,7 @@ There is a parent `PuppeteerResponse` class from which other response classes ar
 Here is a list of them all:
 - `PuppeteerHtmlResponse` - has `html` and `cookies` properties
 - `PuppeteerScreenshotResponse` - has `screenshot` property
+- `PuppeteerHarResponse` - has `har` property
 - `PuppeteerJsonResponse` - has `data` property and `to_html()` method which tries to transform itself to `PuppeteerHtmlResponse`
 - `PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlResponse)` - has `recaptcha_data` property
 
@@ -66,6 +83,7 @@ Here is the list of available actions:
 - `Click(selector, click_options, wait_options)` - click on element on page
 - `Scroll(selector, wait_options)` - scroll page
 - `Screenshot(options)` - take screenshot
+- `Har()` - to get the HAR file, pass the `har_recording=True` argument to `PuppeteerRequest` at the start of execution.
 - `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
 
