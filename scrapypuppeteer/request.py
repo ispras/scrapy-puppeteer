@@ -56,6 +56,7 @@ class PuppeteerRequest(ActionRequest):
         page_id: str = None,
         close_page: bool = True,
         include_headers: Union[bool, List[str]] = None,
+        har_recording: bool = False,
         **kwargs,
     ):
         """
@@ -80,7 +81,7 @@ class PuppeteerRequest(ActionRequest):
             navigation_options = kwargs.pop("navigation_options", None)
             wait_options = kwargs.pop("wait_options", None)
             action = GoTo(
-                url, navigation_options=navigation_options, wait_options=wait_options
+                url, navigation_options=navigation_options, wait_options=wait_options, har_recording = har_recording
             )
         elif isinstance(action, GoTo):
             url = action.url

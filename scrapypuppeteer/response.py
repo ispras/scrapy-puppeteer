@@ -107,6 +107,19 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
         self.screenshot = kwargs.pop("screenshot")
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
 
+class PuppeteerHarResponse(PuppeteerResponse):
+
+    """
+    Response for Har action.
+    Har is available via self.har.
+    """
+
+    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + ("har",)
+
+    def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
+        self.har = kwargs.pop("har")
+        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
+
 
 class PuppeteerJsonResponse(PuppeteerResponse):
     """
