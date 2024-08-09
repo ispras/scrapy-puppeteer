@@ -4,7 +4,6 @@ from typing import Tuple, List, Union
 from scrapy.http import Request, Headers
 
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction 
-#
 
 
 class ActionRequest(Request):

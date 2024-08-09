@@ -34,7 +34,7 @@ from scrapypuppeteer.response import (
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 
-from scrapypuppeteer import BrowserManager
+from scrapypuppeteer.browser_managers import BrowserManager
 
 
 class ServiceBrowserManager(BrowserManager):
@@ -106,7 +106,6 @@ class ServiceBrowserManager(BrowserManager):
             service_params["closePage"] = 1
         return urlencode(service_params)
     
-
     def _serialize_body(self, action, request):
         payload = action.payload()
         if action.content_type == "application/json":
@@ -138,7 +137,6 @@ class ServiceBrowserManager(BrowserManager):
                 contexts,
                 meta={"proxy": None},
             )
-
             def handle_close_contexts_result(result):
                 if isinstance(result, Response):
                     if result.status == 200:
@@ -155,7 +153,6 @@ class ServiceBrowserManager(BrowserManager):
                         f"Could not close contexts: {result.value}",
                         exc_info=failure_to_exc_info(result),
                     )
-
             dfd = self.crawler.engine.download(request)
             dfd.addBoth(handle_close_contexts_result)
 
@@ -186,7 +183,6 @@ class ServiceBrowserManager(BrowserManager):
 
         response_cls = self._get_response_class(puppeteer_request.action)
 
-    
         return self._form_response(
             response_cls,
             response_data,
@@ -201,7 +197,6 @@ class ServiceBrowserManager(BrowserManager):
     ):
         context_id = response_data.pop("contextId", puppeteer_request.context_id)
         page_id = response_data.pop("pageId", puppeteer_request.page_id)
-
         self.used_contexts[id(spider)].add(context_id)
 
         return response_cls(

@@ -35,6 +35,8 @@ from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContex
 from scrapypuppeteer.browser_managers.local_browser_manager import LocalBrowserManager
 from scrapypuppeteer.browser_managers.service_browser_manager import ServiceBrowserManager
 
+from scrapypuppeteer.browser_managers import BrowserManager
+
 class PuppeteerServiceDownloaderMiddleware:
     """
     This downloader middleware converts PuppeteerRequest instances to
@@ -78,7 +80,7 @@ class PuppeteerServiceDownloaderMiddleware:
         service_url: str,
         include_headers: Union[bool, List[str]],
         include_meta: bool,
-        browser_manager: Union[ServiceBrowserManager, LocalBrowserManager]
+        browser_manager: BrowserManager
     ):
         self.service_base_url = service_url
         self.include_headers = include_headers
@@ -100,7 +102,6 @@ class PuppeteerServiceDownloaderMiddleware:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
 
-
         if local_mode:
             browser_manager = LocalBrowserManager()
         else:
@@ -112,12 +113,9 @@ class PuppeteerServiceDownloaderMiddleware:
         )
         return middleware
     
-
-
     def process_request(self, request, spider):
         return self.browser_manager.process_request(request)
         
-    
     def process_response(self, request, response, spider):
         return self.browser_manager.process_response(self, request, response, spider)
 
