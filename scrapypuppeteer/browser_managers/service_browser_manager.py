@@ -23,6 +23,7 @@ from scrapypuppeteer.actions import (
     Scroll,
     CustomJsAction,
     Har,
+    FormAction
 )
 from scrapypuppeteer.response import (
     PuppeteerResponse,
@@ -210,7 +211,7 @@ class ServiceBrowserManager(BrowserManager):
 
     @staticmethod
     def _get_response_class(request_action):
-        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll)):
+        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll, FormAction)):
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse

@@ -71,7 +71,8 @@ class LocalBrowserManager(BrowserManager):
             "screenshot": self.screenshot,
             "action": self.action,
             "recaptcha_solver": self.recaptcha_solver,
-            "har": self.har
+            "har": self.har,
+            "form_action": self.form_action
         }
 
     def process_request(self, request):
@@ -243,6 +244,34 @@ class LocalBrowserManager(BrowserManager):
 
         return syncer.sync(async_scroll())
     
+    
+    def form_action(self, request: PuppeteerRequest):
+        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        page = self.context_manager.get_page_by_id(context_id, page_id)
+
+        async def async_form_action():
+            input_mapping = request.action.payload().get("inputMapping")
+            submit_button = request.action.payload().get("submitButton", None)
+            cookies = request.cookies
+
+            for selector, params in input_mapping.items():
+                value = params.get("value", "no value was provided")
+                delay = params.get("delay", 0)
+                await page.type(selector, value, {"delay": delay})
+
+            if submit_button:
+                await page.click(submit_button)
+                
+            response_html = await page.content()
+            return PuppeteerHtmlResponse(request.url,
+                                        request,
+                                        context_id = context_id,
+                                        page_id = page_id,
+                                        html = response_html,
+                                        cookies=cookies)
+        
+        return syncer.sync(async_form_action())
+    
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")
@@ -252,6 +281,3 @@ class LocalBrowserManager(BrowserManager):
     
     def har(self, request: PuppeteerRequest):
         raise ValueError("Har is not available in local mode")
-
-
-
