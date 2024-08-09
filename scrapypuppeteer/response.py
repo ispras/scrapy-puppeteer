@@ -7,6 +7,7 @@ from scrapy.http import TextResponse
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
 
+
 class PuppeteerResponse(TextResponse):
     attributes: Tuple[str, ...] = TextResponse.attributes + (
         "url",
@@ -106,7 +107,6 @@ class PuppeteerScreenshotResponse(PuppeteerResponse):
         self.screenshot = kwargs.pop("screenshot")
         super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
 
-
 class PuppeteerHarResponse(PuppeteerResponse):
 
     """
@@ -159,8 +159,8 @@ class PuppeteerJsonResponse(PuppeteerResponse):
         kwargs["encoding"] = "utf-8"
 
         return PuppeteerHtmlResponse(**kwargs)
-    
-    
+
+
 class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlResponse):
     """
     Response for RecaptchaSolver.
