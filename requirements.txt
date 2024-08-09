@@ -1,1 +1,4 @@
 scrapy>=2.6
+pyppeteer
+syncer
+bs4
