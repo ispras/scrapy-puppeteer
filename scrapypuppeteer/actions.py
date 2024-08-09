@@ -230,6 +230,18 @@ class Har(PuppeteerServiceAction):
 
     def payload(self):
         return {}
+    
+    
+class FormAction(PuppeteerServiceAction):
+    endpoint = "form_action"
+
+    def __init__(self, input_mapping: dict, submit_button: str = None):
+        self.input_mapping = input_mapping
+        self.submit_button = submit_button
+    
+    def payload(self):
+        return {"inputMapping": self.input_mapping, "submitButton": self.submit_button}
+        
 
 
 
