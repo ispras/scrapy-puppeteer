@@ -314,3 +314,4 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         if close_page and remove_request:
             self._page_closing.remove(main_request)
         return close_page
+    
