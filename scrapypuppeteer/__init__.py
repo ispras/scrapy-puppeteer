@@ -6,6 +6,3 @@ from .response import (
     PuppeteerRecaptchaSolverResponse,
     PuppeteerJsonResponse,
 )
-
-
-
