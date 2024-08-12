@@ -281,3 +281,4 @@ class LocalBrowserManager(BrowserManager):
     
     def har(self, request: PuppeteerRequest):
         raise ValueError("Har is not available in local mode")
+    

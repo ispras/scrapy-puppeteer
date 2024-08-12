@@ -226,6 +226,16 @@ class Screenshot(PuppeteerServiceAction):
     
     
 class Har(PuppeteerServiceAction):
+
+    """
+    The `Har` action is used to capture and retrieve the HTTP Archive (HAR) file,
+    which contains detailed information about network requests and responses
+    made during the session.
+
+    This action is called without any arguments. To generate the HAR file,
+    you must pass the `har_recording=True` argument to `PuppeteerRequest`
+    when initiating the request.
+    """
     endpoint = "har"
 
     def payload(self):
@@ -233,6 +243,25 @@ class Har(PuppeteerServiceAction):
     
     
 class FormAction(PuppeteerServiceAction):
+
+    """
+    Fill out and submit forms on a webpage.
+
+    Available options:
+
+    * ``input_mapping`` (dict): A dictionary where each key is a CSS selector, and
+    each value is another dictionary containing details about the input for that element.
+    Each entry in the dictionary should follow this structure:
+
+    * ``selector`` (str): The CSS selector for the input element (used as the key).
+    * ``value`` (str): The text to be inputted into the element.
+    * ``delay`` (int, optional): A delay (in milliseconds) between each keystroke
+        when inputting the text. Defaults to 0 if not provided.
+
+    * ``submit_button`` (str, optional): The CSS selector for the form's submit button.
+    If provided, the button will be clicked after filling in the form.
+    """
+
     endpoint = "form_action"
 
     def __init__(self, input_mapping: dict, submit_button: str = None):
@@ -241,7 +270,7 @@ class FormAction(PuppeteerServiceAction):
     
     def payload(self):
         return {"inputMapping": self.input_mapping, "submitButton": self.submit_button}
-        
+    
 
 
 
