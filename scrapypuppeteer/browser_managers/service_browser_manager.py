@@ -23,7 +23,7 @@ from scrapypuppeteer.actions import (
     Scroll,
     CustomJsAction,
     Har,
-    FormAction
+    FormAction,
 )
 from scrapypuppeteer.response import (
     PuppeteerResponse,
@@ -48,8 +48,7 @@ class ServiceBrowserManager(BrowserManager):
         self.crawler = crawler
 
         if self.service_base_url is None:
-                raise ValueError("Puppeteer service URL must be provided")
-
+            raise ValueError("Puppeteer service URL must be provided")
 
     def process_request(self, request):
 
@@ -58,14 +57,12 @@ class ServiceBrowserManager(BrowserManager):
 
         if isinstance(request, PuppeteerRequest):
             return self.process_puppeteer_request(request)
-        
 
     def process_close_context_request(self, request: CloseContextRequest):
         if not request.is_valid_url:
             return request.replace(
                 url=urljoin(self.service_base_url, "/close_context"),
             )
-        
 
     def process_puppeteer_request(self, request: PuppeteerRequest):
         action = request.action
@@ -80,7 +77,7 @@ class ServiceBrowserManager(BrowserManager):
         }
         if self.include_meta:
             meta = {**request.meta, **meta}
-        action_request =  ActionRequest(
+        action_request = ActionRequest(
             url=service_url,
             action=action,
             method="POST",
@@ -95,7 +92,7 @@ class ServiceBrowserManager(BrowserManager):
             meta=meta,
         )
         return action_request
-    
+
     @staticmethod
     def _encode_service_params(request):
         service_params = {}
@@ -106,7 +103,7 @@ class ServiceBrowserManager(BrowserManager):
         if request.close_page:
             service_params["closePage"] = 1
         return urlencode(service_params)
-    
+
     def _serialize_body(self, action, request):
         payload = action.payload()
         if action.content_type == "application/json":
@@ -130,7 +127,7 @@ class ServiceBrowserManager(BrowserManager):
                 payload["headers"] = headers
             return json.dumps(payload)
         return str(payload)
-    
+
     def close_used_contexts(self, spider):
         contexts = list(self.used_contexts.pop(id(spider), set()))
         if contexts:
@@ -138,6 +135,7 @@ class ServiceBrowserManager(BrowserManager):
                 contexts,
                 meta={"proxy": None},
             )
+
             def handle_close_contexts_result(result):
                 if isinstance(result, Response):
                     if result.status == 200:
@@ -154,11 +152,11 @@ class ServiceBrowserManager(BrowserManager):
                         f"Could not close contexts: {result.value}",
                         exc_info=failure_to_exc_info(result),
                     )
+
             dfd = self.crawler.engine.download(request)
             dfd.addBoth(handle_close_contexts_result)
 
             raise DontCloseSpider()
-        
 
     def process_response(self, middleware, request, response, spider):
         if not isinstance(response, TextResponse):
@@ -211,7 +209,9 @@ class ServiceBrowserManager(BrowserManager):
 
     @staticmethod
     def _get_response_class(request_action):
-        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll, FormAction)):
+        if isinstance(
+            request_action, (GoTo, GoForward, GoBack, Click, Scroll, FormAction)
+        ):
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse

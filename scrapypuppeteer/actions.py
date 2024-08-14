@@ -58,7 +58,11 @@ class GoTo(PuppeteerServiceAction):
     endpoint = "goto"
 
     def __init__(
-        self, url: str, navigation_options: dict = None, wait_options: dict = None, har_recording: bool = False
+        self,
+        url: str,
+        navigation_options: dict = None,
+        wait_options: dict = None,
+        har_recording: bool = False,
     ):
         self.url = url
         self.navigation_options = navigation_options
@@ -223,10 +227,9 @@ class Screenshot(PuppeteerServiceAction):
 
     def payload(self):
         return {"options": self.options}
-    
-    
-class Har(PuppeteerServiceAction):
 
+
+class Har(PuppeteerServiceAction):
     """
     The `Har` action is used to capture and retrieve the HTTP Archive (HAR) file,
     which contains detailed information about network requests and responses
@@ -236,14 +239,14 @@ class Har(PuppeteerServiceAction):
     you must pass the `har_recording=True` argument to `PuppeteerRequest`
     when initiating the request.
     """
+
     endpoint = "har"
 
     def payload(self):
         return {}
-    
-    
-class FormAction(PuppeteerServiceAction):
 
+
+class FormAction(PuppeteerServiceAction):
     """
     Fill out and submit forms on a webpage.
 
@@ -267,11 +270,9 @@ class FormAction(PuppeteerServiceAction):
     def __init__(self, input_mapping: dict, submit_button: str = None):
         self.input_mapping = input_mapping
         self.submit_button = submit_button
-    
+
     def payload(self):
         return {"inputMapping": self.input_mapping, "submitButton": self.submit_button}
-    
-
 
 
 class RecaptchaSolver(PuppeteerServiceAction):

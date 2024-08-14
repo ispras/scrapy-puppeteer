@@ -4,16 +4,19 @@ from scrapypuppeteer.actions import Har
 
 
 def write_to_file(file_path, content):
-    with open(file_path, 'a', encoding='utf-8') as file:
+    with open(file_path, "a", encoding="utf-8") as file:
         file.write(content)
 
+
 class HarSpider(scrapy.Spider):
-    name = 'har'
+    name = "har"
     start_urls = ["https://github.com/pyppeteer/pyppeteer"]
 
     def start_requests(self):
         for url in self.start_urls:
-            yield PuppeteerRequest(url, callback=self.har, close_page=False, har_recording=True)
+            yield PuppeteerRequest(
+                url, callback=self.har, close_page=False, har_recording=True
+            )
 
     def har(self, response):
         yield response.follow(
