@@ -246,7 +246,7 @@ class Har(PuppeteerServiceAction):
         return {}
 
 
-class FormAction(PuppeteerServiceAction):
+class FillForm(PuppeteerServiceAction):
     """
     Fill out and submit forms on a webpage.
 
@@ -265,7 +265,7 @@ class FormAction(PuppeteerServiceAction):
     If provided, the button will be clicked after filling in the form.
     """
 
-    endpoint = "form_action"
+    endpoint = "fill_form"
 
     def __init__(self, input_mapping: dict, submit_button: str = None):
         self.input_mapping = input_mapping

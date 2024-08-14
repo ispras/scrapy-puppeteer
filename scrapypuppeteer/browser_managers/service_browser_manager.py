@@ -11,7 +11,6 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
 from scrapy.http import Headers, TextResponse, Response
 from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
-import time
 
 from scrapypuppeteer.actions import (
     Click,
@@ -23,7 +22,7 @@ from scrapypuppeteer.actions import (
     Scroll,
     CustomJsAction,
     Har,
-    FormAction,
+    FillForm,
 )
 from scrapypuppeteer.response import (
     PuppeteerResponse,
@@ -34,7 +33,6 @@ from scrapypuppeteer.response import (
     PuppeteerJsonResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
-
 from scrapypuppeteer.browser_managers import BrowserManager
 
 
@@ -210,7 +208,7 @@ class ServiceBrowserManager(BrowserManager):
     @staticmethod
     def _get_response_class(request_action):
         if isinstance(
-            request_action, (GoTo, GoForward, GoBack, Click, Scroll, FormAction)
+            request_action, (GoTo, GoForward, GoBack, Click, Scroll, FillForm)
         ):
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):

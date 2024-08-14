@@ -32,7 +32,9 @@ from scrapypuppeteer.response import (
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 
-from scrapypuppeteer.browser_managers.local_browser_manager import LocalBrowserManager
+from scrapypuppeteer.browser_managers.local_browser_manager import (
+    LocalBrowserManager,
+)
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )

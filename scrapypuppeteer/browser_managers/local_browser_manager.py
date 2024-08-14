@@ -1,14 +1,16 @@
+import asyncio
+import base64
+
+from pyppeteer import launch
+import syncer
+import uuid
+
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 
-import asyncio
-from pyppeteer import launch
-import syncer
-import uuid
-import base64
 from scrapypuppeteer.browser_managers import BrowserManager
 
 
@@ -71,7 +73,7 @@ class LocalBrowserManager(BrowserManager):
             "action": self.action,
             "recaptcha_solver": self.recaptcha_solver,
             "har": self.har,
-            "form_action": self.form_action,
+            "fill_form": self.fill_form,
         }
 
     def process_request(self, request):
@@ -274,7 +276,7 @@ class LocalBrowserManager(BrowserManager):
 
         return syncer.sync(async_scroll())
 
-    def form_action(self, request: PuppeteerRequest):
+    def fill_form(self, request: PuppeteerRequest):
         context_id, page_id = syncer.sync(
             self.context_manager.check_context_and_page(
                 request.context_id, request.page_id
@@ -282,7 +284,7 @@ class LocalBrowserManager(BrowserManager):
         )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
-        async def async_form_action():
+        async def async_fill_form():
             input_mapping = request.action.payload().get("inputMapping")
             submit_button = request.action.payload().get("submitButton", None)
             cookies = request.cookies
@@ -305,7 +307,7 @@ class LocalBrowserManager(BrowserManager):
                 cookies=cookies,
             )
 
-        return syncer.sync(async_form_action())
+        return syncer.sync(async_fill_form())
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")
