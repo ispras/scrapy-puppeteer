@@ -5,9 +5,6 @@ import base64
 
 
 class FormActionSpider(scrapy.Spider):
-    custom_settings = {
-
-    }
     name = "fill_form"
     start_urls = ["https://www.roboform.com/filling-test-all-fields"]
 
