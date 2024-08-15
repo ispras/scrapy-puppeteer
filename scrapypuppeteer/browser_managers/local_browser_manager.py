@@ -1,14 +1,15 @@
+import asyncio
+import base64
+import uuid
+
+import syncer
+from pyppeteer import launch
+
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
-
-import asyncio
-from pyppeteer import launch
-import syncer
-import uuid
-import base64
+from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
 from scrapypuppeteer.browser_managers import BrowserManager
 
 
@@ -19,7 +20,6 @@ class ContextManager:
         self.contexts = {}
         self.pages = {}
         self.context_page_map = {}
-
 
     async def check_context_and_page(self, context_id, page_id):
         if not context_id or not page_id:
@@ -71,29 +71,30 @@ class LocalBrowserManager(BrowserManager):
             "screenshot": self.screenshot,
             "action": self.action,
             "recaptcha_solver": self.recaptcha_solver,
-            "har": self.har
+            "har": self.har,
+            "fill_form": self.fill_form,
         }
 
     def process_request(self, request):
-        
+
         if isinstance(request, PuppeteerRequest):
             endpoint = request.action.endpoint
             action_function = self.action_map.get(endpoint)
             if action_function:
                 return action_function(request)
-            
+
         if isinstance(request, CloseContextRequest):
             return self.close_contexts(request)
-        
+
     def close_contexts(self, request: CloseContextRequest):
         self.context_manager.close_contexts(request)
-    
+
     def close_used_contexts(self):
         self.context_manager.close_browser()
 
     def process_response(self, middleware, request, response, spider):
         return response
-    
+
     async def wait_with_options(self, page, wait_options):
         timeout = wait_options.get("selectorOrTimeout", 1000)
         visible = wait_options.get("visible", False)
@@ -102,14 +103,17 @@ class LocalBrowserManager(BrowserManager):
         if isinstance(timeout, (int, float)):
             await asyncio.sleep(timeout / 1000)
         else:
-            await page.waitFor(selector=timeout, options={
-                'visible': visible,
-                'hidden': hidden,
-                'timeout': 30000
-            })
+            await page.waitFor(
+                selector=timeout,
+                options={"visible": visible, "hidden": hidden, "timeout": 30000},
+            )
 
     def goto(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_goto():
@@ -120,17 +124,23 @@ class LocalBrowserManager(BrowserManager):
             wait_options = request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
             response_html = await page.content()
-            return PuppeteerHtmlResponse(url,
-                                        request,
-                                        context_id = context_id,
-                                        page_id = page_id,
-                                        html = response_html,
-                                        cookies=cookies)
-        
+            return PuppeteerHtmlResponse(
+                url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                html=response_html,
+                cookies=cookies,
+            )
+
         return syncer.sync(async_goto())
 
     def click(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_click():
@@ -138,22 +148,28 @@ class LocalBrowserManager(BrowserManager):
             cookies = request.cookies
             click_options = request.action.click_options or {}
             navigation_options = request.action.navigation_options or {}
-            options = merged = {**click_options, **navigation_options}
+            options = {**click_options, **navigation_options}
             await page.click(selector, options)
             wait_options = request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
             response_html = await page.content()
-            return PuppeteerHtmlResponse(request.url,
-                                        request,
-                                        context_id = context_id,
-                                        page_id = page_id,
-                                        html = response_html,
-                                        cookies=cookies)
-        
+            return PuppeteerHtmlResponse(
+                request.url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                html=response_html,
+                cookies=cookies,
+            )
+
         return syncer.sync(async_click())
 
     def go_back(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_go_back():
@@ -163,18 +179,23 @@ class LocalBrowserManager(BrowserManager):
             wait_options = request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
             response_html = await page.content()
-            return PuppeteerHtmlResponse(request.url,
-                                        request,
-                                        context_id = context_id,
-                                        page_id = page_id,
-                                        html = response_html,
-                                        cookies=cookies)
+            return PuppeteerHtmlResponse(
+                request.url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                html=response_html,
+                cookies=cookies,
+            )
 
         return syncer.sync(async_go_back())
 
-
     def go_forward(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_go_forward():
@@ -184,38 +205,47 @@ class LocalBrowserManager(BrowserManager):
             wait_options = request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
             response_html = await page.content()
-            return PuppeteerHtmlResponse(request.url,
-                                        request,
-                                        context_id = context_id,
-                                        page_id = page_id,
-                                        html = response_html,
-                                        cookies=cookies)
+            return PuppeteerHtmlResponse(
+                request.url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                html=response_html,
+                cookies=cookies,
+            )
 
         return syncer.sync(async_go_forward())
 
-
-
     def screenshot(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_screenshot():
             request_options = request.action.options or {}
-            screenshot_options = {'encoding': 'binary'}
+            screenshot_options = {"encoding": "binary"}
             screenshot_options.update(request_options)
             screenshot_bytes = await page.screenshot(screenshot_options)
-            screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
-            return PuppeteerScreenshotResponse(request.url,
-                                        request,
-                                        context_id = context_id,
-                                        page_id = page_id,
-                                        screenshot = screenshot_base64)
+            screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+            return PuppeteerScreenshotResponse(
+                request.url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                screenshot=screenshot_base64,
+            )
 
         return syncer.sync(async_screenshot())
-    
 
     def scroll(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(self.context_manager.check_context_and_page(request.context_id, request.page_id))
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_scroll():
@@ -234,24 +264,55 @@ class LocalBrowserManager(BrowserManager):
             wait_options = request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)
             response_html = await page.content()
-            return PuppeteerHtmlResponse(request.url,
-                                        request,
-                                        context_id = context_id,
-                                        page_id = page_id,
-                                        html = response_html,
-                                        cookies=cookies)
+            return PuppeteerHtmlResponse(
+                request.url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                html=response_html,
+                cookies=cookies,
+            )
 
         return syncer.sync(async_scroll())
-    
+
+    def fill_form(self, request: PuppeteerRequest):
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
+        page = self.context_manager.get_page_by_id(context_id, page_id)
+
+        async def async_fill_form():
+            input_mapping = request.action.payload().get("inputMapping")
+            submit_button = request.action.payload().get("submitButton", None)
+            cookies = request.cookies
+
+            for selector, params in input_mapping.items():
+                value = params.get("value", "no value was provided")
+                delay = params.get("delay", 0)
+                await page.type(selector, value, {"delay": delay})
+
+            if submit_button:
+                await page.click(submit_button)
+
+            response_html = await page.content()
+            return PuppeteerHtmlResponse(
+                request.url,
+                request,
+                context_id=context_id,
+                page_id=page_id,
+                html=response_html,
+                cookies=cookies,
+            )
+
+        return syncer.sync(async_fill_form())
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")
 
     def recaptcha_solver(self, request: PuppeteerRequest):
         raise ValueError("RecaptchaSolver is not available in local mode")
-    
+
     def har(self, request: PuppeteerRequest):
         raise ValueError("Har is not available in local mode")
-
-
-

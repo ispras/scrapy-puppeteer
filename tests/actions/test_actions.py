@@ -5,12 +5,14 @@ from constants import URLS, NAV_OPTS, WAIT_OPTS, SELECTORS, CLICK_OPTS, HAR_RECO
 
 
 def _gen_goto():
-    for url, nav_opt, wait_opt, har_recording in product(URLS, NAV_OPTS, WAIT_OPTS, HAR_RECORDING):
+    for url, nav_opt, wait_opt, har_recording in product(
+        URLS, NAV_OPTS, WAIT_OPTS, HAR_RECORDING
+    ):
         expected = {
             "url": url,
             "navigationOptions": nav_opt,
             "waitOptions": wait_opt,
-            "harRecording": har_recording
+            "harRecording": har_recording,
         }
         yield url, nav_opt, wait_opt, har_recording, expected
 
@@ -43,7 +45,9 @@ def _gen_scroll():
         yield selector, wait_opt, expected
 
 
-@mark.parametrize("url, navigation_options, wait_options, har_recording, expected", _gen_goto())
+@mark.parametrize(
+    "url, navigation_options, wait_options, har_recording, expected", _gen_goto()
+)
 def test_goto(url, navigation_options, wait_options, har_recording, expected):
     action = GoTo(url, navigation_options, wait_options, har_recording)
     assert action.payload() == expected
