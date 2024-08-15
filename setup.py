@@ -19,7 +19,7 @@ setup(
     maintainer="Maksim Varlamov",
     maintainer_email="varlamov@ispras.ru",
     packages=find_packages(),
-    install_requires=["scrapy>=2.6", "pyppeteer", "syncer", "bs4"],
+    install_requires=["scrapy>=2.6", "pyppeteer", "syncer", "bs4", "playwright"],
     python_requires=">=3.6",
     license="BSD",
     classifiers=[
