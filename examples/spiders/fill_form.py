@@ -1,11 +1,14 @@
 import scrapy
 from scrapypuppeteer import PuppeteerRequest, PuppeteerScreenshotResponse
-from scrapypuppeteer.actions import Screenshot, FormAction
+from scrapypuppeteer.actions import Screenshot, FillForm
 import base64
 
 
 class FormActionSpider(scrapy.Spider):
-    name = "form_action"
+    custom_settings = {
+
+    }
+    name = "fill_form"
     start_urls = ["https://www.roboform.com/filling-test-all-fields"]
 
     def start_requests(self):
@@ -20,7 +23,7 @@ class FormActionSpider(scrapy.Spider):
         }
 
         yield response.follow(
-            FormAction(input_mapping), close_page=False, callback=self.screenshot
+            FillForm(input_mapping), close_page=False, callback=self.screenshot
         )
 
     def screenshot(self, response):
