@@ -1,13 +1,9 @@
 import json
 import logging
 from collections import defaultdict
-from typing import List, Union
 from urllib.parse import urlencode, urljoin
-from abc import ABC, abstractmethod
 
-from scrapy import signals
-from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
+from scrapy.exceptions import DontCloseSpider
 from scrapy.http import Headers, TextResponse, Response
 from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
@@ -20,12 +16,10 @@ from scrapypuppeteer.actions import (
     RecaptchaSolver,
     Screenshot,
     Scroll,
-    CustomJsAction,
     Har,
     FillForm,
 )
 from scrapypuppeteer.response import (
-    PuppeteerResponse,
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
     PuppeteerHarResponse,

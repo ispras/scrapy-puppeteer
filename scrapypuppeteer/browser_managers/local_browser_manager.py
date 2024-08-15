@@ -1,16 +1,15 @@
 import asyncio
 import base64
-
-from pyppeteer import launch
-import syncer
 import uuid
+
+import syncer
+from pyppeteer import launch
 
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
-
+from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
 from scrapypuppeteer.browser_managers import BrowserManager
 
 
@@ -149,7 +148,7 @@ class LocalBrowserManager(BrowserManager):
             cookies = request.cookies
             click_options = request.action.click_options or {}
             navigation_options = request.action.navigation_options or {}
-            options = merged = {**click_options, **navigation_options}
+            options = {**click_options, **navigation_options}
             await page.click(selector, options)
             wait_options = request.action.payload().get("waitOptions", {}) or {}
             await self.wait_with_options(page, wait_options)

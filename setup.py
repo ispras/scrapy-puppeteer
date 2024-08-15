@@ -2,9 +2,11 @@
 
 from setuptools import setup, find_packages
 
+
 def read_long_description(file_path):
     with open(file_path, "r") as file:
         return file.read()
+
 
 setup(
     name="scrapy-puppeteer-client",
@@ -16,13 +18,8 @@ setup(
     author="MODIS @ ISP RAS",
     maintainer="Maksim Varlamov",
     maintainer_email="varlamov@ispras.ru",
-    packages=find_packages(), 
-    install_requires=[
-        "scrapy>=2.6",
-        "pyppeteer",
-        "syncer",
-        "bs4"
-    ],
+    packages=find_packages(),
+    install_requires=["scrapy>=2.6", "pyppeteer", "syncer", "bs4"],
     python_requires=">=3.6",
     license="BSD",
     classifiers=[
