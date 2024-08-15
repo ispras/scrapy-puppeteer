@@ -31,13 +31,14 @@ from scrapypuppeteer.response import (
     PuppeteerJsonResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
-#
-
-from scrapypuppeteer.browser_managers.local_browser_manager import (
-    LocalBrowserManager,
+from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import (
+    PyppeteerBrowserManager,
 )
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
+)
+from scrapypuppeteer.browser_managers.playwright_browser_manager import (
+    PlaywrightBrowserManager,
 )
 
 from scrapypuppeteer.browser_managers import BrowserManager
@@ -76,7 +77,7 @@ class PuppeteerServiceDownloaderMiddleware:
     SERVICE_META_SETTING = "PUPPETEER_INCLUDE_META"
     DEFAULT_INCLUDE_HEADERS = ["Cookie"]  # TODO send them separately
 
-    PUPPETEER_LOCAL_SETTING = "PUPPETEER_LOCAL"
+    EXECUTION_METHOD_SETTING = "EXECUTION_METHOD"
 
     service_logger = logging.getLogger(__name__)
 
@@ -98,7 +99,6 @@ class PuppeteerServiceDownloaderMiddleware:
     @classmethod
     def from_crawler(cls, crawler):
         service_url = crawler.settings.get(cls.SERVICE_URL_SETTING)
-        local_mode = crawler.settings.getbool(cls.PUPPETEER_LOCAL_SETTING, False)
         if cls.INCLUDE_HEADERS_SETTING in crawler.settings:
             try:
                 include_headers = crawler.settings.getbool(cls.INCLUDE_HEADERS_SETTING)
@@ -108,12 +108,20 @@ class PuppeteerServiceDownloaderMiddleware:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
 
-        if local_mode:
-            browser_manager = LocalBrowserManager()
-        else:
+        execution_method = crawler.settings.get(
+            cls.EXECUTION_METHOD_SETTING, "PUPPETEER"
+        ).lower()
+
+        if execution_method == "pyppeteer":
+            browser_manager = PyppeteerBrowserManager()
+        elif execution_method == "puppeteer":
             browser_manager = ServiceBrowserManager(
                 service_url, include_meta, include_headers, crawler
             )
+        elif execution_method == "playwright":
+            browser_manager = PlaywrightBrowserManager()
+        else:
+            raise NameError("Wrong EXECUTION_METHOD")
 
         middleware = cls(
             crawler, service_url, include_headers, include_meta, browser_manager

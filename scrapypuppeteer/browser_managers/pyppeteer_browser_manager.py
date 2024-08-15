@@ -58,7 +58,7 @@ class ContextManager:
         self.close_browser()
 
 
-class LocalBrowserManager(BrowserManager):
+class PyppeteerBrowserManager(BrowserManager):
 
     def __init__(self):
         self.context_manager = ContextManager()
