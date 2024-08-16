@@ -95,7 +95,7 @@ class PyppeteerBrowserManager(BrowserManager):
     def process_response(self, middleware, request, response, spider):
         return response
 
-    async def wait_with_options(self, page: Page, wait_options: dict):
+    async def wait_with_options(self, page, wait_options: dict):
         selector = wait_options.get("selector")
         xpath = wait_options.get("xpath")
         timeout = wait_options.get("timeout", None)
