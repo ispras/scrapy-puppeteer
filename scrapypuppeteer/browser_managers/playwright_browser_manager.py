@@ -29,7 +29,6 @@ class ContextManager:
         return context_id, page_id
 
     async def open_new_page(self):
-        print("Playwright processing - New Page")
         context_id = uuid.uuid4().hex.upper()
         page_id = uuid.uuid4().hex.upper()
 
