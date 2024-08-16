@@ -95,18 +95,33 @@ class PyppeteerBrowserManager(BrowserManager):
     def process_response(self, middleware, request, response, spider):
         return response
 
-    async def wait_with_options(self, page, wait_options):
-        timeout = wait_options.get("selectorOrTimeout", 1000)
-        visible = wait_options.get("visible", False)
-        hidden = wait_options.get("hidden", False)
+    async def wait_with_options(self, page: Page, wait_options: dict):
+        selector = wait_options.get("selector")
+        xpath = wait_options.get("xpath")
+        timeout = wait_options.get("timeout", None)
+        options = wait_options.get("options", {})
 
-        if isinstance(timeout, (int, float)):
-            await asyncio.sleep(timeout / 1000)
-        else:
-            await page.waitFor(
-                selector=timeout,
-                options={"visible": visible, "hidden": hidden, "timeout": 30000},
+        selector_or_timeout = wait_options.get("selectorOrTimeout")
+        if selector_or_timeout:
+            if isinstance(selector_or_timeout, (int, float)):
+                timeout = selector_or_timeout
+            elif isinstance(selector_or_timeout, str):
+                if selector_or_timeout.startswith("//"):
+                    xpath = selector_or_timeout
+                else:
+                    selector = selector_or_timeout
+
+        if len([item for item in [selector, xpath, timeout] if item]) > 1:
+            raise ValueError(
+                "Wait options must contain either a selector, an xpath, or a timeout"
             )
+
+        if selector:
+            await page.waitForSelector(selector, options)
+        elif xpath:
+            await page.waitForXPath(xpath, options)
+        elif timeout:
+            await asyncio.sleep(timeout / 1000)
 
     def goto(self, request: PuppeteerRequest):
         context_id, page_id = syncer.sync(
