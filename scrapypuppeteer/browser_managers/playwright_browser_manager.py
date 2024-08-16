@@ -146,7 +146,6 @@ class PlaywrightBrowserManager(BrowserManager):
         timeout = wait_options.get("timeout", None)
         options = wait_options.get("options", {})
 
-        # For compatibility with old waitFor interface
         selector_or_timeout = wait_options.get("selectorOrTimeout")
         if selector_or_timeout:
             if isinstance(selector_or_timeout, (int, float)):
@@ -157,13 +156,11 @@ class PlaywrightBrowserManager(BrowserManager):
                 else:
                     selector = selector_or_timeout
 
-        # Ensure only one wait condition is specified
         if len([item for item in [selector, xpath, timeout] if item]) > 1:
             raise ValueError(
                 "Wait options must contain either a selector, an xpath, or a timeout"
             )
 
-        # Handle the wait based on the provided options
         if selector:
             await page.wait_for_selector(selector, **options)
         elif xpath:
