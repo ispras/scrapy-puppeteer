@@ -84,7 +84,7 @@ Here is the list of available actions:
 - `Scroll(selector, wait_options)` - scroll page
 - `Screenshot(options)` - take screenshot
 - `Har()` - to get the HAR file, pass the `har_recording=True` argument to `PuppeteerRequest` at the start of execution.
-- `FormAction(input_mapping, submit_button)` - to fill out and submit forms on page.
+- `FillForm(input_mapping, submit_button)` - to fill out and submit forms on page.
 - `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
 
