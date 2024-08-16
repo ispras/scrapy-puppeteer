@@ -108,14 +108,25 @@ class PlaywrightBrowserManager(BrowserManager):
         mapped_navigation_options = {}
         if "timeout" in navigation_options:
             mapped_navigation_options["timeout"] = navigation_options["timeout"]
-        waitUntil = navigation_options.get("waitUntil")
-        if waitUntil:
-            first_event = waitUntil[0] if isinstance(waitUntil, list) else waitUntil
 
-            if first_event in event_map:
-                mapped_navigation_options["wait_until"] = event_map[first_event]
-            else:
-                raise ValueError(f"Invalid waitUntil value: {first_event}")
+        waitUntil = navigation_options.get("waitUntil")
+
+        if waitUntil:
+            if isinstance(waitUntil, list):
+                event_hierarchy = [
+                    "load",
+                    "domcontentloaded",
+                    "networkidle2",
+                    "networkidle0",
+                ]
+                strictest_event = max(
+                    waitUntil, key=lambda event: event_hierarchy.index(event)
+                )
+            elif isinstance(waitUntil, str):
+                strictest_event = waitUntil
+
+            if strictest_event in event_map:
+                mapped_navigation_options["wait_until"] = event_map[strictest_event]
 
         return mapped_navigation_options
 
@@ -130,16 +141,35 @@ class PlaywrightBrowserManager(BrowserManager):
         return maped_click_options
 
     async def wait_with_options(self, page, wait_options):
-        timeout = wait_options.get("selectorOrTimeout", 1000)
-        visible = wait_options.get("visible", False)
-        hidden = wait_options.get("hidden", False)
+        selector = wait_options.get("selector")
+        xpath = wait_options.get("xpath")
+        timeout = wait_options.get("timeout", None)
+        options = wait_options.get("options", {})
 
-        if isinstance(timeout, (int, float)):
-            await asyncio.sleep(timeout / 1000)
-        else:
-            await page.wait_for_selector(
-                selector=timeout, state="visible" if visible else "hidden"
+        # For compatibility with old waitFor interface
+        selector_or_timeout = wait_options.get("selectorOrTimeout")
+        if selector_or_timeout:
+            if isinstance(selector_or_timeout, (int, float)):
+                timeout = selector_or_timeout
+            elif isinstance(selector_or_timeout, str):
+                if selector_or_timeout.startswith("//"):
+                    xpath = selector_or_timeout
+                else:
+                    selector = selector_or_timeout
+
+        # Ensure only one wait condition is specified
+        if len([item for item in [selector, xpath, timeout] if item]) > 1:
+            raise ValueError(
+                "Wait options must contain either a selector, an xpath, or a timeout"
             )
+
+        # Handle the wait based on the provided options
+        if selector:
+            await page.wait_for_selector(selector, **options)
+        elif xpath:
+            await page.wait_for_selector(f"xpath={xpath}", **options)
+        elif timeout:
+            await asyncio.sleep(timeout / 1000)
 
     def goto(self, request: PuppeteerRequest):
         context_id, page_id = syncer.sync(
