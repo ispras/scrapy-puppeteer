@@ -140,6 +140,18 @@ class PlaywrightBrowserManager(BrowserManager):
         }
         return maped_click_options
 
+    def map_screenshot_options(self, screenshot_options):
+        if not screenshot_options:
+            return {}
+        maped_screenshot_options = {
+            "type": screenshot_options.get("type", "png"),
+            "quality": screenshot_options.get("quality", "png"),
+            "full_page": screenshot_options.get("fullPage", False),
+            "clip": screenshot_options.get("clip"),
+            "omit_background": screenshot_options.get("omitBackground"),
+        }
+        return maped_screenshot_options
+
     async def wait_with_options(self, page, wait_options):
         selector = wait_options.get("selector")
         xpath = wait_options.get("xpath")
@@ -289,9 +301,10 @@ class PlaywrightBrowserManager(BrowserManager):
         page = self.context_manager.get_page_by_id(context_id, page_id)
 
         async def async_screenshot():
-            request_options = request.action.options or {}
-
-            screenshot_bytes = await page.screenshot(**request_options)
+            screenshot_options = request.action.options or {}
+            screenshot_bytes = await page.screenshot(
+                **self.map_screenshot_options(screenshot_options)
+            )
             screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
             return PuppeteerScreenshotResponse(
                 request.url,
