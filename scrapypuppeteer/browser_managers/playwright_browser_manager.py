@@ -2,7 +2,7 @@ from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
+from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
 
 import asyncio
 from playwright.async_api import async_playwright
