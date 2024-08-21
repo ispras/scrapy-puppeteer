@@ -51,8 +51,7 @@ class ContextManager:
             if context_id in self.contexts:
                 syncer.sync(self.contexts[context_id].close())
                 page_id = self.context_page_map.get(context_id)
-                if page_id in self.pages:
-                    del self.pages[page_id]
+                self.pages.pop(page_id, None)
 
                 del self.contexts[context_id]
                 del self.context_page_map[context_id]
@@ -96,7 +95,7 @@ class PlaywrightBrowserManager(BrowserManager):
     def process_response(self, middleware, request, response, spider):
         return response
 
-    def map_navigation_options_to_target(self, navigation_options):
+    def map_navigation_options(self, navigation_options):
         if not navigation_options:
             return {}
         event_map = {
@@ -198,7 +197,7 @@ class PlaywrightBrowserManager(BrowserManager):
         async def async_goto():
             url = request.action.payload()["url"]
             cookies = request.cookies
-            navigation_options = self.map_navigation_options_to_target(
+            navigation_options = self.map_navigation_options(
                 request.action.navigation_options
             )
             await page.goto(url, **navigation_options)
@@ -243,7 +242,7 @@ class PlaywrightBrowserManager(BrowserManager):
 
         async def async_go_back():
             cookies = request.cookies
-            navigation_options = self.map_navigation_options_to_target(
+            navigation_options = self.map_navigation_options(
                 request.action.navigation_options
             )
             await page.go_back(**navigation_options)
@@ -266,7 +265,7 @@ class PlaywrightBrowserManager(BrowserManager):
 
         async def async_go_forward():
             cookies = request.cookies
-            navigation_options = self.map_navigation_options_to_target(
+            navigation_options = self.map_navigation_options(
                 request.action.navigation_options
             )
             await page.go_forward(**navigation_options)

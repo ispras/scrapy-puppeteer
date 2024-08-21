@@ -48,8 +48,7 @@ class ContextManager:
             if context_id in self.contexts:
                 syncer.sync(self.contexts[context_id].close())
                 page_id = self.context_page_map.get(context_id)
-                if page_id in self.pages:
-                    del self.pages[page_id]
+                self.pages.pop(page_id, None)
 
                 del self.contexts[context_id]
                 del self.context_page_map[context_id]
