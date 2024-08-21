@@ -342,7 +342,7 @@ class PlaywrightBrowserManager(BrowserManager):
             cookies = request.cookies
 
             for selector, params in input_mapping.items():
-                text = params.get("value", "no value was provided")
+                text = params.get("value", "")
                 delay = params.get("delay", 0)
                 await page.type(selector, text=text, delay=delay)
 
