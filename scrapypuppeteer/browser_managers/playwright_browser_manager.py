@@ -217,12 +217,7 @@ class PlaywrightBrowserManager(BrowserManager):
         return syncer.sync(async_goto())
 
     def click(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(
-            self.context_manager.check_context_and_page(
-                request.context_id, request.page_id
-            )
-        )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_click():
             selector = request.action.payload().get("selector")
@@ -244,12 +239,7 @@ class PlaywrightBrowserManager(BrowserManager):
         return syncer.sync(async_click())
 
     def go_back(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(
-            self.context_manager.check_context_and_page(
-                request.context_id, request.page_id
-            )
-        )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_go_back():
             cookies = request.cookies
@@ -272,12 +262,7 @@ class PlaywrightBrowserManager(BrowserManager):
         return syncer.sync(async_go_back())
 
     def go_forward(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(
-            self.context_manager.check_context_and_page(
-                request.context_id, request.page_id
-            )
-        )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_go_forward():
             cookies = request.cookies
@@ -300,12 +285,7 @@ class PlaywrightBrowserManager(BrowserManager):
         return syncer.sync(async_go_forward())
 
     def screenshot(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(
-            self.context_manager.check_context_and_page(
-                request.context_id, request.page_id
-            )
-        )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_screenshot():
             screenshot_options = request.action.options or {}
@@ -324,12 +304,7 @@ class PlaywrightBrowserManager(BrowserManager):
         return syncer.sync(async_screenshot())
 
     def scroll(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(
-            self.context_manager.check_context_and_page(
-                request.context_id, request.page_id
-            )
-        )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_scroll():
             cookies = request.cookies
@@ -359,12 +334,7 @@ class PlaywrightBrowserManager(BrowserManager):
         return syncer.sync(async_scroll())
 
     def fill_form(self, request: PuppeteerRequest):
-        context_id, page_id = syncer.sync(
-            self.context_manager.check_context_and_page(
-                request.context_id, request.page_id
-            )
-        )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_fill_form():
             input_mapping = request.action.payload().get("inputMapping")
