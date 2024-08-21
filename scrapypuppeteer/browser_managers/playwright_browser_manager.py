@@ -1,15 +1,16 @@
+import asyncio
+import base64
+import uuid
+
+from playwright.async_api import async_playwright
+import syncer
+
+from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
-
-import asyncio
-from playwright.async_api import async_playwright
-import syncer
-import uuid
-import base64
-from scrapypuppeteer.browser_managers import BrowserManager
 
 
 class ContextManager:
@@ -132,24 +133,24 @@ class PlaywrightBrowserManager(BrowserManager):
     def map_click_options(self, click_options):
         if not click_options:
             return {}
-        maped_click_options = {
+        mapped_click_options = {
             "delay": click_options.get("delay", 0.0),
             "button": click_options.get("button", "left"),
             "click_count": click_options.get("clickCount", 1),
         }
-        return maped_click_options
+        return mapped_click_options
 
     def map_screenshot_options(self, screenshot_options):
         if not screenshot_options:
             return {}
-        maped_screenshot_options = {
+        mapped_screenshot_options = {
             "type": screenshot_options.get("type", "png"),
             "quality": screenshot_options.get("quality", "png"),
             "full_page": screenshot_options.get("fullPage", False),
             "clip": screenshot_options.get("clip"),
             "omit_background": screenshot_options.get("omitBackground"),
         }
-        return maped_screenshot_options
+        return mapped_screenshot_options
 
     async def wait_with_options(self, page, wait_options):
         selector = wait_options.get("selector")
@@ -179,13 +180,16 @@ class PlaywrightBrowserManager(BrowserManager):
         elif timeout:
             await asyncio.sleep(timeout / 1000)
 
-    def goto(self, request: PuppeteerRequest):
+    def get_page_from_request(self, request):
         context_id, page_id = syncer.sync(
             self.context_manager.check_context_and_page(
                 request.context_id, request.page_id
             )
         )
-        page = self.context_manager.get_page_by_id(context_id, page_id)
+        return self.context_manager.get_page_by_id(context_id, page_id)
+
+    def goto(self, request: PuppeteerRequest):
+        page = self.get_page_from_request(request)
 
         async def async_goto():
             url = request.action.payload()["url"]
