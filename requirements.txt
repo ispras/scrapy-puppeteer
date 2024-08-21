@@ -1,5 +1,5 @@
 scrapy>=2.6
-pyppeteer
+pyppeteer==1.0.2
 syncer
 bs4
-playwright==1.0.2
+playwright
