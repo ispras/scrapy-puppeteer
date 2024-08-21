@@ -25,10 +25,15 @@ DOWNLOADER_MIDDLEWARES = {
 
 PUPPETEER_SERVICE_URL = 'http://localhost:3000'
 
-#To run locally (without scrapy-puppeteer-service started), you need to enable the setting:
-PUPPETEER_LOCAL = True
+# To change the execution method, you must add the corresponding setting:
+EXECUTION_METHOD = "Puppeteer"
 ```
-For local execution it is also necessary to install Chromium for Pyppeteer.
+Available methods: `Puppeteer`, `Pyppeteer`, `Playwright`
+
+The `Pyppeteer` and `Playwright` methods do not require a running service. They use the pyppeteer and playwright libraries for Python to interact with the browser. Actions such as `CustomJsAction`, `RecaptchaSolver`, and `Har` are not available when using these methods.
+
+To use the `Pyppeteer` or `Playwright` methods you need to install Chromium. 
+
 
 ## Configuration
 
