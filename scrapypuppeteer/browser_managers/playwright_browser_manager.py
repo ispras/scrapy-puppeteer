@@ -186,10 +186,14 @@ class PlaywrightBrowserManager(BrowserManager):
                 request.context_id, request.page_id
             )
         )
-        return self.context_manager.get_page_by_id(context_id, page_id)
+        return (
+            self.context_manager.get_page_by_id(context_id, page_id),
+            context_id,
+            page_id,
+        )
 
     def goto(self, request: PuppeteerRequest):
-        page = self.get_page_from_request(request)
+        page, context_id, page_id = self.get_page_from_request(request)
 
         async def async_goto():
             url = request.action.payload()["url"]
