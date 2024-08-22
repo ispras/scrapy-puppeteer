@@ -34,7 +34,11 @@ jobs:
         run: |
           pip install ruff
 
-      - name: Run Ruff
+      - name: Format Code with Ruff
+        run: |
+          ruff check --fix .
+
+      - name: Run Ruff Check
         run: |
           ruff check .
 
