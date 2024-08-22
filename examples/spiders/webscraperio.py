@@ -1,7 +1,7 @@
 import scrapy
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import GoTo, Scroll, Click
+from scrapypuppeteer.actions import Click, GoTo, Scroll
 
 
 class EcommerceSiteSpider(scrapy.Spider):

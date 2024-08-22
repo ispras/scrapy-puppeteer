@@ -5,12 +5,12 @@ import uuid
 import syncer
 from pyppeteer import launch
 
+from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
-from scrapypuppeteer.browser_managers import BrowserManager
 
 
 class ContextManager:

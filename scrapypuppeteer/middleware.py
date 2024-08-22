@@ -8,26 +8,25 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured
 
 from scrapypuppeteer.actions import (
     Click,
+    CustomJsAction,
     RecaptchaSolver,
     Screenshot,
     Scroll,
-    CustomJsAction,
 )
-from scrapypuppeteer.response import (
-    PuppeteerResponse,
-    PuppeteerHtmlResponse,
-)
-from scrapypuppeteer.request import PuppeteerRequest
-#
+from scrapypuppeteer.browser_managers import BrowserManager
 
+#
 from scrapypuppeteer.browser_managers.local_browser_manager import (
     LocalBrowserManager,
 )
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )
-
-from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.request import PuppeteerRequest
+from scrapypuppeteer.response import (
+    PuppeteerHtmlResponse,
+    PuppeteerResponse,
+)
 
 
 class PuppeteerServiceDownloaderMiddleware:

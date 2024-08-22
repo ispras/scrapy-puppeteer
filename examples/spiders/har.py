@@ -1,4 +1,5 @@
 import scrapy
+
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import Har
 

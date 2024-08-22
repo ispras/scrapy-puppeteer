@@ -1,7 +1,9 @@
-from pytest import mark
-from scrapypuppeteer.actions import GoTo, GoForward, GoBack, Click, Scroll
 from itertools import product
-from constants import URLS, NAV_OPTS, WAIT_OPTS, SELECTORS, CLICK_OPTS, HAR_RECORDING
+
+from constants import CLICK_OPTS, HAR_RECORDING, NAV_OPTS, SELECTORS, URLS, WAIT_OPTS
+from pytest import mark
+
+from scrapypuppeteer.actions import Click, GoBack, GoForward, GoTo, Scroll
 
 
 def _gen_goto():

@@ -1,8 +1,8 @@
-from .request import PuppeteerRequest, CloseContextRequest
+from .request import CloseContextRequest, PuppeteerRequest
 from .response import (
-    PuppeteerResponse,
     PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
-    PuppeteerRecaptchaSolverResponse,
     PuppeteerJsonResponse,
+    PuppeteerRecaptchaSolverResponse,
+    PuppeteerResponse,
+    PuppeteerScreenshotResponse,
 )

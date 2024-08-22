@@ -1,7 +1,9 @@
-import scrapy
-from scrapypuppeteer import PuppeteerRequest, PuppeteerScreenshotResponse
-from scrapypuppeteer.actions import Screenshot, FillForm
 import base64
+
+import scrapy
+
+from scrapypuppeteer import PuppeteerRequest, PuppeteerScreenshotResponse
+from scrapypuppeteer.actions import FillForm, Screenshot
 
 
 class FormActionSpider(scrapy.Spider):

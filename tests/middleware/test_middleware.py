@@ -1,15 +1,16 @@
-from tests.spiders import (
-    GoToSpider,
-    GoBackForwardSpider,
-    ClickSpider,
-    ScreenshotSpider,
-    CustomJsActionSpider,
-    RecaptchaSolverSpider,
-)
-from tests.mockserver import MockServer
-from twisted.trial.unittest import TestCase
-from twisted.internet import defer
 from scrapy.utils.test import get_crawler
+from twisted.internet import defer
+from twisted.trial.unittest import TestCase
+
+from tests.mockserver import MockServer
+from tests.spiders import (
+    ClickSpider,
+    CustomJsActionSpider,
+    GoBackForwardSpider,
+    GoToSpider,
+    RecaptchaSolverSpider,
+    ScreenshotSpider,
+)
 
 
 class PuppeteerCrawlTest(TestCase):
