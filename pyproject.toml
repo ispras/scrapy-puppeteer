@@ -11,5 +11,4 @@ indent-style = "space"
 line-ending = "lf"
 quote-style = "double"
 skip-magic-trailing-comma = true
-docstring-code-format = "black"
 docstring-code-line-length = 88
