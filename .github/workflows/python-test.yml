@@ -36,7 +36,7 @@ jobs:
 
       - name: Format Code with Ruff
         run: |
-          ruff fix . 
+          ruff check --fix .
 
       - name: Run Ruff Check
         run: |
