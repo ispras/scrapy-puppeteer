@@ -1,5 +1,5 @@
 [tool.ruff]
 line-length = 88
-select = ["I"]
+extend-ignore = ["E203", "E501"]
+select = ["E", "F", "W", "C", "N"]
 fix = true
-extend-ignore = ["C", "N", "D", "Q", "S", "T", "UP", "SIM", "PL", "ISC"]
