@@ -3,9 +3,8 @@ line-length = 88
 fix = true
 
 [tool.ruff.lint]
-select = ["I", "F", "C", "N", "W"]
-extend-ignore = ["E203", "E501", "D", "Q", "S", "T", "UP", "SIM", "PL", "ISC"]
-
+select = ["F", "C", "W"]
+extend-ignore = ["E203", "E501", "F401", "C408", "F811", "N"]
 [tool.black]
 line-length = 88
 target-version = ['py37']
