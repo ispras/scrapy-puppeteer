@@ -169,6 +169,15 @@ and will notify you about number of found captchas on the page.
 If you don't want the middleware to work on specific request you may provide special meta key: `'dont_recaptcha': True`.
 In this case RecaptchaMiddleware will just skip the request.
 
+## For Developers
+Before each push or PR, run in the root directory of the project:
+
+```bash
+ruff check
+
+ruff format 
+```
+
 ## TODO
 
 - [x] skeleton that could handle goto, click, scroll, and actions

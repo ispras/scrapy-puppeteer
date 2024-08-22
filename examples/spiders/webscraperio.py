@@ -28,7 +28,7 @@ class EcommerceSiteSpider(scrapy.Spider):
             "description": detail_page_response.css("p.description::text").get(),
             "rating": len(detail_page_response.css("span.glyphicon-star")),
             "reviews_count": int(
-                detail_page_response.css(".ratings::text").re_first("\d+")
+                detail_page_response.css(".ratings::text").re_first(r"\d+")
             ),
         }
 
