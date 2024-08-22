@@ -2,4 +2,4 @@
 line-length = 88
 select = ["I"]
 fix = true
-extend-ignore = ["E", "F", "W", "C", "N", "D", "Q", "S", "T", "UP", "SIM", "PL", "ISC"]
+extend-ignore = ["C", "N", "D", "Q", "S", "T", "UP", "SIM", "PL", "ISC"]
