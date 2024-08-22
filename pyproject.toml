@@ -4,8 +4,4 @@ fix = true
 
 [tool.ruff.lint]
 select = ["F", "C", "W"]
-
-[tool.ruff.format]
-line-length = 88
-target-version = ["py38"]
-skip-string-normalization = false
+extend-ignore = ["E203", "E501", "F401", "C408", "F811", "N"]
