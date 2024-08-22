@@ -6,7 +6,7 @@ fix = true
 select = ["F", "C", "W"]
 extend-ignore = ["E203", "E501", "F401", "C408", "F811", "N"]
 
-[tool.black]
-line-length = 88
-target-version = ['py37']
-skip-string-normalization = true
+# [tool.black]
+# line-length = 88
+# target-version = ['py37']
+# skip-string-normalization = true
