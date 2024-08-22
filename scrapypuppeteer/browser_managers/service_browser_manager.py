@@ -7,7 +7,6 @@ from scrapy.exceptions import DontCloseSpider
 from scrapy.http import Headers, TextResponse, Response
 from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
-from time import time
 
 from scrapypuppeteer.actions import (
     Click,

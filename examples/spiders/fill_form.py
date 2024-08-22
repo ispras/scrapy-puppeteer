@@ -34,5 +34,5 @@ class FormActionSpider(scrapy.Spider):
     @staticmethod
     def make_screenshot(response: PuppeteerScreenshotResponse, **kwargs):
         data = response.screenshot
-        with open(f"screenshot.png", "wb") as fh:
+        with open("screenshot.png", "wb") as fh:
             fh.write(base64.b64decode(data))
