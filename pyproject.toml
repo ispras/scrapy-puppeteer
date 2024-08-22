@@ -3,5 +3,10 @@ line-length = 88
 fix = true
 
 [tool.ruff.lint]
-select = ["I"]
-extend-ignore = ["E", "F", "W", "C", "N", "D", "Q", "S", "T", "UP", "SIM", "PL", "ISC"]
+select = ["I", "F", "C", "N", "W"]
+extend-ignore = ["E203", "E501", "D", "Q", "S", "T", "UP", "SIM", "PL", "ISC"]
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+skip-string-normalization = true
