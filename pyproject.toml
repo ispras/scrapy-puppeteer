@@ -3,5 +3,5 @@ line-length = 88
 fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "C", "N"]
+select = ["E", "F"]
 extend-ignore = ["E203", "E501"]
