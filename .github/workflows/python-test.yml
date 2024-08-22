@@ -32,7 +32,7 @@ jobs:
 
       - name: Install Ruff and Black
         run: |
-          pip install ruff black
+          pip install ruff black==24.8.0
 
       - name: Run Ruff
         run: |
