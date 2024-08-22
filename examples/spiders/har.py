@@ -20,11 +20,7 @@ class HarSpider(scrapy.Spider):
             )
 
     def har(self, response):
-        yield response.follow(
-            Har(),
-            close_page=False,
-            callback=self.save_har,
-        )
+        yield response.follow(Har(), close_page=False, callback=self.save_har)
 
     def save_har(self, response):
         write_to_file("result.har", response.har)

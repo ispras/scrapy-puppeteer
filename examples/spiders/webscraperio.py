@@ -5,7 +5,6 @@ from scrapypuppeteer.actions import Click, GoTo, Scroll
 
 
 class EcommerceSiteSpider(scrapy.Spider):
-
     @staticmethod
     def extract_items(list_page_response):
         for item_selector in list_page_response.css("div.row div.thumbnail"):

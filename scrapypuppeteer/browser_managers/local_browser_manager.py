@@ -7,14 +7,10 @@ from pyppeteer import launch
 
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest
-from scrapypuppeteer.response import (
-    PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
-)
+from scrapypuppeteer.response import PuppeteerHtmlResponse, PuppeteerScreenshotResponse
 
 
 class ContextManager:
-
     def __init__(self):
         self.browser = syncer.sync(launch())
         self.contexts = {}
@@ -59,7 +55,6 @@ class ContextManager:
 
 
 class LocalBrowserManager(BrowserManager):
-
     def __init__(self):
         self.context_manager = ContextManager()
         self.action_map = {
@@ -76,7 +71,6 @@ class LocalBrowserManager(BrowserManager):
         }
 
     def process_request(self, request):
-
         if isinstance(request, PuppeteerRequest):
             endpoint = request.action.endpoint
             action_function = self.action_map.get(endpoint)

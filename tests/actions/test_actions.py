@@ -21,10 +21,7 @@ def _gen_goto():
 
 def _gen_back_forward():
     for nav_opt, wait_opt in product(NAV_OPTS, WAIT_OPTS):
-        expected = {
-            "navigationOptions": nav_opt,
-            "waitOptions": wait_opt,
-        }
+        expected = {"navigationOptions": nav_opt, "waitOptions": wait_opt}
         yield nav_opt, wait_opt, expected
 
 

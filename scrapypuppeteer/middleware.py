@@ -16,17 +16,12 @@ from scrapypuppeteer.actions import (
 from scrapypuppeteer.browser_managers import BrowserManager
 
 #
-from scrapypuppeteer.browser_managers.local_browser_manager import (
-    LocalBrowserManager,
-)
+from scrapypuppeteer.browser_managers.local_browser_manager import LocalBrowserManager
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )
 from scrapypuppeteer.request import PuppeteerRequest
-from scrapypuppeteer.response import (
-    PuppeteerHtmlResponse,
-    PuppeteerResponse,
-)
+from scrapypuppeteer.response import PuppeteerHtmlResponse, PuppeteerResponse
 
 
 class PuppeteerServiceDownloaderMiddleware:
@@ -195,8 +190,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
     @staticmethod
     def is_recaptcha_producing_action(action) -> bool:
         return not isinstance(
-            action,
-            (Screenshot, Scroll, CustomJsAction, RecaptchaSolver),
+            action, (Screenshot, Scroll, CustomJsAction, RecaptchaSolver)
         )
 
     def process_request(self, request, **_):

@@ -152,11 +152,7 @@ class RecaptchaSolver(LeafResource):
 
 class CustomJsAction(LeafResource):
     def _form_response(self, page_id, context_id, close_page):
-        return {
-            "contextId": context_id,
-            "pageId": page_id,
-            "data": {"field": "Hello!"},
-        }
+        return {"contextId": context_id, "pageId": page_id, "data": {"field": "Hello!"}}
 
 
 class CloseContext(LeafResource):

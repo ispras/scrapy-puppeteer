@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class PuppeteerServiceAction(ABC):
-
     @property
     @abstractmethod
     def endpoint(self): ...

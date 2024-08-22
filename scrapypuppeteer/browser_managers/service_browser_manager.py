@@ -43,7 +43,6 @@ class ServiceBrowserManager(BrowserManager):
             raise ValueError("Puppeteer service URL must be provided")
 
     def process_request(self, request):
-
         if isinstance(request, CloseContextRequest):
             return self.process_close_context_request(request)
 
@@ -52,9 +51,7 @@ class ServiceBrowserManager(BrowserManager):
 
     def process_close_context_request(self, request: CloseContextRequest):
         if not request.is_valid_url:
-            return request.replace(
-                url=urljoin(self.service_base_url, "/close_context"),
-            )
+            return request.replace(url=urljoin(self.service_base_url, "/close_context"))
 
     def process_puppeteer_request(self, request: PuppeteerRequest):
         action = request.action
@@ -124,10 +121,7 @@ class ServiceBrowserManager(BrowserManager):
     def close_used_contexts(self, spider):
         contexts = list(self.used_contexts.pop(id(spider), set()))
         if contexts:
-            request = CloseContextRequest(
-                contexts,
-                meta={"proxy": None},
-            )
+            request = CloseContextRequest(contexts, meta={"proxy": None})
 
             def handle_close_contexts_result(result):
                 if isinstance(result, Response):

@@ -45,11 +45,7 @@ class ManualRecaptchaSpider(scrapy.Spider):
     def parse_html(self, response: PuppeteerResponse, **kwargs):
         with open("recaptcha_page.html", "wb") as f:
             f.write(response.body)
-        action = Screenshot(
-            options={
-                "full_page": True,
-            }
-        )
+        action = Screenshot(options={"full_page": True})
         yield response.follow(
             action, callback=self.make_screenshot, errback=self.error, close_page=True
         )

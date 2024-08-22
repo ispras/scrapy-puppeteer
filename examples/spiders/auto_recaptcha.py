@@ -23,7 +23,7 @@ class AutoRecaptchaSpider(scrapy.Spider):
         "RECAPTCHA_ACTIVATION": True,
         "RECAPTCHA_SOLVING": True,
         "RECAPTCHA_SUBMIT_SELECTORS": {
-            "www.google.com/recaptcha/api2/demo": "#recaptcha-demo-submit",
+            "www.google.com/recaptcha/api2/demo": "#recaptcha-demo-submit"
         },
     }
 
@@ -40,11 +40,7 @@ class AutoRecaptchaSpider(scrapy.Spider):
     def parse_html(self, response: PuppeteerResponse, **kwargs):
         with open("recaptcha_page.html", "wb") as f:
             f.write(response.body)
-        action = Screenshot(
-            options={
-                "full_page": True,
-            }
-        )
+        action = Screenshot(options={"full_page": True})
         yield response.follow(
             action, callback=self.make_screenshot, errback=self.error, close_page=True
         )

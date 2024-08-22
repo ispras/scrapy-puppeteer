@@ -26,11 +26,7 @@ class FormActionSpider(scrapy.Spider):
         )
 
     def screenshot(self, response):
-        action = Screenshot(
-            options={
-                "fullPage": True,
-            }
-        )
+        action = Screenshot(options={"fullPage": True})
         yield response.follow(action, callback=self.make_screenshot, close_page=False)
 
     @staticmethod
