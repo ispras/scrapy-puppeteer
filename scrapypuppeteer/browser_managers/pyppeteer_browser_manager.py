@@ -300,7 +300,7 @@ class PyppeteerBrowserManager(BrowserManager):
             cookies = request.cookies
 
             for selector, params in input_mapping.items():
-                value = params.get("value", "no value was provided")
+                value = params.get("value", None)
                 delay = params.get("delay", 0)
                 await page.type(selector, value, {"delay": delay})
 
