@@ -1,42 +1,32 @@
-import json
 import logging
 from collections import defaultdict
 from typing import List, Union
-from urllib.parse import urlencode, urljoin
-from abc import ABC, abstractmethod
 
 from scrapy import signals
 from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
-from scrapy.http import Headers, TextResponse, Response
-from scrapy.utils.log import failure_to_exc_info
-from twisted.python.failure import Failure
+from scrapy.exceptions import IgnoreRequest, NotConfigured
+
 
 from scrapypuppeteer.actions import (
     Click,
-    GoBack,
-    GoForward,
-    GoTo,
     RecaptchaSolver,
     Screenshot,
     Scroll,
     CustomJsAction,
-    Har,
 )
 from scrapypuppeteer.response import (
     PuppeteerResponse,
     PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
-    PuppeteerRecaptchaSolverResponse,
-    PuppeteerJsonResponse,
 )
 from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
-
-from scrapypuppeteer.browser_managers.local_browser_manager import (
-    LocalBrowserManager,
+from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import (
+    PyppeteerBrowserManager,
 )
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
+)
+from scrapypuppeteer.browser_managers.playwright_browser_manager import (
+    PlaywrightBrowserManager,
 )
 
 from scrapypuppeteer.browser_managers import BrowserManager
@@ -75,7 +65,7 @@ class PuppeteerServiceDownloaderMiddleware:
     SERVICE_META_SETTING = "PUPPETEER_INCLUDE_META"
     DEFAULT_INCLUDE_HEADERS = ["Cookie"]  # TODO send them separately
 
-    PUPPETEER_LOCAL_SETTING = "PUPPETEER_LOCAL"
+    EXECUTION_METHOD_SETTING = "EXECUTION_METHOD"
 
     service_logger = logging.getLogger(__name__)
 
@@ -97,7 +87,6 @@ class PuppeteerServiceDownloaderMiddleware:
     @classmethod
     def from_crawler(cls, crawler):
         service_url = crawler.settings.get(cls.SERVICE_URL_SETTING)
-        local_mode = crawler.settings.getbool(cls.PUPPETEER_LOCAL_SETTING, False)
         if cls.INCLUDE_HEADERS_SETTING in crawler.settings:
             try:
                 include_headers = crawler.settings.getbool(cls.INCLUDE_HEADERS_SETTING)
@@ -107,12 +96,20 @@ class PuppeteerServiceDownloaderMiddleware:
             include_headers = cls.DEFAULT_INCLUDE_HEADERS
         include_meta = crawler.settings.getbool(cls.SERVICE_META_SETTING, False)
 
-        if local_mode:
-            browser_manager = LocalBrowserManager()
-        else:
+        execution_method = crawler.settings.get(
+            cls.EXECUTION_METHOD_SETTING, "PUPPETEER"
+        ).lower()
+
+        if execution_method == "pyppeteer":
+            browser_manager = PyppeteerBrowserManager()
+        elif execution_method == "puppeteer":
             browser_manager = ServiceBrowserManager(
                 service_url, include_meta, include_headers, crawler
             )
+        elif execution_method == "playwright":
+            browser_manager = PlaywrightBrowserManager()
+        else:
+            raise NameError("Wrong EXECUTION_METHOD")
 
         middleware = cls(
             crawler, service_url, include_headers, include_meta, browser_manager

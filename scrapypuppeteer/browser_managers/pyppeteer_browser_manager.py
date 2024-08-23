@@ -5,12 +5,12 @@ import uuid
 import syncer
 from pyppeteer import launch
 
+from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
-from scrapypuppeteer.browser_managers import BrowserManager
 
 
 class ContextManager:
@@ -48,17 +48,13 @@ class ContextManager:
             if context_id in self.contexts:
                 syncer.sync(self.contexts[context_id].close())
                 page_id = self.context_page_map.get(context_id)
-                if page_id in self.pages:
-                    del self.pages[page_id]
+                self.pages.pop(page_id, None)
 
                 del self.contexts[context_id]
                 del self.context_page_map[context_id]
 
-    def __del__(self):
-        self.close_browser()
 
-
-class LocalBrowserManager(BrowserManager):
+class PyppeteerBrowserManager(BrowserManager):
 
     def __init__(self):
         self.context_manager = ContextManager()
@@ -95,18 +91,33 @@ class LocalBrowserManager(BrowserManager):
     def process_response(self, middleware, request, response, spider):
         return response
 
-    async def wait_with_options(self, page, wait_options):
-        timeout = wait_options.get("selectorOrTimeout", 1000)
-        visible = wait_options.get("visible", False)
-        hidden = wait_options.get("hidden", False)
+    async def wait_with_options(self, page, wait_options: dict):
+        selector = wait_options.get("selector")
+        xpath = wait_options.get("xpath")
+        timeout = wait_options.get("timeout", None)
+        options = wait_options.get("options", {})
 
-        if isinstance(timeout, (int, float)):
-            await asyncio.sleep(timeout / 1000)
-        else:
-            await page.waitFor(
-                selector=timeout,
-                options={"visible": visible, "hidden": hidden, "timeout": 30000},
+        selector_or_timeout = wait_options.get("selectorOrTimeout")
+        if selector_or_timeout:
+            if isinstance(selector_or_timeout, (int, float)):
+                timeout = selector_or_timeout
+            elif isinstance(selector_or_timeout, str):
+                if selector_or_timeout.startswith("//"):
+                    xpath = selector_or_timeout
+                else:
+                    selector = selector_or_timeout
+
+        if len([item for item in [selector, xpath, timeout] if item]) > 1:
+            raise ValueError(
+                "Wait options must contain either a selector, an xpath, or a timeout"
             )
+
+        if selector:
+            await page.waitForSelector(selector, options)
+        elif xpath:
+            await page.waitForXPath(xpath, options)
+        elif timeout:
+            await asyncio.sleep(timeout / 1000)
 
     def goto(self, request: PuppeteerRequest):
         context_id, page_id = syncer.sync(
@@ -289,7 +300,7 @@ class LocalBrowserManager(BrowserManager):
             cookies = request.cookies
 
             for selector, params in input_mapping.items():
-                value = params.get("value", "no value was provided")
+                value = params.get("value", None)
                 delay = params.get("delay", 0)
                 await page.type(selector, value, {"delay": delay})
 
