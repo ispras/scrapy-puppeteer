@@ -10,17 +10,17 @@ HAR_RECORDING = [None]
 
 
 def __gen_nav_opts():
-    options = [None]
-    for opt_num in range(1, 5):
-        for comb in combinations(WAIT_UNTIL, opt_num):
-            timeout = randint(0, 100) * 1000
-            options.append(
-                {
-                    "timeout": timeout,
-                    "waitUntil": list(comb),
-                }
-            )
-    return options
+  options = [None]
+  for opt_num in range(1, 5):
+    for comb in combinations(WAIT_UNTIL, opt_num):
+      timeout = randint(0, 100) * 1000
+      options.append(
+        {
+          "timeout": timeout,
+          "waitUntil": list(comb),
+        }
+      )
+  return options
 
 
 NAV_OPTS = __gen_nav_opts()
