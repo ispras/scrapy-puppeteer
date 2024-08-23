@@ -142,7 +142,7 @@ class PlaywrightBrowserManager(BrowserManager):
             return {}
         mapped_screenshot_options = {
             "type": screenshot_options.get("type", "png"),
-            "quality": screenshot_options.get("quality", "png"),
+            "quality": screenshot_options.get("quality", 100),
             "full_page": screenshot_options.get("fullPage", False),
             "clip": screenshot_options.get("clip"),
             "omit_background": screenshot_options.get("omitBackground"),
