@@ -9,7 +9,7 @@ extend-ignore = ["E203", "E501", "F401", "C408", "F811", "N"]
 
 [tool.ruff.format]
 indent-style = "space"
-line-ending = "lf"
+line-ending = "native"
 quote-style = "double"
 skip-magic-trailing-comma = false 
 docstring-code-line-length = 88
