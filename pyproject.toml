@@ -2,15 +2,14 @@
 line-length = 88
 fix = false
 
-# Настройки линтинга
 [tool.ruff.lint]
 select = ["F", "C", "W", "I"]
 extend-ignore = ["E203", "E501", "F401", "C408", "F811", "N"]
 
 [tool.ruff.format]
 indent-style = "space"
-indent-width = 4
 line-ending = "lf"
 quote-style = "double"
-skip-magic-trailing-comma = false
+skip-magic-trailing-comma = false 
 docstring-code-line-length = 88
+
