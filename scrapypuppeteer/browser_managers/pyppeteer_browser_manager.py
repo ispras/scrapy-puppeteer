@@ -53,9 +53,6 @@ class ContextManager:
                 del self.contexts[context_id]
                 del self.context_page_map[context_id]
 
-    def __del__(self):
-        self.close_browser()
-
 
 class PyppeteerBrowserManager(BrowserManager):
 
