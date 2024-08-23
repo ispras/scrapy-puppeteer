@@ -1,6 +1,6 @@
 import scrapy
 
-from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
+from scrapypuppeteer import PuppeteerHtmlResponse, PuppeteerRequest
 
 
 class MeduzaSpider(scrapy.Spider):
