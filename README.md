@@ -24,6 +24,27 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 PUPPETEER_SERVICE_URL = 'http://localhost:3000'
+
+# To change the execution method, you must add the corresponding setting:
+EXECUTION_METHOD = "Puppeteer"
+```
+Available methods: `Puppeteer`, `Pyppeteer`, `Playwright`
+
+The `Pyppeteer` and `Playwright` methods do not require a running service. They use the pyppeteer and playwright libraries for Python to interact with the browser. Actions such as `CustomJsAction`, `RecaptchaSolver`, and `Har` are not available when using these methods.
+
+To use the `Pyppeteer` or `Playwright` methods you need to install Chromium. 
+
+
+## Configuration
+
+You should have [scrapy-puppeteer-service](https://github.com/ispras/scrapy-puppeteer-service) started.
+Then add its URL to `settings.py` and enable puppeteer downloader middleware:
+```python
+DOWNLOADER_MIDDLEWARES = {
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+}
+
+PUPPETEER_SERVICE_URL = 'http://localhost:3000'
 ``` 
 
 ## Basic usage
@@ -43,6 +64,17 @@ class MySpider(scrapy.Spider):
         ...
 ```
 
+## Puppeter responses
+
+There is a parent `PuppeteerResponse` class from which other response classes are inherited.
+
+Here is a list of them all:
+- `PuppeteerHtmlResponse` - has `html` and `cookies` properties
+- `PuppeteerScreenshotResponse` - has `screenshot` property
+- `PuppeteerHarResponse` - has `har` property
+- `PuppeteerJsonResponse` - has `data` property and `to_html()` method which tries to transform itself to `PuppeteerHtmlResponse`
+- `PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlResponse)` - has `recaptcha_data` property
+
 ## Advanced usage
 
 `PuppeteerRequest`'s first argument is a browser action.
@@ -57,6 +89,8 @@ Here is the list of available actions:
 - `Scroll(selector, wait_options)` - scroll page
 - `Screenshot(options)` - take screenshot
 - `RecaptchaSolver(solve_recaptcha, close_on_empty)` - find or solve recaptcha on page
+- `Har()` - to get the HAR file, pass the `har_recording=True` argument to `PuppeteerRequest` at the start of execution.
+- `FillForm(input_mapping, submit_button)` - to fill out and submit forms on page.
 - `CustomJsAction(js_function)` - evaluate JS function on page
 
 Available options essentially mirror [service](https://github.com/ispras/scrapy-puppeteer-service) method parameters, which in turn mirror puppeteer API functions to some extent.
@@ -67,24 +101,32 @@ Then use `response.follow` to continue interacting with the same tab:
 
 ```python
 import scrapy
-from scrapypuppeteer import PuppeteerRequest
+from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
 from scrapypuppeteer.actions import Click
 
 class MySpider(scrapy.Spider):
     ...
     def start_requests(self):
-        yield PuppeteerRequest('https://exapmle.com', close_page=False, callback=self.parse)
-    
-    def parse(self, response):
+        yield PuppeteerRequest(
+            'https://exapmle.com',  # will be transformed into GoTo action
+            close_page=False,
+            callback=self.parse,
+        )
+
+    def parse(self, response: PuppeteerHtmlResponse):
         ...
         # parse and yield some items
         ...
         next_page_selector = 'button.next-page-or-smth'
         if response.css(next_page_selector ):
-            yield response.follow(Click(next_page_selector ,
-                                        wait_options={'selectorOrTimeout': 3000}), # wait 3 seconds
-                                  close_page=False,
-                                  callback=self.parse)
+            yield response.follow(
+                Click(
+                    next_page_selector,
+                    wait_options={'selectorOrTimeout': 3000},  # wait 3 seconds
+                ),
+                close_page=False,
+                callback=self.parse,
+            )
 ```
 
 On your first request service will create new incognito browser context and new page in it.
@@ -92,7 +134,9 @@ Their ids will be in returned in response object as `context_id` and `page_id` a
 Following such response means passing context and page ids to next request.
 You also may specify requests context and page ids directly.
 
-Once your spider is closed, middleware will take care of closing all used browser contexts.
+Right before your spider has done the crawling, the service middleware will take care
+of closing all used browser contexts with `scrapypuppeteer.CloseContextRequest`.
+It accepts a list of all browser contexts to be closed.
 
 One may customize which `PuppeteerRequest`'s headers will be sent to remote website by the service 
 via `include_headers` attribute in request or globally with `PUPPETEER_INCLUDE_HEADERS` setting. 
@@ -171,5 +215,5 @@ yield PuppeteerRequest(
 - [x] skeleton that could handle goto, click, scroll, and actions
 - [ ] headers and cookies management
 - [ ] proxy support for puppeteer
-- [ ] error handling for requests
-- [ ] har support
+- [x] error handling for requests
+- [x] har support

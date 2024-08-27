@@ -1,6 +1,6 @@
-import base64
-
+import logging
 import scrapy
+import base64
 from twisted.python.failure import Failure
 
 from scrapypuppeteer import PuppeteerRequest
@@ -37,7 +37,7 @@ class AutoRecaptchaSpider(scrapy.Spider):
             )
 
     def parse_html(self, response: PuppeteerResponse, **kwargs):
-        with open(f"recaptcha_page.html", "wb") as f:
+        with open("recaptcha_page.html", "wb") as f:
             f.write(response.body)
         action = Screenshot(
             options={
@@ -48,13 +48,13 @@ class AutoRecaptchaSpider(scrapy.Spider):
             action, callback=self.make_screenshot, errback=self.error, close_page=True
         )
 
-    def make_screenshot(self, response: PuppeteerScreenshotResponse, **kwargs):
+    @staticmethod
+    def make_screenshot(response: PuppeteerScreenshotResponse, **kwargs):
         data = (
             response.screenshot
         )  # Note that data is string containing bytes, don't forget to decode them!
         with open("imageToSave.png", "wb") as fh:
             fh.write(base64.b64decode(data))
 
-    @staticmethod
-    def error(failure: Failure):
-        print(f"We are in error function!")
+    def error(self, failure: Failure):
+        self.log("We are in error function!", level=logging.WARNING)

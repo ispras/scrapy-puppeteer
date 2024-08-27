@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
-with open("README.md", "r") as readme:
-    long_description = readme.read()
+
+def read_long_description(file_path):
+    with open(file_path, "r") as file:
+        return file.read()
+
 
 setup(
     name="scrapy-puppeteer-client",
-    version="0.1.5",
+    version="0.3.6",
     description="A library to use Puppeteer-managed browser in Scrapy spiders",
-    long_description=long_description,
+    long_description=read_long_description("README.md"),
     long_description_content_type="text/markdown",
     url="https://github.com/ispras/scrapy-puppeteer",
     author="MODIS @ ISP RAS",
     maintainer="Maksim Varlamov",
     maintainer_email="varlamov@ispras.ru",
-    packages=["scrapypuppeteer"],
-    install_requires=["scrapy>=2.6"],
+    packages=find_packages(),
+    install_requires=["scrapy>=2.6", "pyppeteer", "syncer", "bs4", "playwright"],
     python_requires=">=3.6",
     license="BSD",
     classifiers=[

@@ -1,17 +1,20 @@
 from pytest import mark
 from scrapypuppeteer.actions import GoTo, GoForward, GoBack, Click, Scroll
 from itertools import product
-from constants import URLS, NAV_OPTS, WAIT_OPTS, SELECTORS, CLICK_OPTS
+from constants import URLS, NAV_OPTS, WAIT_OPTS, SELECTORS, CLICK_OPTS, HAR_RECORDING
 
 
 def _gen_goto():
-    for url, nav_opt, wait_opt in product(URLS, NAV_OPTS, WAIT_OPTS):
+    for url, nav_opt, wait_opt, har_recording in product(
+        URLS, NAV_OPTS, WAIT_OPTS, HAR_RECORDING
+    ):
         expected = {
             "url": url,
             "navigationOptions": nav_opt,
             "waitOptions": wait_opt,
+            "harRecording": har_recording,
         }
-        yield url, nav_opt, wait_opt, expected
+        yield url, nav_opt, wait_opt, har_recording, expected
 
 
 def _gen_back_forward():
@@ -42,9 +45,11 @@ def _gen_scroll():
         yield selector, wait_opt, expected
 
 
-@mark.parametrize("url, navigation_options, wait_options, expected", _gen_goto())
-def test_goto(url, navigation_options, wait_options, expected):
-    action = GoTo(url, navigation_options, wait_options)
+@mark.parametrize(
+    "url, navigation_options, wait_options, har_recording, expected", _gen_goto()
+)
+def test_goto(url, navigation_options, wait_options, har_recording, expected):
+    action = GoTo(url, navigation_options, wait_options, har_recording)
     assert action.payload() == expected
 
 

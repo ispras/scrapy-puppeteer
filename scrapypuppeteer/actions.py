@@ -58,17 +58,23 @@ class GoTo(PuppeteerServiceAction):
     endpoint = "goto"
 
     def __init__(
-        self, url: str, navigation_options: dict = None, wait_options: dict = None
+        self,
+        url: str,
+        navigation_options: dict = None,
+        wait_options: dict = None,
+        har_recording: bool = False,
     ):
         self.url = url
         self.navigation_options = navigation_options
         self.wait_options = wait_options
+        self.har_recording = har_recording
 
     def payload(self):
         return {
             "url": self.url,
             "navigationOptions": self.navigation_options,
             "waitOptions": self.wait_options,
+            "harRecording": self.har_recording,
         }
 
 
@@ -221,6 +227,52 @@ class Screenshot(PuppeteerServiceAction):
 
     def payload(self):
         return {"options": self.options}
+
+
+class Har(PuppeteerServiceAction):
+    """
+    The `Har` action is used to capture and retrieve the HTTP Archive (HAR) file,
+    which contains detailed information about network requests and responses
+    made during the session.
+
+    This action is called without any arguments. To generate the HAR file,
+    you must pass the `har_recording=True` argument to `PuppeteerRequest`
+    when initiating the request.
+    """
+
+    endpoint = "har"
+
+    def payload(self):
+        return {}
+
+
+class FillForm(PuppeteerServiceAction):
+    """
+    Fill out and submit forms on a webpage.
+
+    Available options:
+
+    * ``input_mapping`` (dict): A dictionary where each key is a CSS selector, and
+    each value is another dictionary containing details about the input for that element.
+    Each entry in the dictionary should follow this structure:
+
+    * ``selector`` (str): The CSS selector for the input element (used as the key).
+    * ``value`` (str): The text to be inputted into the element.
+    * ``delay`` (int, optional): A delay (in milliseconds) between each keystroke
+        when inputting the text. Defaults to 0 if not provided.
+
+    * ``submit_button`` (str, optional): The CSS selector for the form's submit button.
+    If provided, the button will be clicked after filling in the form.
+    """
+
+    endpoint = "fill_form"
+
+    def __init__(self, input_mapping: dict, submit_button: str = None):
+        self.input_mapping = input_mapping
+        self.submit_button = submit_button
+
+    def payload(self):
+        return {"inputMapping": self.input_mapping, "submitButton": self.submit_button}
 
 
 class RecaptchaSolver(PuppeteerServiceAction):
