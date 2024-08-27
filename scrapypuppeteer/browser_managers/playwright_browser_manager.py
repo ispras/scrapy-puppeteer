@@ -2,8 +2,8 @@ import asyncio
 import base64
 import uuid
 
-from playwright.async_api import async_playwright
 import syncer
+from playwright.async_api import async_playwright
 
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest

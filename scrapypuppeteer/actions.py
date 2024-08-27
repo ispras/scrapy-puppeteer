@@ -1,13 +1,14 @@
 from abc import abstractmethod, ABC
 
+from typing_extensions import overload
+
 
 class PuppeteerServiceAction(ABC):
+    content_type = "application/json"
 
     @property
     @abstractmethod
     def endpoint(self): ...
-
-    content_type = "application/json"
 
     @abstractmethod
     def payload(self): ...
@@ -292,7 +293,8 @@ class RecaptchaSolver(PuppeteerServiceAction):
 
     Response for this action is PuppeteerJsonResponse. You can get the return values
     via self.data['recaptcha_data'].
-    You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
+    You can visit
+    https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
     to get information about return value.
     """
 
@@ -335,3 +337,24 @@ class CustomJsAction(PuppeteerServiceAction):
 
     def payload(self):
         return self.js_action
+
+
+class Compose(PuppeteerServiceAction):
+    """
+    Compose several scrapy-puppeteer actions into one action and send it to the service.
+
+    Response for this action is PuppeteerResponse to last action in a sequence.
+
+    """
+
+    endpoint = "compose"
+    content_type = "application/javascript"
+
+    def __init__(self, *actions: PuppeteerServiceAction):
+        self.actions = actions
+
+    def payload(self):
+        return [
+            {"endpoint": action.payload(), "body": action.payload()}
+            for action in self.actions
+        ]  # TODO: will proxy work?
