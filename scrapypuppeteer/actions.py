@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import List
+from typing import List, Tuple
 
 
 class PuppeteerServiceAction(ABC):
@@ -353,7 +353,7 @@ class Compose(PuppeteerServiceAction):
 
     @staticmethod
     def __flatten(
-        actions: tuple[PuppeteerServiceAction, ...]
+        actions: Tuple[PuppeteerServiceAction, ...]
     ) -> List[PuppeteerServiceAction]:
         flatten_actions = []
         for action in actions:
