@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
-
-from typing_extensions import overload
+from typing import List
 
 
 class PuppeteerServiceAction(ABC):
@@ -339,7 +338,7 @@ class CustomJsAction(PuppeteerServiceAction):
         return self.js_action
 
 
-class Compose(PuppeteerServiceAction):
+class Compose(PuppeteerServiceAction):  # TODO: add it in browser managers...
     """
     Compose several scrapy-puppeteer actions into one action and send it to the service.
 
@@ -348,13 +347,26 @@ class Compose(PuppeteerServiceAction):
     """
 
     endpoint = "compose"
-    content_type = "application/javascript"
 
     def __init__(self, *actions: PuppeteerServiceAction):
-        self.actions = actions
+        self.actions = self.__flatten(actions)
+
+    @staticmethod
+    def __flatten(
+        actions: tuple[PuppeteerServiceAction, ...]
+    ) -> List[PuppeteerServiceAction]:
+        flatten_actions = []
+        for action in actions:
+            if isinstance(action, Compose):
+                flatten_actions.extend(action.actions)
+            else:
+                flatten_actions.append(action)
+        return flatten_actions
 
     def payload(self):
-        return [
-            {"endpoint": action.payload(), "body": action.payload()}
-            for action in self.actions
-        ]  # TODO: will proxy work?
+        return {
+            "actions": [
+                {"endpoint": action.endpoint, "body": action.payload()}
+                for action in self.actions
+            ]
+        }  # TODO: will proxy work?
