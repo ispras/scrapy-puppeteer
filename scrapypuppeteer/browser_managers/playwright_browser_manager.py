@@ -64,6 +64,7 @@ class PlaywrightBrowserManager(BrowserManager):
         self.action_map = {
             "goto": self.goto,
             "click": self.click,
+            "compose": self.compose,
             "back": self.go_back,
             "forward": self.go_forward,
             "scroll": self.scroll,
@@ -357,6 +358,20 @@ class PlaywrightBrowserManager(BrowserManager):
             )
 
         return syncer.sync(async_fill_form())
+
+    def compose(self, request: PuppeteerRequest):
+        _, context_id, page_id = self.get_page_from_request(request)
+        request.page_id = page_id
+        request.context_id = context_id
+
+        original_action = request.action.actions.copy()
+        try:
+            for action in original_action["actions"]:
+                request.action = action
+                response = self.action_map[action.endpoint](request)
+        finally:
+            request.action = original_action
+        return response
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")

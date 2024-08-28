@@ -338,7 +338,7 @@ class CustomJsAction(PuppeteerServiceAction):
         return self.js_action
 
 
-class Compose(PuppeteerServiceAction):  # TODO: add it in browser managers...
+class Compose(PuppeteerServiceAction):
     """
     Compose several scrapy-puppeteer actions into one action and send it to the service.
 
@@ -369,4 +369,4 @@ class Compose(PuppeteerServiceAction):  # TODO: add it in browser managers...
                 {"endpoint": action.endpoint, "body": action.payload()}
                 for action in self.actions
             ]
-        }  # TODO: will proxy work?
+        }
