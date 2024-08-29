@@ -1,4 +1,4 @@
-name: Ruff Code Check and Format
+name: Ruff Code Check
 
 on: [push, pull_request]
 
@@ -17,10 +17,6 @@ jobs:
       - name: Install Ruff
         run: |
           pip install ruff
-
-      - name: Format Code with Ruff
-        run: |
-          ruff format .
 
       - name: Run Ruff Check
         run: |
