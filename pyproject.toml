@@ -12,4 +12,3 @@ line-ending = "auto"
 quote-style = "double"
 skip-magic-trailing-comma = false
 docstring-code-line-length = 88
-docstring-style = "google" 
