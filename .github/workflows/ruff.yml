@@ -18,6 +18,10 @@ jobs:
         run: |
           pip install ruff
 
+      - name: Run Ruff Format
+        run: |
+          ruff format .
+
       - name: Run Ruff Check
         run: |
           ruff check .
