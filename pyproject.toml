@@ -2,6 +2,7 @@
 line-length = 88
 fix = false
 indent-width = 2
+docstring-code-format = true
 
 [tool.ruff.lint]
 select = ["F", "C", "W", "I"]
