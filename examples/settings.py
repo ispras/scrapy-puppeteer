@@ -6,7 +6,7 @@ NEWSPIDER_MODULE = "examples.spiders"
 CONCURRENT_REQUESTS = 1
 
 DOWNLOADER_MIDDLEWARES = {
-  "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042
+    "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042
 }
 
 PUPPETEER_SERVICE_URL = "http://localhost:3000"
