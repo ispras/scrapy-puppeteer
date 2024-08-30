@@ -1,6 +1,7 @@
 [tool.ruff]
 line-length = 88
 fix = false
+indent-width = 2
 
 [tool.ruff.lint]
 select = ["F", "C", "W", "I"]
