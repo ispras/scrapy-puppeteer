@@ -1,7 +1,5 @@
-from scrapy import Request
-
-
 import scrapy
+from scrapy import Request
 
 
 class ViewSpider(scrapy.Spider):

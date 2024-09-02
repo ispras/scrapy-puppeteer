@@ -1,21 +1,19 @@
 import argparse
 import os
 import sys
-
+from base64 import b64encode
+from json import dumps
 from pathlib import Path
+from secrets import token_hex
 from subprocess import PIPE, Popen
 from typing import Dict
-from secrets import token_hex
-from json import dumps
-from base64 import b64encode
 
+from scrapy.utils.python import to_bytes
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 from twisted.internet.task import deferLater
 from twisted.web import resource
 from twisted.web.server import NOT_DONE_YET, Site
-
-from scrapy.utils.python import to_bytes
 
 
 def get_arg(request, name, default=None, arg_type=None):

@@ -2,8 +2,8 @@ import asyncio
 import base64
 import uuid
 
-from playwright.async_api import async_playwright
 import syncer
+from playwright.async_api import async_playwright
 
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest
@@ -14,7 +14,6 @@ from scrapypuppeteer.response import (
 
 
 class ContextManager:
-
     def __init__(self):
         self.browser = syncer.sync(self.launch_browser())
         self.contexts = {}

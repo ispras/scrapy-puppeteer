@@ -1,10 +1,11 @@
-import logging
-import scrapy
 import base64
+import logging
+
+import scrapy
 from twisted.python.failure import Failure
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import GoTo, RecaptchaSolver, Click, Screenshot
+from scrapypuppeteer.actions import Click, GoTo, RecaptchaSolver, Screenshot
 from scrapypuppeteer.response import PuppeteerResponse, PuppeteerScreenshotResponse
 
 
