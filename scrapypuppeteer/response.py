@@ -1,8 +1,11 @@
+from typing import Tuple, Union, Generator
 import warnings
-from typing import Tuple, Union
 
 from scrapy.exceptions import ScrapyDeprecationWarning
-from scrapy.http import TextResponse
+from scrapy.http import HtmlResponse, TextResponse
+from scrapy.http.response.text import _url_from_selector
+from scrapy.link import Link
+import parsel
 
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
@@ -38,7 +41,7 @@ class PuppeteerResponse(TextResponse):
 
     def follow(
         self,
-        action: Union[str, PuppeteerServiceAction],
+        action: Union[str, parsel.Selector, Link, PuppeteerServiceAction],
         close_page=True,
         accumulate_meta: bool = False,
         **kwargs,
@@ -55,6 +58,10 @@ class PuppeteerResponse(TextResponse):
         page_id = None if self.puppeteer_request.close_page else self.page_id
         if isinstance(action, str):
             action = self.urljoin(action)
+        elif isinstance(action, parsel.Selector):
+            action = _url_from_selector(action)
+        elif isinstance(action, Link):
+            action = self.urljoin(action.url)
         elif isinstance(action, GoTo):
             action.url = self.urljoin(action.url)
         else:
@@ -70,14 +77,51 @@ class PuppeteerResponse(TextResponse):
             **kwargs,
         )
 
+    def follow_all(
+        self,
+        actions=None,
+        close_page: bool = True,
+        accumulate_meta: bool = False,
+        **kwargs,
+    ) -> Generator[PuppeteerRequest, None, None]:
+        arguments = [
+            x
+            for x in (actions, kwargs.get("css"), kwargs.get("xpath"))
+            if x is not None
+        ]
+        if len(arguments) != 1:
+            raise ValueError(
+                "Please supply exactly one of the following arguments: actions, css, xpath"
+            )
+        if not actions:
+            if kwargs.get("css"):
+                actions = self.css(kwargs["css"])
+            if kwargs.get("xpath"):
+                actions = self.xpath(kwargs["xpath"])
 
-class PuppeteerHtmlResponse(PuppeteerResponse):
+        if isinstance(actions, parsel.SelectorList):
+            selectors = actions
+            actions = []
+            for sel in selectors:
+                actions.append(_url_from_selector(sel))
+
+        return (
+            self.follow(
+                action, close_page=close_page, accumulate_meta=accumulate_meta, **kwargs
+            )
+            for action in actions
+        )
+
+
+class PuppeteerHtmlResponse(PuppeteerResponse, HtmlResponse):
     """
     scrapy.TextResponse capturing state of a page in browser.
     Additionally, exposes received html and cookies via corresponding attributes.
     """
 
-    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + ("html", "cookies")
+    attributes: Tuple[str, ...] = tuple(
+        set(PuppeteerResponse.attributes + HtmlResponse.attributes)
+    ) + ("html", "cookies")
     """
         A tuple of :class:`str` objects containing the name of all public
         attributes of the class that are also keyword parameters of the

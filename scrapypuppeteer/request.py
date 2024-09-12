@@ -89,7 +89,9 @@ class PuppeteerRequest(ActionRequest):
         elif isinstance(action, GoTo):
             url = action.url
         elif not isinstance(action, PuppeteerServiceAction):
-            raise ValueError("Undefined browser action")
+            raise TypeError(
+                f"Undefined browser action: `{type(action)}`. `Expected PuppeteerServiceAction`"
+            )
         if url is None:
             raise ValueError(
                 "Request is not a goto-request and does not follow a response"
