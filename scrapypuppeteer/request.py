@@ -1,7 +1,7 @@
 import json
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
-from scrapy.http import Request, Headers
+from scrapy.http import Headers, Request
 
 from scrapypuppeteer.actions import Compose, GoTo, PuppeteerServiceAction
 

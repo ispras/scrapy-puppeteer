@@ -14,7 +14,6 @@ from scrapypuppeteer.response import (
 
 
 class ContextManager:
-
     def __init__(self):
         self.browser = syncer.sync(self.launch_browser())
         self.contexts = {}

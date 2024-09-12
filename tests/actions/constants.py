@@ -1,5 +1,5 @@
-from random import randint
 from itertools import combinations
+from random import randint
 
 URLS = ("https://some_url.com", "not_url/not_url")
 WAIT_UNTIL = ("load", "domcontentloaded", "networkidle0")

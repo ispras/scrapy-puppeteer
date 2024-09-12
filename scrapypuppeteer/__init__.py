@@ -1,21 +1,21 @@
 from .actions import (
-    PuppeteerServiceAction,
-    GoTo,
-    GoForward,
-    GoBack,
     Click,
-    Scroll,
-    Screenshot,
-    Har,
-    FillForm,
-    RecaptchaSolver,
     CustomJsAction,
+    FillForm,
+    GoBack,
+    GoForward,
+    GoTo,
+    Har,
+    PuppeteerServiceAction,
+    RecaptchaSolver,
+    Screenshot,
+    Scroll,
 )
-from .request import PuppeteerRequest, CloseContextRequest
+from .request import CloseContextRequest, PuppeteerRequest
 from .response import (
-    PuppeteerResponse,
     PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
-    PuppeteerRecaptchaSolverResponse,
     PuppeteerJsonResponse,
+    PuppeteerRecaptchaSolverResponse,
+    PuppeteerResponse,
+    PuppeteerScreenshotResponse,
 )

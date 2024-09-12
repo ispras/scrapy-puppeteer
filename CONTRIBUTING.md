@@ -13,6 +13,14 @@ Examples of contributions include:
 
 `Please formalize your pull request (PR)` you will get.
 
+**Before each push or PR, run in the root directory of the project:**
+
+```bash
+ruff check
+
+ruff format 
+```
+
 ---
 # Code of Conduct
 

@@ -1,6 +1,7 @@
-import logging
-import scrapy
 import base64
+import logging
+
+import scrapy
 from twisted.python.failure import Failure
 
 from scrapypuppeteer import PuppeteerRequest

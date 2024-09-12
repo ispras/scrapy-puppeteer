@@ -1,13 +1,14 @@
 from scrapy import Spider
+
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import (
-    GoTo,
-    GoForward,
-    GoBack,
     Click,
-    Screenshot,
     CustomJsAction,
+    GoBack,
+    GoForward,
+    GoTo,
     RecaptchaSolver,
+    Screenshot,
 )
 
 
