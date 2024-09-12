@@ -1,11 +1,11 @@
-from typing import Tuple, Union, Generator
 import warnings
+from typing import Generator, Tuple, Union
 
+import parsel
 from scrapy.exceptions import ScrapyDeprecationWarning
 from scrapy.http import HtmlResponse, TextResponse
 from scrapy.http.response.text import _url_from_selector
 from scrapy.link import Link
-import parsel
 
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
