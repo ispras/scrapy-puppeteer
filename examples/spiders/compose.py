@@ -42,7 +42,6 @@ class DeadContextSpider(scrapy.Spider):
         )
 
     def parse(self, response: PuppeteerResponse):
-        print(response.body)
         self.log("Spider worked fine!")
 
     @staticmethod

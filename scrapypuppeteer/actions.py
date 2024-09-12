@@ -353,7 +353,7 @@ class Compose(PuppeteerServiceAction):
 
     @staticmethod
     def __flatten(
-        actions: Tuple[PuppeteerServiceAction, ...]
+        actions: Tuple[PuppeteerServiceAction, ...],
     ) -> List[PuppeteerServiceAction]:
         flatten_actions = []
         for action in actions:
@@ -361,6 +361,8 @@ class Compose(PuppeteerServiceAction):
                 flatten_actions.extend(action.actions)
             else:
                 flatten_actions.append(action)
+        if not flatten_actions:
+            raise ValueError("No actions provided in `Compose`.")
         return flatten_actions
 
     def payload(self):
