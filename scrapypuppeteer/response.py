@@ -59,7 +59,7 @@ class PuppeteerResponse(TextResponse):
         if isinstance(action, str):
             action = self.urljoin(action)
         elif isinstance(action, parsel.Selector):
-            action = _url_from_selector(action)
+            action = self.urljoin(_url_from_selector(action))
         elif isinstance(action, Link):
             action = self.urljoin(action.url)
         elif isinstance(action, GoTo):
@@ -95,9 +95,9 @@ class PuppeteerResponse(TextResponse):
             )
         if not actions:
             if kwargs.get("css"):
-                actions = self.css(kwargs["css"])
+                actions = self.css(kwargs.pop("css"))
             if kwargs.get("xpath"):
-                actions = self.xpath(kwargs["xpath"])
+                actions = self.xpath(kwargs.pop("xpath"))
 
         if isinstance(actions, parsel.SelectorList):
             selectors = actions
@@ -107,9 +107,13 @@ class PuppeteerResponse(TextResponse):
 
         return (
             self.follow(
-                action, close_page=close_page, accumulate_meta=accumulate_meta, **kwargs
+                action,
+                close_page=(close_page if ind == len(actions) - 1 else False),
+                accumulate_meta=accumulate_meta,
+                priority=(-1 if ind == len(actions) - 1 else kwargs.pop("priority", 0)),
+                **kwargs,
             )
-            for action in actions
+            for ind, action in enumerate(actions)
         )
 
 
