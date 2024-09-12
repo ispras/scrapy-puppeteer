@@ -82,43 +82,47 @@ class PuppeteerResponse(TextResponse):
         actions=None,
         close_page: bool = True,
         accumulate_meta: bool = False,
+        css=None,
+        xpath=None,
         **kwargs,
     ) -> Generator[PuppeteerRequest, None, None]:
-        arguments = [
-            x
-            for x in (actions, kwargs.get("css"), kwargs.get("xpath"))
-            if x is not None
-        ]
+        """
+        Execute actions in the same context but in other browser pages.
+        Only one of `actions`, `css`, or `xpath` must be specified.`
+        Note that original page from which the method was called lasts unaffected.
+
+        :param actions: iterable of PuppeteerActions or selectors
+        :param css: selector
+        :param xpath: selector
+        :return: Iterable[PuppeteerRequest]
+        """
+
+        # Probably, we should ban any PuppeteerAction in `actions` except GoTo
+        arguments = [x for x in (actions, css, xpath) if x is not None]
         if len(arguments) != 1:
             raise ValueError(
                 "Please supply exactly one of the following arguments: actions, css, xpath"
             )
         if not actions:
-            if kwargs.get("css"):
-                actions = self.css(kwargs.pop("css"))
-            if kwargs.get("xpath"):
-                actions = self.xpath(kwargs.pop("xpath"))
+            if css:
+                actions = self.css(css)
+            if xpath:
+                actions = self.xpath(xpath)
 
-        if isinstance(actions, parsel.SelectorList):
-            selectors = actions
-            actions = []
-            for sel in selectors:
-                actions.append(_url_from_selector(sel))
+        page_id = self.page_id
+        self.page_id = None
 
-        return (
+        yield from (
             self.follow(
                 action,
-                close_page=(
-                    close_page if ind == len(actions) - 1 else False
-                ),  # close_page on last request
+                close_page=close_page,
                 accumulate_meta=accumulate_meta,
-                priority=(
-                    -1 if ind == len(actions) - 1 else kwargs.pop("priority", 0)
-                ),  # to execute close_page request "definitely" last
                 **kwargs,
             )
-            for ind, action in enumerate(actions)
+            for action in actions
         )
+
+        self.page_id = page_id
 
 
 class PuppeteerHtmlResponse(PuppeteerResponse, HtmlResponse):
