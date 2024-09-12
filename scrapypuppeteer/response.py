@@ -108,9 +108,13 @@ class PuppeteerResponse(TextResponse):
         return (
             self.follow(
                 action,
-                close_page=(close_page if ind == len(actions) - 1 else False),
+                close_page=(
+                    close_page if ind == len(actions) - 1 else False
+                ),  # close_page on last request
                 accumulate_meta=accumulate_meta,
-                priority=(-1 if ind == len(actions) - 1 else kwargs.pop("priority", 0)),
+                priority=(
+                    -1 if ind == len(actions) - 1 else kwargs.pop("priority", 0)
+                ),  # to execute close_page request "definitely" last
                 **kwargs,
             )
             for ind, action in enumerate(actions)
