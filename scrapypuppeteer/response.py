@@ -111,7 +111,7 @@ class PuppeteerResponse(TextResponse):
             if xpath:
                 actions = self.xpath(xpath)
 
-        page_id = self.page_id
+        page_id = self.page_id  # Substitution of page_id in order to create new page
         self.page_id = None
 
         yield from (
