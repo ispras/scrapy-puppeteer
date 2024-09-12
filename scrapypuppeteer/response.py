@@ -92,6 +92,8 @@ class PuppeteerResponse(TextResponse):
         Note that original page from which the method was called lasts unaffected.
 
         :param actions: iterable of PuppeteerActions or selectors
+        :param close_page: whether to close page after request completion
+        :param accumulate_meta: whether to accumulate meta from response
         :param css: selector
         :param xpath: selector
         :return: Iterable[PuppeteerRequest]
