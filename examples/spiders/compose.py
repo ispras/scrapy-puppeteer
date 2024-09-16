@@ -1,10 +1,10 @@
 import scrapy
-
 from scrapy.http import TextResponse
 from scrapy.spidermiddlewares.httperror import HttpError
-from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse, PuppeteerJsonResponse
-from scrapypuppeteer.actions import GoTo, Click, Screenshot, Compose
 from twisted.python.failure import Failure
+
+from scrapypuppeteer import PuppeteerJsonResponse, PuppeteerRequest, PuppeteerResponse
+from scrapypuppeteer.actions import Click, Compose, GoTo, Screenshot
 
 
 class DeadContextSpider(scrapy.Spider):
