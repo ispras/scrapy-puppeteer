@@ -1,13 +1,18 @@
+from logging import ERROR
+
 import scrapy
-from scrapy.http import TextResponse
-from scrapy.spidermiddlewares.httperror import HttpError
+from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
 
-from scrapypuppeteer import PuppeteerJsonResponse, PuppeteerRequest, PuppeteerResponse
+from scrapypuppeteer import (
+    PuppeteerRequest,
+    PuppeteerResponse,
+    PuppeteerScreenshotResponse,
+)
 from scrapypuppeteer.actions import Click, Compose, GoTo, Screenshot
 
 
-class DeadContextSpider(scrapy.Spider):
+class ComposeSpider(scrapy.Spider):
     name = "compose"
 
     custom_settings = {
@@ -42,11 +47,8 @@ class DeadContextSpider(scrapy.Spider):
         )
 
     def parse(self, response: PuppeteerResponse):
+        assert isinstance(response, PuppeteerScreenshotResponse)
         self.log("Spider worked fine!")
 
-    @staticmethod
-    def errback(failure: Failure):
-        value: HttpError = failure.value
-        response: TextResponse = value.response
-        puppeteer_request = response.request.meta.get("puppeteer_request")
-        print(puppeteer_request.url)
+    def errback(self, failure: Failure):
+        self.log(failure_to_exc_info(failure), level=ERROR)
