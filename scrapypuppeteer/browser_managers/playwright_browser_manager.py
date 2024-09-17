@@ -363,13 +363,8 @@ class PlaywrightBrowserManager(BrowserManager):
         request.page_id = page_id
         request.context_id = context_id
 
-        original_action = request.action.actions.copy()
-        try:
-            for action in original_action["actions"]:
-                request.action = action
-                response = self.action_map[action.endpoint](request)
-        finally:
-            request.action = original_action
+        for action in request.action.actions:
+            response = self.action_map[action.endpoint](request.replace(action=action))
         return response
 
     def action(self, request: PuppeteerRequest):
