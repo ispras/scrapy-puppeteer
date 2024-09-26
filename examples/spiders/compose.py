@@ -19,7 +19,6 @@ class ComposeSpider(scrapy.Spider):
         "DOWNLOADER_MIDDLEWARES": {
             "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042,
         },
-        "EXECUTION_METHOD": "Pyppeteer",
     }
 
     def start_requests(self):
