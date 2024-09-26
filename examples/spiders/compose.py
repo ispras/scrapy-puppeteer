@@ -9,7 +9,7 @@ from scrapypuppeteer import (
     PuppeteerResponse,
     PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.actions import Click, Compose, GoTo, Screenshot
+from scrapypuppeteer.actions import Click, Compose, GoTo, Screenshot, Scroll
 
 
 class ComposeSpider(scrapy.Spider):
@@ -19,6 +19,7 @@ class ComposeSpider(scrapy.Spider):
         "DOWNLOADER_MIDDLEWARES": {
             "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042,
         },
+        "EXECUTION_METHOD": "Pyppeteer",
     }
 
     def start_requests(self):
@@ -31,11 +32,13 @@ class ComposeSpider(scrapy.Spider):
             "div > nav > ul > li:nth-child(1) > ul > li:nth-child(3) > a"
         )
         click = Compose(click_1, click_2)
+        scroll = Scroll()
         screenshot = Screenshot(options={"full_page": True, "type": "jpeg"})
 
         compose_action = Compose(
             goto,
             click,
+            scroll,
             screenshot,
         )
 
@@ -51,4 +54,5 @@ class ComposeSpider(scrapy.Spider):
         self.log("Spider worked fine!")
 
     def errback(self, failure: Failure):
+        print(failure)
         self.log(failure_to_exc_info(failure), level=ERROR)
