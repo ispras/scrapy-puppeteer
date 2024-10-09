@@ -23,29 +23,18 @@ DOWNLOADER_MIDDLEWARES = {
     'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
 }
 
-PUPPETEER_SERVICE_URL = 'http://localhost:3000'
+PUPPETEER_SERVICE_URL = "http://localhost:3000"  # Not necessary in other execution methods
 
 # To change the execution method, you must add the corresponding setting:
 EXECUTION_METHOD = "Puppeteer"
 ```
 Available methods: `Puppeteer`, `Pyppeteer`, `Playwright`
 
-The `Pyppeteer` and `Playwright` methods do not require a running service. They use the pyppeteer and playwright libraries for Python to interact with the browser. Actions such as `CustomJsAction`, `RecaptchaSolver`, and `Har` are not available when using these methods.
+`Pyppeteer` and `Playwright` methods do not require a running service.
+They use the pyppeteer and playwright libraries for Python to interact with the browser.
+Actions such as `CustomJsAction`, `RecaptchaSolver`, and `Har` are not available when using these methods.
 
-To use the `Pyppeteer` or `Playwright` methods you need to install Chromium. 
-
-
-## Configuration
-
-You should have [scrapy-puppeteer-service](https://github.com/ispras/scrapy-puppeteer-service) started.
-Then add its URL to `settings.py` and enable puppeteer downloader middleware:
-```python
-DOWNLOADER_MIDDLEWARES = {
-    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
-}
-
-PUPPETEER_SERVICE_URL = 'http://localhost:3000'
-``` 
+To use `Pyppeteer` or `Playwright` methods you need to install Chromium.
 
 ## Basic usage
 
@@ -129,6 +118,8 @@ class MySpider(scrapy.Spider):
                 callback=self.parse,
             )
 ```
+
+You may also use `follow_all` method to continue interacting.
 
 On your first request service will create new incognito browser context and new page in it.
 Their ids will be in returned in response object as `context_id` and `page_id` attributes.
