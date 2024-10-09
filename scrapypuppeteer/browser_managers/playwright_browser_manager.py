@@ -365,7 +365,7 @@ class PlaywrightBrowserManager(BrowserManager):
 
         for action in request.action.actions:
             response = self.action_map[action.endpoint](request.replace(action=action))
-        return response
+        return response.replace(puppeteer_request=request)
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")
