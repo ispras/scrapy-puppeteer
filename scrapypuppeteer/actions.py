@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
+from typing import List, Tuple
 
 
 class PuppeteerServiceAction(ABC):
+    content_type = "application/json"
+
     @property
     @abstractmethod
     def endpoint(self): ...
-
-    content_type = "application/json"
 
     @abstractmethod
     def payload(self): ...
@@ -291,7 +292,8 @@ class RecaptchaSolver(PuppeteerServiceAction):
 
     Response for this action is PuppeteerJsonResponse. You can get the return values
     via self.data['recaptcha_data'].
-    You can visit https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
+    You can visit
+    https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
     to get information about return value.
     """
 
@@ -334,3 +336,39 @@ class CustomJsAction(PuppeteerServiceAction):
 
     def payload(self):
         return self.js_action
+
+
+class Compose(PuppeteerServiceAction):
+    """
+    Compose several scrapy-puppeteer actions into one action and send it to the service.
+
+    Response for this action is PuppeteerResponse to last action in a sequence.
+
+    """
+
+    endpoint = "compose"
+
+    def __init__(self, *actions: PuppeteerServiceAction):
+        self.actions = self.__flatten(actions)
+
+    @staticmethod
+    def __flatten(
+        actions: Tuple[PuppeteerServiceAction, ...],
+    ) -> List[PuppeteerServiceAction]:
+        flatten_actions = []
+        for action in actions:
+            if isinstance(action, Compose):
+                flatten_actions.extend(action.actions)
+            else:
+                flatten_actions.append(action)
+        if not flatten_actions:
+            raise ValueError("No actions provided in `Compose`.")
+        return flatten_actions
+
+    def payload(self):
+        return {
+            "actions": [
+                {"endpoint": action.endpoint, "body": action.payload()}
+                for action in self.actions
+            ]
+        }

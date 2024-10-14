@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 
 from scrapy.http import Headers, Request
 
-from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
+from scrapypuppeteer.actions import Compose, GoTo, PuppeteerServiceAction
 
 
 class ActionRequest(Request):
@@ -88,13 +88,16 @@ class PuppeteerRequest(ActionRequest):
             )
         elif isinstance(action, GoTo):
             url = action.url
+        elif isinstance(action, Compose):
+            if isinstance(action.actions[0], GoTo):
+                url = action.actions[0].url
         elif not isinstance(action, PuppeteerServiceAction):
             raise TypeError(
                 f"Undefined browser action: `{type(action)}`. `Expected PuppeteerServiceAction`"
             )
         if url is None:
             raise ValueError(
-                "Request is not a goto-request and does not follow a response"
+                "Request is not a goto-containing request and does not follow a response"
             )
         super().__init__(url, action, **kwargs)
         self.context_id = context_id
