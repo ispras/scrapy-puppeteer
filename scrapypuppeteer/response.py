@@ -99,7 +99,6 @@ class PuppeteerResponse(TextResponse):
         :return: Iterable[PuppeteerRequest]
         """
 
-        # Probably, we should ban any PuppeteerAction in `actions` except GoTo
         arguments = [x for x in (actions, css, xpath) if x is not None]
         if len(arguments) != 1:
             raise ValueError(
@@ -110,6 +109,11 @@ class PuppeteerResponse(TextResponse):
                 actions = self.css(css)
             if xpath:
                 actions = self.xpath(xpath)
+        else:
+            # Ban any PuppeteerAction except GoTo
+            for action in actions:
+                if not isinstance(action, GoTo):
+                    raise TypeError(f"Expected GoTo, got {type(action)}")
 
         page_id = self.page_id  # Substitution of page_id in order to create new page
         self.page_id = None
