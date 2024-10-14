@@ -8,7 +8,7 @@ from scrapy.http.response.text import _url_from_selector
 from scrapy.link import Link
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
+from scrapypuppeteer.actions import Compose, GoTo, PuppeteerServiceAction
 
 
 class PuppeteerResponse(TextResponse):
@@ -110,8 +110,10 @@ class PuppeteerResponse(TextResponse):
             if xpath:
                 actions = self.xpath(xpath)
         else:
-            # Ban any PuppeteerAction except GoTo
+            # Ban any PuppeteerAction except GoTo and GoTo-like Compose
             for action in actions:
+                if isinstance(action, Compose):
+                    action = action.actions[0]
                 if not isinstance(action, GoTo):
                     raise TypeError(f"Expected GoTo, got {type(action)}")
 
