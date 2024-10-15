@@ -118,16 +118,17 @@ class PuppeteerResponse(TextResponse):
                     if not isinstance(action, GoTo):
                         raise TypeError(f"Expected GoTo, got {type(action)}")
 
-        yield from (
-            self.follow(
+        page_id = self.page_id
+        for action in actions:
+            self.page_id = None  # Substitution of page_id in order to create new page
+            next_request = self.follow(
                 action,
                 close_page=close_page,
                 accumulate_meta=accumulate_meta,
-                page_id=None,  # Substitution of page_id in order to create new page
                 **kwargs,
             )
-            for action in actions
-        )
+            self.page_id = page_id
+            yield next_request
 
 
 class PuppeteerHtmlResponse(PuppeteerResponse, HtmlResponse):
