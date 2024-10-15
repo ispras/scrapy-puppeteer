@@ -1,11 +1,14 @@
 import warnings
-from typing import Tuple, Union
+from typing import Generator, Tuple, Union
 
+import parsel
 from scrapy.exceptions import ScrapyDeprecationWarning
-from scrapy.http import TextResponse
+from scrapy.http import HtmlResponse, TextResponse
+from scrapy.http.response.text import _url_from_selector
+from scrapy.link import Link
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import GoTo, PuppeteerServiceAction
+from scrapypuppeteer.actions import Compose, GoTo, PuppeteerServiceAction
 
 
 class PuppeteerResponse(TextResponse):
@@ -38,7 +41,7 @@ class PuppeteerResponse(TextResponse):
 
     def follow(
         self,
-        action: Union[str, PuppeteerServiceAction],
+        action: Union[str, parsel.Selector, Link, PuppeteerServiceAction],
         close_page=True,
         accumulate_meta: bool = False,
         **kwargs,
@@ -55,6 +58,10 @@ class PuppeteerResponse(TextResponse):
         page_id = None if self.puppeteer_request.close_page else self.page_id
         if isinstance(action, str):
             action = self.urljoin(action)
+        elif isinstance(action, parsel.Selector):
+            action = self.urljoin(_url_from_selector(action))
+        elif isinstance(action, Link):
+            action = self.urljoin(action.url)
         elif isinstance(action, GoTo):
             action.url = self.urljoin(action.url)
         else:
@@ -70,14 +77,71 @@ class PuppeteerResponse(TextResponse):
             **kwargs,
         )
 
+    def follow_all(
+        self,
+        actions=None,
+        close_page: bool = True,
+        accumulate_meta: bool = False,
+        css=None,
+        xpath=None,
+        **kwargs,
+    ) -> Generator[PuppeteerRequest, None, None]:
+        """
+        Execute actions in the same context but in other browser pages.
+        Only one of `actions`, `css`, or `xpath` must be specified.`
+        Note that original page from which the method was called lasts unaffected.
 
-class PuppeteerHtmlResponse(PuppeteerResponse):
+        :param actions: iterable of PuppeteerActions or selectors
+        :param close_page: whether to close page after request completion
+        :param accumulate_meta: whether to accumulate meta from response
+        :param css: selector
+        :param xpath: selector
+        :return: Iterable[PuppeteerRequest]
+        """
+
+        arguments = [x for x in (actions, css, xpath) if x is not None]
+        if len(arguments) != 1:
+            raise ValueError(
+                "Please supply exactly one of the following arguments: actions, css, xpath"
+            )
+        if not actions:
+            if css:
+                actions = self.css(css)
+            if xpath:
+                actions = self.xpath(xpath)
+        else:
+            # Ban any PuppeteerAction except GoTo and GoTo-like Compose
+            for action in actions:
+                if isinstance(action, PuppeteerServiceAction):
+                    if isinstance(action, Compose):
+                        action = action.actions[0]
+                    if not isinstance(action, GoTo):
+                        raise TypeError(f"Expected GoTo, got {type(action)}")
+
+        page_id = self.page_id
+        for action in actions:
+            self.page_id = None  # Substitution of page_id in order to create new page
+            try:
+                next_request = self.follow(
+                    action,
+                    close_page=close_page,
+                    accumulate_meta=accumulate_meta,
+                    **kwargs,
+                )
+            finally:  # To save the original state of response
+                self.page_id = page_id
+            yield next_request
+
+
+class PuppeteerHtmlResponse(PuppeteerResponse, HtmlResponse):
     """
     scrapy.TextResponse capturing state of a page in browser.
     Additionally, exposes received html and cookies via corresponding attributes.
     """
 
-    attributes: Tuple[str, ...] = PuppeteerResponse.attributes + ("html", "cookies")
+    attributes: Tuple[str, ...] = tuple(
+        set(PuppeteerResponse.attributes + HtmlResponse.attributes)
+    ) + ("html", "cookies")
     """
         A tuple of :class:`str` objects containing the name of all public
         attributes of the class that are also keyword parameters of the
