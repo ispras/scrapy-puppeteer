@@ -112,10 +112,11 @@ class PuppeteerResponse(TextResponse):
         else:
             # Ban any PuppeteerAction except GoTo and GoTo-like Compose
             for action in actions:
-                if isinstance(action, Compose):
-                    action = action.actions[0]
-                if not isinstance(action, GoTo):
-                    raise TypeError(f"Expected GoTo, got {type(action)}")
+                if isinstance(action, PuppeteerServiceAction):
+                    if isinstance(action, Compose):
+                        action = action.actions[0]
+                    if not isinstance(action, GoTo):
+                        raise TypeError(f"Expected GoTo, got {type(action)}")
 
         yield from (
             self.follow(
