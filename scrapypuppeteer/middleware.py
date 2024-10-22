@@ -3,11 +3,10 @@ import warnings
 import scrapy.exceptions
 
 from .middlewares import (
-    PuppeteerServiceDownloaderMiddleware,
-    PuppeteerRecaptchaDownloaderMiddleware,
     PuppeteerContextRestoreDownloaderMiddleware,
+    PuppeteerRecaptchaDownloaderMiddleware,
+    PuppeteerServiceDownloaderMiddleware,
 )
-
 
 warnings.warn(
     "Import from `scrapypuppeteer.middleware` is deprecated. "

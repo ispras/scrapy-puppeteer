@@ -1,14 +1,13 @@
 import json
 import logging
-
-from typing import Union
 from http import HTTPStatus
+from typing import Union
 
 from scrapy.crawler import Crawler
 from scrapy.exceptions import IgnoreRequest
 
-from scrapypuppeteer.response import PuppeteerResponse
 from scrapypuppeteer.request import PuppeteerRequest
+from scrapypuppeteer.response import PuppeteerResponse
 
 restore_logger = logging.getLogger(__name__)
 

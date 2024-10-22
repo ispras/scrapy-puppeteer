@@ -1,10 +1,10 @@
-import scrapy
-
 from asyncio import sleep
+
+import scrapy
+from twisted.python.failure import Failure
 
 from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
 from scrapypuppeteer.actions import Click, GoTo
-from twisted.python.failure import Failure
 
 
 class DeadContextSpider(scrapy.Spider):

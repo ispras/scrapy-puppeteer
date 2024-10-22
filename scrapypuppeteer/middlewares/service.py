@@ -5,17 +5,16 @@ from typing import List, Union
 from scrapy import signals
 from scrapy.crawler import Crawler
 
+from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.browser_managers.playwright_browser_manager import (
+    PlaywrightBrowserManager,
+)
 from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import (
     PyppeteerBrowserManager,
 )
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )
-from scrapypuppeteer.browser_managers.playwright_browser_manager import (
-    PlaywrightBrowserManager,
-)
-
-from scrapypuppeteer.browser_managers import BrowserManager
 
 
 class PuppeteerServiceDownloaderMiddleware:

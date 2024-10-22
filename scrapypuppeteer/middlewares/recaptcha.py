@@ -5,13 +5,13 @@ from scrapy.exceptions import IgnoreRequest, NotConfigured
 
 from scrapypuppeteer.actions import (
     Click,
+    CustomJsAction,
     RecaptchaSolver,
     Screenshot,
     Scroll,
-    CustomJsAction,
 )
-from scrapypuppeteer.response import PuppeteerResponse, PuppeteerHtmlResponse
 from scrapypuppeteer.request import PuppeteerRequest
+from scrapypuppeteer.response import PuppeteerHtmlResponse, PuppeteerResponse
 
 recaptcha_logger = logging.getLogger(__name__)
 
