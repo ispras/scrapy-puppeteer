@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 
 def read_long_description(file_path):
@@ -10,7 +10,7 @@ def read_long_description(file_path):
 
 setup(
     name="scrapy-puppeteer-client",
-    version="0.3.6",
+    version="0.3.8",
     description="A library to use Puppeteer-managed browser in Scrapy spiders",
     long_description=read_long_description("README.md"),
     long_description_content_type="text/markdown",

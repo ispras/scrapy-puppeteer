@@ -6,7 +6,7 @@ import syncer
 from pyppeteer import launch
 
 from scrapypuppeteer.browser_managers import BrowserManager
-from scrapypuppeteer.request import PuppeteerRequest, CloseContextRequest
+from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
@@ -14,7 +14,6 @@ from scrapypuppeteer.response import (
 
 
 class ContextManager:
-
     def __init__(self):
         self.browser = syncer.sync(launch())
         self.contexts = {}
@@ -55,12 +54,12 @@ class ContextManager:
 
 
 class PyppeteerBrowserManager(BrowserManager):
-
     def __init__(self):
         self.context_manager = ContextManager()
         self.action_map = {
             "goto": self.goto,
             "click": self.click,
+            "compose": self.compose,
             "back": self.go_back,
             "forward": self.go_forward,
             "scroll": self.scroll,
@@ -72,7 +71,6 @@ class PyppeteerBrowserManager(BrowserManager):
         }
 
     def process_request(self, request):
-
         if isinstance(request, PuppeteerRequest):
             endpoint = request.action.endpoint
             action_function = self.action_map.get(endpoint)
@@ -318,6 +316,19 @@ class PyppeteerBrowserManager(BrowserManager):
             )
 
         return syncer.sync(async_fill_form())
+
+    def compose(self, request: PuppeteerRequest):
+        context_id, page_id = syncer.sync(
+            self.context_manager.check_context_and_page(
+                request.context_id, request.page_id
+            )
+        )
+        request.page_id = page_id
+        request.context_id = context_id
+
+        for action in request.action.actions:
+            response = self.action_map[action.endpoint](request.replace(action=action))
+        return response.replace(puppeteer_request=request)
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")

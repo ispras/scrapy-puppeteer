@@ -29,7 +29,7 @@ class PuppeteerResponse(TextResponse):
         puppeteer_request: PuppeteerRequest,
         context_id: str,
         page_id: str,
-        **kwargs
+        **kwargs,
     ):
         self.puppeteer_request = puppeteer_request
         self.context_id = context_id
@@ -41,7 +41,7 @@ class PuppeteerResponse(TextResponse):
         action: Union[str, PuppeteerServiceAction],
         close_page=True,
         accumulate_meta: bool = False,
-        **kwargs
+        **kwargs,
     ) -> PuppeteerRequest:
         """
         Execute action on the same browser page.
@@ -67,7 +67,7 @@ class PuppeteerResponse(TextResponse):
             context_id=self.context_id,
             page_id=page_id,
             close_page=close_page,
-            **kwargs
+            **kwargs,
         )
 
 

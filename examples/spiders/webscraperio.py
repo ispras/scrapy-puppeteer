@@ -1,11 +1,10 @@
 import scrapy
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.actions import GoTo, Scroll, Click
+from scrapypuppeteer.actions import Click, GoTo, Scroll
 
 
 class EcommerceSiteSpider(scrapy.Spider):
-
     @staticmethod
     def extract_items(list_page_response):
         for item_selector in list_page_response.css("div.row div.thumbnail"):
@@ -29,7 +28,7 @@ class EcommerceSiteSpider(scrapy.Spider):
             "description": detail_page_response.css("p.description::text").get(),
             "rating": len(detail_page_response.css("span.glyphicon-star")),
             "reviews_count": int(
-                detail_page_response.css(".ratings::text").re_first("\d+")
+                detail_page_response.css(".ratings::text").re_first(r"\d+")
             ),
         }
 

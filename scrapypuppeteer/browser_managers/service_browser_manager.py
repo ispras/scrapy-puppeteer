@@ -4,30 +4,31 @@ from collections import defaultdict
 from urllib.parse import urlencode, urljoin
 
 from scrapy.exceptions import DontCloseSpider
-from scrapy.http import Headers, TextResponse, Response
+from scrapy.http import Headers, Response, TextResponse
 from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
     Click,
+    Compose,
+    FillForm,
     GoBack,
     GoForward,
     GoTo,
+    Har,
     RecaptchaSolver,
     Screenshot,
     Scroll,
-    Har,
-    FillForm,
 )
-from scrapypuppeteer.response import (
-    PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
-    PuppeteerHarResponse,
-    PuppeteerRecaptchaSolverResponse,
-    PuppeteerJsonResponse,
-)
-from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.request import ActionRequest, CloseContextRequest, PuppeteerRequest
+from scrapypuppeteer.response import (
+    PuppeteerHarResponse,
+    PuppeteerHtmlResponse,
+    PuppeteerJsonResponse,
+    PuppeteerRecaptchaSolverResponse,
+    PuppeteerScreenshotResponse,
+)
 
 
 class ServiceBrowserManager(BrowserManager):
@@ -43,7 +44,6 @@ class ServiceBrowserManager(BrowserManager):
             raise ValueError("Puppeteer service URL must be provided")
 
     def process_request(self, request):
-
         if isinstance(request, CloseContextRequest):
             return self.process_close_context_request(request)
 
@@ -99,9 +99,7 @@ class ServiceBrowserManager(BrowserManager):
     def _serialize_body(self, action, request):
         payload = action.payload()
         if action.content_type == "application/json":
-            if isinstance(payload, dict):
-                # disallow null values in top-level request parameters
-                payload = {k: v for k, v in payload.items() if v is not None}
+            payload = self.__clean_payload(payload)
             proxy = request.meta.get("proxy")
             if proxy:
                 payload["proxy"] = proxy
@@ -119,6 +117,18 @@ class ServiceBrowserManager(BrowserManager):
                 payload["headers"] = headers
             return json.dumps(payload)
         return str(payload)
+
+    def __clean_payload(self, payload):
+        """
+        disallow null values in request parameters
+        """
+        if isinstance(payload, dict):
+            payload = {
+                k: self.__clean_payload(v) for k, v in payload.items() if v is not None
+            }
+        elif isinstance(payload, list):
+            payload = [self.__clean_payload(v) for v in payload if v is not None]
+        return payload
 
     def close_used_contexts(self, spider):
         contexts = list(self.used_contexts.pop(id(spider), set()))
@@ -169,7 +179,7 @@ class ServiceBrowserManager(BrowserManager):
             )
             context_id = response_data.get("contextId")
             if context_id:
-                middleware.used_contexts[id(spider)].add(context_id)
+                self.used_contexts[id(spider)].add(context_id)
             return response
 
         response_cls = self._get_response_class(puppeteer_request.action)
@@ -184,7 +194,13 @@ class ServiceBrowserManager(BrowserManager):
         )
 
     def _form_response(
-        self, response_cls, response_data, url, request, puppeteer_request, spider
+        self,
+        response_cls,
+        response_data,
+        url,
+        request,
+        puppeteer_request,
+        spider,
     ):
         context_id = response_data.pop("contextId", puppeteer_request.context_id)
         page_id = response_data.pop("pageId", puppeteer_request.page_id)
@@ -199,8 +215,7 @@ class ServiceBrowserManager(BrowserManager):
             **response_data,
         )
 
-    @staticmethod
-    def _get_response_class(request_action):
+    def _get_response_class(self, request_action):
         if isinstance(
             request_action, (GoTo, GoForward, GoBack, Click, Scroll, FillForm)
         ):
@@ -211,4 +226,7 @@ class ServiceBrowserManager(BrowserManager):
             return PuppeteerHarResponse
         if isinstance(request_action, RecaptchaSolver):
             return PuppeteerRecaptchaSolverResponse
+        if isinstance(request_action, Compose):
+            # Response class is a last action's response class
+            return self._get_response_class(request_action.actions[-1])
         return PuppeteerJsonResponse

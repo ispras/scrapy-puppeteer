@@ -2,8 +2,8 @@ import asyncio
 import base64
 import uuid
 
-from playwright.async_api import async_playwright
 import syncer
+from playwright.async_api import async_playwright
 
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest
@@ -14,7 +14,6 @@ from scrapypuppeteer.response import (
 
 
 class ContextManager:
-
     def __init__(self):
         self.browser = syncer.sync(self.launch_browser())
         self.contexts = {}
@@ -64,6 +63,7 @@ class PlaywrightBrowserManager(BrowserManager):
         self.action_map = {
             "goto": self.goto,
             "click": self.click,
+            "compose": self.compose,
             "back": self.go_back,
             "forward": self.go_forward,
             "scroll": self.scroll,
@@ -357,6 +357,15 @@ class PlaywrightBrowserManager(BrowserManager):
             )
 
         return syncer.sync(async_fill_form())
+
+    def compose(self, request: PuppeteerRequest):
+        _, context_id, page_id = self.get_page_from_request(request)
+        request.page_id = page_id
+        request.context_id = context_id
+
+        for action in request.action.actions:
+            response = self.action_map[action.endpoint](request.replace(action=action))
+        return response.replace(puppeteer_request=request)
 
     def action(self, request: PuppeteerRequest):
         raise ValueError("CustomJsAction is not available in local mode")

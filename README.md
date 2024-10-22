@@ -86,6 +86,7 @@ Here is the list of available actions:
 - `GoForward(options)` - navigate forward in history
 - `GoBack(options)` - navigate back in history
 - `Click(selector, click_options, wait_options)` - click on element on page
+- `Compose(*actions)` - composition of several puppeteer action
 - `Scroll(selector, wait_options)` - scroll page
 - `Screenshot(options)` - take screenshot
 - `RecaptchaSolver(solve_recaptcha, close_on_empty)` - find or solve recaptcha on page
