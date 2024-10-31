@@ -21,7 +21,7 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
         The middleware uses additionally these meta-keys, do not use them, because their changing
     could possibly (almost probably) break determined behaviour:
-    `__request_binding`, `__restore_count`, `__context_id`.
+    `__request_binding`
 
         Settings:
 

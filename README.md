@@ -179,7 +179,7 @@ In this case RecaptchaMiddleware will just skip the request.
 
 Sometimes you may receive responses with status 422 (Unprocessable Entity).
 This means the scrapy-puppeteer-services struggled to find provided context or page in its memory.
-In such situations you can use this middleware to restore such contexts.
+In such situations you can use this middleware to restore these contexts.
 
 Enabling the middleware:
 ```Python
@@ -210,6 +210,9 @@ yield PuppeteerRequest(
 )
 ...
 ```
+
+Also, you can see `dead_context` spider and try to enable `PuppeteerContextRestoreDownloaderMiddleware` in its `custom_settings`
+to see the working middleware.
 
 ## TODO
 
