@@ -91,12 +91,12 @@ class PuppeteerContextRestoreDownloaderMiddleware:
         if isinstance(response, PuppeteerResponse):
             if request_binding:
                 self.context_actions[response.context_id] = Compose(request.action)
-            if response.context_id in self.context_actions:
+            elif response.context_id in self.context_actions:
                 # Update actions in context
                 self._update_context_actions(request, response)
         elif (
-            puppeteer_request is not None
-            and response.status == HTTPStatus.UNPROCESSABLE_ENTITY
+                puppeteer_request is not None
+                and response.status == HTTPStatus.UNPROCESSABLE_ENTITY
         ):
             # One PuppeteerRequest has failed with 422 error
             if request_binding:
@@ -129,9 +129,12 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
         if context_id in self.context_actions:
             # Restoring
-            restoring_request = puppeteer_request.copy()
-            restoring_request.meta["__restore_count"] += 1
-            restoring_request.action = self.context_actions.pop(context_id)
+            restoring_request = puppeteer_request.replace(
+                action=Compose(self.context_actions.pop(context_id), puppeteer_request.action),
+                context_id=None,
+                page_id=None,
+            )
+            restoring_request.meta["__request_binding"] = True
             self.restore_logger.log(
                 level=logging.DEBUG,
                 msg=f"Restoring the context with context_id {context_id}",
