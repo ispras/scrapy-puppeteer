@@ -1,7 +1,7 @@
 import json
 import logging
 from http import HTTPStatus
-from typing import Union, Dict
+from typing import Dict, Union
 
 from scrapy.crawler import Crawler
 
