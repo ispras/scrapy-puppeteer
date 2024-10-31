@@ -1,20 +1,20 @@
 import json
 import logging
 from http import HTTPStatus
-from typing import Union
+from typing import Union, Dict
 
 from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest
 
-from scrapypuppeteer.request import PuppeteerRequest
+from scrapypuppeteer.actions import Compose
+from scrapypuppeteer.request import ActionRequest, PuppeteerRequest
 from scrapypuppeteer.response import PuppeteerResponse
-
-restore_logger = logging.getLogger(__name__)
 
 
 class PuppeteerContextRestoreDownloaderMiddleware:
     """
         This middleware allows you to recover puppeteer context.
+        The middleware supposes that restored requests
+        would have the same effect as original requests.
 
         If you want to recover puppeteer context starting from the specified first request provide
     `recover_context` meta-key with `True` value.
@@ -29,14 +29,15 @@ class PuppeteerContextRestoreDownloaderMiddleware:
     N_RETRY_RESTORING: int = 1 - number of tries to restore a context.
     """
 
+    restore_logger = logging.getLogger(__name__)
+
     N_RETRY_RESTORING_SETTING = "N_RETRY_RESTORING"
     RESTORING_LENGTH_SETTING = "RESTORING_LENGTH"
 
     def __init__(self, restoring_length: int, n_retry_restoring: int):
         self.restoring_length = restoring_length
         self.n_retry_restoring = n_retry_restoring
-        self.context_requests = {}
-        self.context_length = {}
+        self.context_actions: Dict[str, Compose] = {}
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
@@ -47,7 +48,7 @@ class PuppeteerContextRestoreDownloaderMiddleware:
             )
         elif restoring_length < 1:
             raise ValueError(
-                f"`{cls.RESTORING_LENGTH_SETTING}` must be greater than or equal to 1"
+                f"`{cls.RESTORING_LENGTH_SETTING}` must be greater than or equal to 1, got {restoring_length}"
             )
 
         n_retry_restoring = crawler.settings.get(cls.N_RETRY_RESTORING_SETTING, 1)
@@ -57,13 +58,12 @@ class PuppeteerContextRestoreDownloaderMiddleware:
             )
         elif n_retry_restoring < 1:
             raise ValueError(
-                f"`{cls.N_RETRY_RESTORING_SETTING}` must be greater than or equal to 1"
+                f"`{cls.N_RETRY_RESTORING_SETTING}` must be greater than or equal to 1, got {n_retry_restoring}"
             )
 
         return cls(restoring_length, n_retry_restoring)
 
-    @staticmethod
-    def process_request(request, spider):
+    def process_request(self, request, spider):
         if not isinstance(request, PuppeteerRequest):
             return None
 
@@ -71,12 +71,13 @@ class PuppeteerContextRestoreDownloaderMiddleware:
             return None
 
         if request.context_id or request.page_id:
-            raise IgnoreRequest(
-                f"Request {request} is not in the beginning of the request-response sequence"
+            self.restore_logger.warning(
+                f"Request {request} is not in the beginning of the request-response sequence."
+                "Cannot 'restore' this sequence, skipping."
             )
+            return None
 
         request.meta["__request_binding"] = True
-        request.dont_filter = True
         return None
 
     def process_response(self, request, response, spider):
@@ -89,10 +90,10 @@ class PuppeteerContextRestoreDownloaderMiddleware:
 
         if isinstance(response, PuppeteerResponse):
             if request_binding:
-                self._bind_context(request, response)
-            if response.context_id in self.context_length:
-                # Update number of actions in context
-                self.context_length[response.context_id] += 1
+                self.context_actions[response.context_id] = Compose(request.action)
+            if response.context_id in self.context_actions:
+                # Update actions in context
+                self._update_context_actions(request, response)
         elif (
             puppeteer_request is not None
             and response.status == HTTPStatus.UNPROCESSABLE_ENTITY
@@ -100,57 +101,48 @@ class PuppeteerContextRestoreDownloaderMiddleware:
             # One PuppeteerRequest has failed with 422 error
             if request_binding:
                 # Could not get context, retry
-                if request.meta.get("__restore_count", 0) < self.n_retry_restoring:
-                    request.meta["__restore_count"] += 1
-                    return request
+                if request.meta.get("__request_binding_count", 0) < self.n_retry_restoring:
+                    new_request = request.copy()
+                    new_request.meta["__request_binding_count"] += 1
+                    return new_request
             else:
-                return self._restore_context(response)
+                return self._restore_context(puppeteer_request, response)
         return response
 
-    def _bind_context(self, request, response):
-        if request.meta.get("__context_id", None) is not None:
-            # Need to update context_id
-            self.__delete_context(request.meta["__context_id"], None)
-        restoring_request = request.copy()
-        restoring_request.meta["__restore_count"] = restoring_request.meta.get(
-            "__restore_count", 0
-        )
-        restoring_request.meta["__context_id"] = response.context_id
-        self.context_requests[response.context_id] = restoring_request
-        self.context_length[response.context_id] = 0
+    def _update_context_actions(self, request: ActionRequest, response: PuppeteerResponse):
+        context_id = response.context_id
+        context_actions = self.context_actions[context_id]
 
-    def _restore_context(self, response):
+        if len(context_actions.actions) > self.restoring_length:
+            self.__delete_context(
+                context_id,
+                f"Too many actions in context ({context_id}). Deleting it.",
+            )
+        else:
+            self.context_actions[response.context_id] = Compose(
+                context_actions,
+                request.action,
+            )
+
+    def _restore_context(self, puppeteer_request: PuppeteerRequest, response):
         context_id = json.loads(response.text).get("contextId", None)
 
-        if context_id in self.context_requests:
-            restoring_request = self.context_requests[context_id]
+        if context_id in self.context_actions:
+            # Restoring
+            restoring_request = puppeteer_request.copy()
+            restoring_request.meta["__restore_count"] += 1
+            restoring_request.action = self.context_actions.pop(context_id)
+            self.restore_logger.log(
+                level=logging.DEBUG,
+                msg=f"Restoring the context with context_id {context_id}",
+            )
+            return restoring_request
 
-            if self.context_length[context_id] >= self.restoring_length + 1:
-                # Too many actions in context
-                self.__delete_context(
-                    context_id,
-                    f"Too many actions in context ({restoring_request}). Deleting it.",
-                )
-            elif restoring_request.meta["__restore_count"] >= self.n_retry_restoring:
-                # Too many retries
-                self.__delete_context(
-                    context_id,
-                    f"Too many retries in context ({restoring_request}). Deleting it.",
-                )
-            else:
-                # Restoring
-                restoring_request.meta["__restore_count"] += 1
-                restore_logger.log(
-                    level=logging.DEBUG,
-                    msg=f"Restoring the request {restoring_request}",
-                )
-                self.context_length[context_id] = 1
-                return restoring_request
+        self.restore_logger.warning(f"Context_id {context_id} not in context_actions.")
         return response
 
     def __delete_context(self, context_id: str, reason: Union[str, None]):
-        del self.context_length[context_id]
-        del self.context_requests[context_id]
+        del self.context_actions[context_id]
 
         if reason is not None:
-            restore_logger.log(level=logging.INFO, msg=reason)
+            self.restore_logger.log(level=logging.INFO, msg=reason)
