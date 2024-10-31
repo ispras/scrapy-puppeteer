@@ -78,9 +78,9 @@ Here is the list of available actions:
 - `Compose(*actions)` - composition of several puppeteer action
 - `Scroll(selector, wait_options)` - scroll page
 - `Screenshot(options)` - take screenshot
+- `RecaptchaSolver(solve_recaptcha, close_on_empty)` - find or solve recaptcha on page
 - `Har()` - to get the HAR file, pass the `har_recording=True` argument to `PuppeteerRequest` at the start of execution.
 - `FillForm(input_mapping, submit_button)` - to fill out and submit forms on page.
-- `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
 
 Available options essentially mirror [service](https://github.com/ispras/scrapy-puppeteer-service) method parameters, which in turn mirror puppeteer API functions to some extent.
@@ -165,6 +165,45 @@ and will notify you about number of found captchas on the page.
 
 If you don't want the middleware to work on specific request you may provide special meta key: `'dont_recaptcha': True`.
 In this case RecaptchaMiddleware will just skip the request.
+
+## Automatic context restoring
+
+Sometimes you may receive responses with status 422 (Unprocessable Entity).
+This means the scrapy-puppeteer-services struggled to find provided context or page in its memory.
+In such situations you can use this middleware to restore these contexts.
+
+Enabling the middleware:
+```Python
+DOWNLOADER_MIDDLEWARES = {  # Strict order of middlewares
+    # 'scrapypuppeteer.middleware.PuppeteerRecaptchaDownloaderMiddleware': 1040,  # You may also use recaptcha middleware
+    'scrapypuppeteer.middleware.PuppeteerContextRestoreDownloaderMiddleware': 1041,
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042,
+}
+```
+
+Settings of the middleware:
+```Python
+N_RETRY_RESTORING = 3  # Number of tries to restore a context
+RESTORING_LENGTH = 2  # Number of restorable requests in a sequence
+```
+
+Currently, the middleware can only restart from the beginning of request-response sequence.
+You can start this sequence with `recover_context` meta-key, just provide `True` value.
+Example:
+```Python
+...
+yield PuppeteerRequest(
+    url,
+    callback=self.click_on_navigation,
+    errback=self.errback,
+    close_page=False,
+    meta={'recover_context': True}
+)
+...
+```
+
+Also, you can see `dead_context` spider and try to enable `PuppeteerContextRestoreDownloaderMiddleware` in its `custom_settings`
+to see the working middleware.
 
 ## TODO
 
