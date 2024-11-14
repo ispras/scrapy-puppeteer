@@ -3,16 +3,15 @@
 from setuptools import find_packages, setup
 
 
-def read_long_description(file_path):
-    with open(file_path, "r") as file:
-        return file.read()
+with open("README.md", "r") as readme:
+    long_description = readme.read()
 
 
 setup(
     name="scrapy-puppeteer-client",
     version="0.3.8",
     description="A library to use Puppeteer-managed browser in Scrapy spiders",
-    long_description=read_long_description("README.md"),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ispras/scrapy-puppeteer",
     author="MODIS @ ISP RAS",
