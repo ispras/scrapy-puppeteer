@@ -13,9 +13,12 @@ from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
     Click,
+    Compose,
+    FillForm,
     GoBack,
     GoForward,
     GoTo,
+    Har,
     RecaptchaSolver,
     Screenshot,
     Scroll,
@@ -157,9 +160,7 @@ class PuppeteerServiceDownloaderMiddleware:
     def _serialize_body(self, action, request):
         payload = action.payload()
         if action.content_type == "application/json":
-            if isinstance(payload, dict):
-                # disallow null values in top-level request parameters
-                payload = {k: v for k, v in payload.items() if v is not None}
+            payload = self.__clean_payload(payload)
             proxy = request.meta.get("proxy")
             if proxy:
                 payload["proxy"] = proxy
@@ -177,6 +178,18 @@ class PuppeteerServiceDownloaderMiddleware:
                 payload["headers"] = headers
             return json.dumps(payload)
         return str(payload)
+
+    def __clean_payload(self, payload):
+        """
+        disallow null values in request parameters
+        """
+        if isinstance(payload, dict):
+            payload = {
+                k: self.__clean_payload(v) for k, v in payload.items() if v is not None
+            }
+        elif isinstance(payload, list):
+            payload = [self.__clean_payload(v) for v in payload if v is not None]
+        return payload
 
     def process_response(self, request, response, spider):
         if not isinstance(response, TextResponse):
@@ -212,7 +225,13 @@ class PuppeteerServiceDownloaderMiddleware:
         )
 
     def _form_response(
-        self, response_cls, response_data, url, request, puppeteer_request, spider
+        self,
+        response_cls,
+        response_data,
+        url,
+        request,
+        puppeteer_request,
+        spider,
     ):
         context_id = response_data.pop("contextId", puppeteer_request.context_id)
         page_id = response_data.pop("pageId", puppeteer_request.page_id)
@@ -228,9 +247,10 @@ class PuppeteerServiceDownloaderMiddleware:
             **response_data,
         )
 
-    @staticmethod
-    def _get_response_class(request_action):
-        if isinstance(request_action, (GoTo, GoForward, GoBack, Click, Scroll)):
+    def _get_response_class(self, request_action):
+        if isinstance(
+            request_action, (GoTo, GoForward, GoBack, Click, Scroll, FillForm)
+        ):
             return PuppeteerHtmlResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
@@ -238,6 +258,9 @@ class PuppeteerServiceDownloaderMiddleware:
             return PuppeteerHarResponse
         if isinstance(request_action, RecaptchaSolver):
             return PuppeteerRecaptchaSolverResponse
+        if isinstance(request_action, Compose):
+            # Response class is a last action's response class
+            return self._get_response_class(request_action.actions[-1])
         return PuppeteerJsonResponse
 
     def close_used_contexts(self, spider):
