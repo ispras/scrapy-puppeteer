@@ -6,14 +6,15 @@ from urllib.parse import urlencode, urljoin
 
 from scrapy import signals
 from scrapy.crawler import Crawler
-from scrapy.exceptions import IgnoreRequest, NotConfigured, DontCloseSpider
-from scrapy.http import Headers, TextResponse, Response
+from scrapy.exceptions import DontCloseSpider, IgnoreRequest, NotConfigured
+from scrapy.http import Headers, Response, TextResponse
 from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
     Click,
     Compose,
+    CustomJsAction,
     FillForm,
     GoBack,
     GoForward,
@@ -22,18 +23,16 @@ from scrapypuppeteer.actions import (
     RecaptchaSolver,
     Screenshot,
     Scroll,
-    CustomJsAction,
-    Har
 )
+from scrapypuppeteer.request import ActionRequest, CloseContextRequest, PuppeteerRequest
 from scrapypuppeteer.response import (
-    PuppeteerResponse,
-    PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
     PuppeteerHarResponse,
-    PuppeteerRecaptchaSolverResponse,
+    PuppeteerHtmlResponse,
     PuppeteerJsonResponse,
+    PuppeteerRecaptchaSolverResponse,
+    PuppeteerResponse,
+    PuppeteerScreenshotResponse,
 )
-from scrapypuppeteer.request import ActionRequest, PuppeteerRequest, CloseContextRequest
 
 
 class PuppeteerServiceDownloaderMiddleware:
