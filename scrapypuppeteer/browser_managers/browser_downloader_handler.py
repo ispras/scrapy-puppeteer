@@ -1,15 +1,13 @@
-from collections.abc import Coroutine
-
 from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
 from scrapy.crawler import Crawler
-from scrapy.exceptions import NotConfigured
-from scrapy.utils.defer import deferred_from_coro
 from scrapy.utils.reactor import verify_installed_reactor
+from scrapy import signals
+from twisted.internet.defer import Deferred
 
 from scrapypuppeteer import CloseContextRequest
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.browser_managers.playwright_browser_manager import PlaywrightBrowserManager
-from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import PyppeteerBrowserManager
+# from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import PyppeteerBrowserManager
 from scrapypuppeteer.browser_managers.service_browser_manager import ServiceBrowserManager
 from scrapypuppeteer.request import ActionRequest
 
@@ -38,18 +36,21 @@ class BrowserDownloaderHandler(HTTPDownloadHandler):
         match execution_method:
             case "puppeteer":
                 browser_manager = ServiceBrowserManager()
-            case "pyppeteer":
-                browser_manager = PyppeteerBrowserManager()
+            # case "pyppeteer":
+            #     browser_manager = PyppeteerBrowserManager()
             case "playwright":
                 browser_manager = PlaywrightBrowserManager()
             case _:
                 raise ValueError(f"Invalid execution method: {execution_method.upper()}")
 
-        return cls(settings, browser_manager, crawler=crawler)
+        bdh = cls(settings, browser_manager, crawler=crawler)
+        crawler.signals.connect(bdh.browser_manager.start_browser_manager, signals.engine_started)
+        crawler.signals.connect(bdh.browser_manager.stop_browser_manager, signals.engine_stopped)
+        return bdh
 
     def download_request(self, request, spider):
         if isinstance(request, (ActionRequest, CloseContextRequest)):
-            coro_or_request = self.browser_manager.download_request(request, spider)
-            if isinstance(coro_or_request, Coroutine):
-                return deferred_from_coro(coro_or_request)
+            dfd_or_request = self.browser_manager.download_request(request, spider)
+            if isinstance(dfd_or_request, Deferred):
+                return dfd_or_request
         return super().download_request(request, spider)

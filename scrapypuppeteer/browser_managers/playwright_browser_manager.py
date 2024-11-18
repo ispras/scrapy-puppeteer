@@ -1,10 +1,11 @@
 import asyncio
 import base64
 import uuid
-from typing import Dict, Callable, Coroutine
+from typing import Dict, Callable, Awaitable, Union
 
 import syncer
 from playwright.async_api import async_playwright, Browser
+from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerResponse, PuppeteerRequest
 from scrapypuppeteer.browser_managers import BrowserManager
@@ -54,10 +55,10 @@ class ContextManager:
         if self.browser:
             await self.browser.close()
 
-    def close_contexts(self, request: CloseContextRequest):
+    async def close_contexts(self, request: CloseContextRequest):
         for context_id in request.contexts:
             if context_id in self.contexts:
-                syncer.sync(self.contexts[context_id].close())
+                await self.contexts[context_id].close()
                 page_id = self.context_page_map.get(context_id)
                 self.pages.pop(page_id, None)
 
@@ -66,9 +67,9 @@ class ContextManager:
 
 
 class PlaywrightBrowserManager(BrowserManager):
-    def __init__(self, context_manager: ContextManager):
-        self.context_manager = context_manager
-        self.action_map: Dict[str, Callable[[ActionRequest], Coroutine[PuppeteerResponse]]] = {
+    def __init__(self):
+        self.context_manager: Union[ContextManager, None] = None  # Will be initialized later
+        self.action_map: Dict[str, Callable[[ActionRequest], Awaitable[PuppeteerResponse]]] = {
             "goto": self.goto,
             "click": self.click,
             "compose": self.compose,
@@ -82,12 +83,14 @@ class PlaywrightBrowserManager(BrowserManager):
             "fill_form": self.fill_form,
         }
 
-    @classmethod
-    async def async_init(cls):
-        context_manager = await ContextManager.async_init()
-        return cls(context_manager)
+    async def _start_browser_manager(self) -> None:
+        self.context_manager = await ContextManager.async_init()
 
-    def download_request(self, request, spider):
+    async def _stop_browser_manager(self) -> None:
+        if self.context_manager:
+            await self.context_manager.close_browser()
+
+    def _download_request(self, request, spider):
         if isinstance(request, ActionRequest):
             endpoint = request.action.endpoint
             action_function = self.action_map.get(endpoint)
@@ -97,11 +100,18 @@ class PlaywrightBrowserManager(BrowserManager):
         if isinstance(request, CloseContextRequest):
             return self.close_contexts(request)
 
-    def close_contexts(self, request: CloseContextRequest):
-        self.context_manager.close_contexts(request)
+    async def close_contexts(self, request: CloseContextRequest) -> TextResponse:
+        await self.context_manager.close_contexts(request)
+        return TextResponse(
+            request.url,
+            encoding="utf-8",
+            status=200,
+            headers={},
+            body=b"Successfully closed context",
+        )
 
-    def close_used_contexts(self):
-        self.context_manager.close_browser()
+    async def close_used_contexts(self):
+        await self.context_manager.close_browser()
 
     def map_navigation_options(self, navigation_options):
         if not navigation_options:
