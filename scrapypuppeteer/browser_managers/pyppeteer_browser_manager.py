@@ -70,7 +70,7 @@ class PyppeteerBrowserManager(BrowserManager):
             "fill_form": self.fill_form,
         }
 
-    def process_request(self, request):
+    def download_request(self, request, spider):
         if isinstance(request, PuppeteerRequest):
             endpoint = request.action.endpoint
             action_function = self.action_map.get(endpoint)
