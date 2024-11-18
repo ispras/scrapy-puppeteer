@@ -8,8 +8,8 @@ class ServiceBrowserManager(BrowserManager):
     def _download_request(self, request, spider):
         return request
 
-    def _start_browser_manager(self) -> None:
+    async def _start_browser_manager(self) -> None:
         return
 
-    def _stop_browser_manager(self) -> None:
+    async def _stop_browser_manager(self) -> None:
         return
