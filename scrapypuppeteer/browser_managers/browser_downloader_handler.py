@@ -1,7 +1,7 @@
+from scrapy import signals
 from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
 from scrapy.crawler import Crawler
 from scrapy.utils.reactor import verify_installed_reactor
-from scrapy import signals
 from twisted.internet.defer import Deferred
 
 from scrapypuppeteer import CloseContextRequest

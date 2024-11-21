@@ -1,15 +1,15 @@
 import asyncio
 import base64
 import uuid
-from typing import Dict, Callable, Awaitable, Union
 from dataclasses import dataclass
+from typing import Awaitable, Callable, Dict, Union
 
-from playwright.async_api import async_playwright, Browser, BrowserContext, Page
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from scrapy.http import TextResponse
 
-from scrapypuppeteer import PuppeteerResponse, PuppeteerRequest
+from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
 from scrapypuppeteer.browser_managers import BrowserManager
-from scrapypuppeteer.request import CloseContextRequest, ActionRequest
+from scrapypuppeteer.request import ActionRequest, CloseContextRequest
 from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerScreenshotResponse,
@@ -50,7 +50,9 @@ class ContextManager:
         page_id = uuid.uuid4().hex.upper()
 
         self.contexts[context_id] = await self.browser.new_context()
-        self.pages[page_id] = BrowserPage(context_id, page_id, await self.contexts[context_id].new_page())
+        self.pages[page_id] = BrowserPage(
+            context_id, page_id, await self.contexts[context_id].new_page()
+        )
         self.context2page[context_id] = page_id
 
         return context_id, page_id
