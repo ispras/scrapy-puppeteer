@@ -2,9 +2,9 @@ import asyncio
 import base64
 import uuid
 from typing import Dict, Callable, Awaitable, Union
+from dataclasses import dataclass
 
-import syncer
-from playwright.async_api import async_playwright, Browser
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerResponse, PuppeteerRequest
@@ -16,12 +16,19 @@ from scrapypuppeteer.response import (
 )
 
 
+@dataclass
+class BrowserPage:
+    context_id: str
+    page_id: str
+    page: Page
+
+
 class ContextManager:
     def __init__(self, browser: Browser):
         self.browser = browser
-        self.contexts = {}
-        self.pages = {}
-        self.context_page_map = {}
+        self.contexts: Dict[str, BrowserContext] = {}
+        self.pages: Dict[str, BrowserPage] = {}
+        self.context2page: Dict[str, str] = {}
 
     @classmethod
     async def async_init(cls):
@@ -43,8 +50,8 @@ class ContextManager:
         page_id = uuid.uuid4().hex.upper()
 
         self.contexts[context_id] = await self.browser.new_context()
-        self.pages[page_id] = await self.contexts[context_id].new_page()
-        self.context_page_map[context_id] = page_id
+        self.pages[page_id] = BrowserPage(context_id, page_id, await self.contexts[context_id].new_page())
+        self.context2page[context_id] = page_id
 
         return context_id, page_id
 
@@ -59,17 +66,21 @@ class ContextManager:
         for context_id in request.contexts:
             if context_id in self.contexts:
                 await self.contexts[context_id].close()
-                page_id = self.context_page_map.get(context_id)
+                page_id = self.context2page.get(context_id)
                 self.pages.pop(page_id, None)
 
                 del self.contexts[context_id]
-                del self.context_page_map[context_id]
+                del self.context2page[context_id]
 
 
 class PlaywrightBrowserManager(BrowserManager):
     def __init__(self):
-        self.context_manager: Union[ContextManager, None] = None  # Will be initialized later
-        self.action_map: Dict[str, Callable[[ActionRequest], Awaitable[PuppeteerResponse]]] = {
+        self.context_manager: Union[ContextManager, None] = (
+            None  # Will be initialized later
+        )
+        self.action_map: Dict[
+            str, Callable[[BrowserPage, ActionRequest], Awaitable[PuppeteerResponse]]
+        ] = {
             "goto": self.goto,
             "click": self.click,
             "compose": self.compose,
@@ -83,6 +94,13 @@ class PlaywrightBrowserManager(BrowserManager):
             "fill_form": self.fill_form,
         }
 
+    def _download_request(self, request, spider):
+        if isinstance(request, ActionRequest):
+            return self.__make_action(request)
+
+        if isinstance(request, CloseContextRequest):
+            return self.close_contexts(request)
+
     async def _start_browser_manager(self) -> None:
         self.context_manager = await ContextManager.async_init()
 
@@ -90,15 +108,13 @@ class PlaywrightBrowserManager(BrowserManager):
         if self.context_manager:
             await self.context_manager.close_browser()
 
-    def _download_request(self, request, spider):
-        if isinstance(request, ActionRequest):
-            endpoint = request.action.endpoint
-            action_function = self.action_map.get(endpoint)
-            if action_function:
-                return action_function(request)
-
-        if isinstance(request, CloseContextRequest):
-            return self.close_contexts(request)
+    async def __make_action(self, request):
+        endpoint = request.action.endpoint
+        action_function = self.action_map.get(endpoint)
+        if action_function:
+            page = await self.get_page_from_request(request)
+            return action_function(page, request)
+        raise ValueError(f"No such action: {endpoint}")
 
     async def close_contexts(self, request: CloseContextRequest) -> TextResponse:
         await self.context_manager.close_contexts(request)
@@ -142,7 +158,9 @@ class PlaywrightBrowserManager(BrowserManager):
             elif isinstance(waitUntil, str):
                 strictest_event = waitUntil
             else:
-                raise TypeError(f"waitUntil should be a list or a string, got {type(waitUntil)}")
+                raise TypeError(
+                    f"waitUntil should be a list or a string, got {type(waitUntil)}"
+                )
 
             if strictest_event in event_map:
                 mapped_navigation_options["wait_until"] = event_map[strictest_event]
@@ -202,112 +220,96 @@ class PlaywrightBrowserManager(BrowserManager):
     async def get_page_from_request(self, request: ActionRequest):
         pptr_request: PuppeteerRequest = request.meta["puppeteer_request"]
         context_id, page_id = await self.context_manager.check_context_and_page(
-                pptr_request.context_id, pptr_request.page_id
-            )
-        return (
-            self.context_manager.get_page_by_id(context_id, page_id),
-            context_id,
-            page_id,
+            pptr_request.context_id, pptr_request.page_id
         )
+        return self.context_manager.get_page_by_id(context_id, page_id)
 
-    async def goto(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    async def goto(self, page: BrowserPage, request: ActionRequest):
         url = request.action.payload()["url"]
         cookies = request.cookies
         navigation_options = self.map_navigation_options(
             request.action.navigation_options
         )
-        await page.goto(url, **navigation_options)
+        await page.page.goto(url, **navigation_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page, wait_options)
-        response_html = await page.content()
+        await self.wait_with_options(page.page, wait_options)
+        response_html = await page.page.content()
         return PuppeteerHtmlResponse(
             url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
+            context_id=page.context_id,
+            page_id=page.page_id,
             html=response_html,
             cookies=cookies,
         )
 
-    async def click(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    async def click(self, page: BrowserPage, request: ActionRequest):
         selector = request.action.payload().get("selector")
         cookies = request.cookies
         click_options = self.map_click_options(request.action.click_options)
-        await page.click(selector, **click_options)
+        await page.page.click(selector, **click_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page, wait_options)
-        response_html = await page.content()
+        await self.wait_with_options(page.page, wait_options)
+        response_html = await page.page.content()
         return PuppeteerHtmlResponse(
             request.url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
+            context_id=page.context_id,
+            page_id=page.page_id,
             html=response_html,
             cookies=cookies,
         )
 
-    async def go_back(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    async def go_back(self, page: BrowserPage, request: ActionRequest):
         cookies = request.cookies
         navigation_options = self.map_navigation_options(
             request.action.navigation_options
         )
-        await page.go_back(**navigation_options)
+        await page.page.go_back(**navigation_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page, wait_options)
-        response_html = await page.content()
+        await self.wait_with_options(page.page, wait_options)
+        response_html = await page.page.content()
         return PuppeteerHtmlResponse(
             request.url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
+            context_id=page.context_id,
+            page_id=page.page_id,
             html=response_html,
             cookies=cookies,
         )
 
-    async def go_forward(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    async def go_forward(self, page: BrowserPage, request: ActionRequest):
         cookies = request.cookies
         navigation_options = self.map_navigation_options(
             request.action.navigation_options
         )
-        await page.go_forward(**navigation_options)
+        await page.page.go_forward(**navigation_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page, wait_options)
+        await self.wait_with_options(page.page, wait_options)
         return PuppeteerHtmlResponse(
             request.url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
-            html=await page.content(),
+            context_id=page.context_id,
+            page_id=page.page_id,
+            html=await page.page.content(),
             cookies=cookies,
         )
 
-    async def screenshot(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    async def screenshot(self, page: BrowserPage, request: ActionRequest):
         screenshot_options = request.action.options or {}
-        screenshot_bytes = await page.screenshot(
+        screenshot_bytes = await page.page.screenshot(
             **self.map_screenshot_options(screenshot_options)
         )
         screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
         return PuppeteerScreenshotResponse(
             request.url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
+            context_id=page.context_id,
+            page_id=page.page_id,
             screenshot=screenshot_base64,
         )
 
-    async def scroll(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    async def scroll(self, page: BrowserPage, request: ActionRequest):
         cookies = request.cookies
         selector = request.action.payload().get("selector", None)
 
@@ -320,21 +322,20 @@ class PlaywrightBrowserManager(BrowserManager):
             window.scrollBy(0, document.body.scrollHeight);
             """
 
-        await page.evaluate(script)
+        await page.page.evaluate(script)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page, wait_options)
+        await self.wait_with_options(page.page, wait_options)
         return PuppeteerHtmlResponse(
             request.url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
-            html=await page.content(),
+            context_id=page.context_id,
+            page_id=page.page_id,
+            html=await page.page.content(),
             cookies=cookies,
         )
 
-    async def fill_form(self, request: ActionRequest):
-        page, context_id, page_id = self.get_page_from_request(request)
-
+    @staticmethod
+    async def fill_form(page: BrowserPage, request: ActionRequest):
         input_mapping = request.action.payload().get("inputMapping")
         submit_button = request.action.payload().get("submitButton", None)
         cookies = request.cookies
@@ -342,27 +343,26 @@ class PlaywrightBrowserManager(BrowserManager):
         for selector, params in input_mapping.items():
             text = params.get("value", None)
             delay = params.get("delay", 0)
-            await page.type(selector, text=text, delay=delay)
+            await page.page.type(selector, text=text, delay=delay)
 
         if submit_button:
-            await page.click(submit_button)
+            await page.page.click(submit_button)
 
         return PuppeteerHtmlResponse(
             request.url,
             request.meta["puppeteer_request"],
-            context_id=context_id,
-            page_id=page_id,
-            html=await page.content(),
+            context_id=page.context_id,
+            page_id=page.page_id,
+            html=await page.page.content(),
             cookies=cookies,
         )
 
-    async def compose(self, request: ActionRequest):
-        _, context_id, page_id = self.get_page_from_request(request)
-        request.page_id = page_id
-        request.context_id = context_id
-
+    async def compose(self, page: BrowserPage, request: ActionRequest):
         for action in request.action.actions:
-            response = await self.action_map[action.endpoint](request.replace(action=action))
+            response = await self.action_map[action.endpoint](
+                page,
+                request.replace(action=action),
+            )
         return response.replace(puppeteer_request=request.meta["puppeteer_request"])
 
     async def action(self, request: ActionRequest):

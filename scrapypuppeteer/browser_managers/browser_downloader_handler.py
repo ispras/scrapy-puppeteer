@@ -6,22 +6,29 @@ from twisted.internet.defer import Deferred
 
 from scrapypuppeteer import CloseContextRequest
 from scrapypuppeteer.browser_managers import BrowserManager
-from scrapypuppeteer.browser_managers.playwright_browser_manager import PlaywrightBrowserManager
+from scrapypuppeteer.browser_managers.playwright_browser_manager import (
+    PlaywrightBrowserManager,
+)
+
 # from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import PyppeteerBrowserManager
-from scrapypuppeteer.browser_managers.service_browser_manager import ServiceBrowserManager
+from scrapypuppeteer.browser_managers.service_browser_manager import (
+    ServiceBrowserManager,
+)
 from scrapypuppeteer.request import ActionRequest
 
 
 class BrowserDownloaderHandler(HTTPDownloadHandler):
     """
-        docstring: TODO
+    docstring: TODO
     """
 
     EXECUTION_METHOD_SETTING = "EXECUTION_METHOD"
 
     def __init__(self, settings, browser_manager: BrowserManager, crawler=None) -> None:
         super().__init__(settings, crawler=crawler)
-        verify_installed_reactor("twisted.internet.asyncioreactor.AsyncioSelectorReactor")
+        verify_installed_reactor(
+            "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+        )
 
         self.browser_manager = browser_manager
 
@@ -41,11 +48,17 @@ class BrowserDownloaderHandler(HTTPDownloadHandler):
             case "playwright":
                 browser_manager = PlaywrightBrowserManager()
             case _:
-                raise ValueError(f"Invalid execution method: {execution_method.upper()}")
+                raise ValueError(
+                    f"Invalid execution method: {execution_method.upper()}"
+                )
 
         bdh = cls(settings, browser_manager, crawler=crawler)
-        crawler.signals.connect(bdh.browser_manager.start_browser_manager, signals.engine_started)
-        crawler.signals.connect(bdh.browser_manager.stop_browser_manager, signals.engine_stopped)
+        crawler.signals.connect(
+            bdh.browser_manager.start_browser_manager, signals.engine_started
+        )  # This makes the start VERY slow
+        crawler.signals.connect(
+            bdh.browser_manager.stop_browser_manager, signals.engine_stopped
+        )
         return bdh
 
     def download_request(self, request, spider):
