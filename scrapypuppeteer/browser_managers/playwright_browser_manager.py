@@ -2,9 +2,9 @@ import asyncio
 import base64
 import uuid
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Dict, Union, Any
 from json import dumps
 from traceback import format_exc
+from typing import Any, Awaitable, Callable, Dict, Union
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from scrapy.http import TextResponse
@@ -119,7 +119,13 @@ class PlaywrightBrowserManager(BrowserManager):
                 return TextResponse(
                     request.url,
                     headers={"Content-Type": "application/json"},
-                    body=dumps({"error": format_exc(), "contextId": page.context_id, "pageId": page.page_id}),
+                    body=dumps(
+                        {
+                            "error": format_exc(),
+                            "contextId": page.context_id,
+                            "pageId": page.page_id,
+                        }
+                    ),
                     status=500,
                     encoding="utf-8",
                 )
