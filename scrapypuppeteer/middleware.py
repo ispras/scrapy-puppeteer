@@ -286,6 +286,8 @@ class PuppeteerServiceDownloaderMiddleware:
                         f"Could not close contexts: {result.value}",
                         exc_info=failure_to_exc_info(result),
                     )
+                else:
+                    print(f"Not a Response or Failure: {type(result)}, {result}")
 
             dfd = self.crawler.engine.download(request)
             dfd.addBoth(handle_close_contexts_result)

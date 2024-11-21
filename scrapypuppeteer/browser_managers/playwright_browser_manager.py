@@ -2,18 +2,16 @@ import asyncio
 import base64
 import uuid
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Dict, Union
+from typing import Awaitable, Callable, Dict, Union, Any
+from json import dumps
+from traceback import format_exc
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from scrapy.http import TextResponse
 
-from scrapypuppeteer import PuppeteerRequest, PuppeteerResponse
+from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import ActionRequest, CloseContextRequest
-from scrapypuppeteer.response import (
-    PuppeteerHtmlResponse,
-    PuppeteerScreenshotResponse,
-)
 
 
 @dataclass
@@ -81,7 +79,7 @@ class PlaywrightBrowserManager(BrowserManager):
             None  # Will be initialized later
         )
         self.action_map: Dict[
-            str, Callable[[BrowserPage, ActionRequest], Awaitable[PuppeteerResponse]]
+            str, Callable[[Page, ActionRequest], Awaitable[Dict[str, Any]]]
         ] = {
             "goto": self.goto,
             "click": self.click,
@@ -98,8 +96,7 @@ class PlaywrightBrowserManager(BrowserManager):
 
     def _download_request(self, request, spider):
         if isinstance(request, ActionRequest):
-            return self.__make_action(request)
-
+            return self.__perform_action(request)
         if isinstance(request, CloseContextRequest):
             return self.close_contexts(request)
 
@@ -110,12 +107,31 @@ class PlaywrightBrowserManager(BrowserManager):
         if self.context_manager:
             await self.context_manager.close_browser()
 
-    async def __make_action(self, request):
+    async def __perform_action(self, request):
         endpoint = request.action.endpoint
         action_function = self.action_map.get(endpoint)
         if action_function:
             page = await self.get_page_from_request(request)
-            return action_function(page, request)
+
+            try:
+                response_data = await action_function(page.page, request)
+            except:
+                return TextResponse(
+                    request.url,
+                    headers={"Content-Type": "application/json"},
+                    body=dumps({"error": format_exc(), "contextId": page.context_id, "pageId": page.page_id}),
+                    status=500,
+                    encoding="utf-8",
+                )
+
+            response_data["contextId"] = page.context_id
+            response_data["pageId"] = page.page_id
+            return TextResponse(
+                request.url,
+                headers={"Content-Type": "application/json"},
+                body=dumps(response_data),
+                encoding="utf-8",
+            )
         raise ValueError(f"No such action: {endpoint}")
 
     async def close_contexts(self, request: CloseContextRequest) -> TextResponse:
@@ -226,92 +242,77 @@ class PlaywrightBrowserManager(BrowserManager):
         )
         return self.context_manager.get_page_by_id(context_id, page_id)
 
-    async def goto(self, page: BrowserPage, request: ActionRequest):
+    async def goto(self, page: Page, request: ActionRequest):
         url = request.action.payload()["url"]
         cookies = request.cookies
         navigation_options = self.map_navigation_options(
             request.action.navigation_options
         )
-        await page.page.goto(url, **navigation_options)
+        await page.goto(url, **navigation_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page.page, wait_options)
-        response_html = await page.page.content()
-        return PuppeteerHtmlResponse(
-            url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            html=response_html,
-            cookies=cookies,
-        )
+        await self.wait_with_options(page, wait_options)
+        response_html = await page.content()
 
-    async def click(self, page: BrowserPage, request: ActionRequest):
+        return {
+            "html": response_html,
+            "cookies": cookies,
+        }
+
+    async def click(self, page: Page, request: ActionRequest):
         selector = request.action.payload().get("selector")
         cookies = request.cookies
         click_options = self.map_click_options(request.action.click_options)
-        await page.page.click(selector, **click_options)
+        await page.click(selector, **click_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page.page, wait_options)
-        response_html = await page.page.content()
-        return PuppeteerHtmlResponse(
-            request.url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            html=response_html,
-            cookies=cookies,
-        )
+        await self.wait_with_options(page, wait_options)
+        response_html = await page.content()
 
-    async def go_back(self, page: BrowserPage, request: ActionRequest):
+        return {
+            "html": response_html,
+            "cookies": cookies,
+        }
+
+    async def go_back(self, page: Page, request: ActionRequest):
         cookies = request.cookies
         navigation_options = self.map_navigation_options(
             request.action.navigation_options
         )
-        await page.page.go_back(**navigation_options)
+        await page.go_back(**navigation_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page.page, wait_options)
-        response_html = await page.page.content()
-        return PuppeteerHtmlResponse(
-            request.url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            html=response_html,
-            cookies=cookies,
-        )
+        await self.wait_with_options(page, wait_options)
+        response_html = await page.content()
 
-    async def go_forward(self, page: BrowserPage, request: ActionRequest):
+        return {
+            "html": response_html,
+            "cookies": cookies,
+        }
+
+    async def go_forward(self, page: Page, request: ActionRequest):
         cookies = request.cookies
         navigation_options = self.map_navigation_options(
             request.action.navigation_options
         )
-        await page.page.go_forward(**navigation_options)
+        await page.go_forward(**navigation_options)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page.page, wait_options)
-        return PuppeteerHtmlResponse(
-            request.url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            html=await page.page.content(),
-            cookies=cookies,
-        )
+        await self.wait_with_options(page, wait_options)
+        response_html = await page.content()
 
-    async def screenshot(self, page: BrowserPage, request: ActionRequest):
+        return {
+            "html": response_html,
+            "cookies": cookies,
+        }
+
+    async def screenshot(self, page: Page, request: ActionRequest):
         screenshot_options = request.action.options or {}
-        screenshot_bytes = await page.page.screenshot(
+        screenshot_bytes = await page.screenshot(
             **self.map_screenshot_options(screenshot_options)
         )
         screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
-        return PuppeteerScreenshotResponse(
-            request.url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            screenshot=screenshot_base64,
-        )
+        return {
+            "screenshot": screenshot_base64,
+        }
 
-    async def scroll(self, page: BrowserPage, request: ActionRequest):
+    async def scroll(self, page: Page, request: ActionRequest):
         cookies = request.cookies
         selector = request.action.payload().get("selector", None)
 
@@ -324,20 +325,18 @@ class PlaywrightBrowserManager(BrowserManager):
             window.scrollBy(0, document.body.scrollHeight);
             """
 
-        await page.page.evaluate(script)
+        await page.evaluate(script)
         wait_options = request.action.payload().get("waitOptions", {}) or {}
-        await self.wait_with_options(page.page, wait_options)
-        return PuppeteerHtmlResponse(
-            request.url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            html=await page.page.content(),
-            cookies=cookies,
-        )
+        await self.wait_with_options(page, wait_options)
+        response_html = await page.content()
+
+        return {
+            "html": response_html,
+            "cookies": cookies,
+        }
 
     @staticmethod
-    async def fill_form(page: BrowserPage, request: ActionRequest):
+    async def fill_form(page: Page, request: ActionRequest):
         input_mapping = request.action.payload().get("inputMapping")
         submit_button = request.action.payload().get("submitButton", None)
         cookies = request.cookies
@@ -345,33 +344,31 @@ class PlaywrightBrowserManager(BrowserManager):
         for selector, params in input_mapping.items():
             text = params.get("value", None)
             delay = params.get("delay", 0)
-            await page.page.type(selector, text=text, delay=delay)
+            await page.type(selector, text=text, delay=delay)
 
         if submit_button:
-            await page.page.click(submit_button)
+            await page.click(submit_button)
 
-        return PuppeteerHtmlResponse(
-            request.url,
-            request.meta["puppeteer_request"],
-            context_id=page.context_id,
-            page_id=page.page_id,
-            html=await page.page.content(),
-            cookies=cookies,
-        )
+        response_html = await page.content()
+
+        return {
+            "html": response_html,
+            "cookies": cookies,
+        }
 
     async def compose(self, page: BrowserPage, request: ActionRequest):
         for action in request.action.actions:
-            response = await self.action_map[action.endpoint](
+            response_data = await self.action_map[action.endpoint](
                 page,
                 request.replace(action=action),
             )
-        return response.replace(puppeteer_request=request.meta["puppeteer_request"])
+        return response_data
 
     async def action(self, request: ActionRequest):
-        raise ValueError("CustomJsAction is not available in local mode")
+        raise NotImplementedError("CustomJsAction is not available in local mode")
 
     async def recaptcha_solver(self, request: ActionRequest):
-        raise ValueError("RecaptchaSolver is not available in local mode")
+        raise NotImplementedError("RecaptchaSolver is not available in local mode")
 
     async def har(self, request: ActionRequest):
-        raise ValueError("Har is not available in local mode")
+        raise NotImplementedError("Har is not available in local mode")
