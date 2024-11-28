@@ -1,81 +1,36 @@
 import asyncio
 import base64
-import uuid
-from dataclasses import dataclass
 from json import dumps
-from traceback import format_exc
 from typing import Any, Awaitable, Callable, Dict, Union
 
-from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright.async_api import Page, async_playwright
 from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import ActionRequest, CloseContextRequest
+from scrapypuppeteer.browser_managers import ContextManager
 
 
-@dataclass
-class BrowserPage:
-    context_id: str
-    page_id: str
-    page: Page
-
-
-class ContextManager:
-    def __init__(self, browser: Browser):
-        self.browser = browser
-        self.contexts: Dict[str, BrowserContext] = {}
-        self.pages: Dict[str, BrowserPage] = {}
-        self.context2page: Dict[str, str] = {}
-
+class PlaywrightContextManager(ContextManager):
     @classmethod
     async def async_init(cls):
-        browser = await cls.launch_browser()
+        playwright = await async_playwright().start()
+        browser = await playwright.chromium.launch(headless=False)
         return cls(browser)
 
     @staticmethod
-    async def launch_browser():
-        playwright = await async_playwright().start()
-        return await playwright.chromium.launch(headless=False)
+    async def _create_context(browser):
+        return await browser.new_context()
 
-    async def check_context_and_page(self, context_id, page_id):
-        if not context_id or not page_id:
-            context_id, page_id = await self.open_new_page()
-        return context_id, page_id
-
-    async def open_new_page(self):
-        context_id = uuid.uuid4().hex.upper()
-        page_id = uuid.uuid4().hex.upper()
-
-        self.contexts[context_id] = await self.browser.new_context()
-        self.pages[page_id] = BrowserPage(
-            context_id, page_id, await self.contexts[context_id].new_page()
-        )
-        self.context2page[context_id] = page_id
-
-        return context_id, page_id
-
-    def get_page_by_id(self, context_id, page_id):
-        return self.pages[page_id]
-
-    async def close_browser(self):
-        if self.browser:
-            await self.browser.close()
-
-    async def close_contexts(self, request: CloseContextRequest):
-        for context_id in request.contexts:
-            if context_id in self.contexts:
-                await self.contexts[context_id].close()
-                page_id = self.context2page.get(context_id)
-                self.pages.pop(page_id, None)
-
-                del self.contexts[context_id]
-                del self.context2page[context_id]
+    @staticmethod
+    async def _create_page(context):
+        return await context.new_page()
 
 
 class PlaywrightBrowserManager(BrowserManager):
     def __init__(self):
-        self.context_manager: Union[ContextManager, None] = (
+        self.context_manager: Union[PlaywrightContextManager, None] = (
             None  # Will be initialized later
         )
         self.action_map: Dict[
@@ -101,37 +56,41 @@ class PlaywrightBrowserManager(BrowserManager):
             return self.close_contexts(request)
 
     async def _start_browser_manager(self) -> None:
-        self.context_manager = await ContextManager.async_init()
+        self.context_manager = await PlaywrightContextManager.async_init()
 
     async def _stop_browser_manager(self) -> None:
         if self.context_manager:
             await self.context_manager.close_browser()
 
-    async def __perform_action(self, request):
+    async def __perform_action(self, request: ActionRequest):
+        pptr_request: PuppeteerRequest = request.meta["puppeteer_request"]
         endpoint = request.action.endpoint
         action_function = self.action_map.get(endpoint)
         if action_function:
-            page = await self.get_page_from_request(request)
+            context_id, page_id = await self.context_manager.check_context_and_page(
+                pptr_request.context_id, pptr_request.page_id
+            )
+            page = self.context_manager.get_page_by_id(context_id, page_id)
 
             try:
-                response_data = await action_function(page.page, request)
-            except:
+                response_data = await action_function(page, request)
+            except Exception as e:
                 return TextResponse(
                     request.url,
                     headers={"Content-Type": "application/json"},
                     body=dumps(
                         {
-                            "error": format_exc(),
-                            "contextId": page.context_id,
-                            "pageId": page.page_id,
+                            "error": str(e),
+                            "contextId": context_id,
+                            "pageId": page_id,
                         }
                     ),
                     status=500,
                     encoding="utf-8",
                 )
 
-            response_data["contextId"] = page.context_id
-            response_data["pageId"] = page.page_id
+            response_data["contextId"] = context_id
+            response_data["pageId"] = page_id
             return TextResponse(
                 request.url,
                 headers={"Content-Type": "application/json"},
@@ -240,13 +199,6 @@ class PlaywrightBrowserManager(BrowserManager):
             await page.wait_for_selector(f"xpath={xpath}", **options)
         elif timeout:
             await asyncio.sleep(timeout / 1000)
-
-    async def get_page_from_request(self, request: ActionRequest):
-        pptr_request: PuppeteerRequest = request.meta["puppeteer_request"]
-        context_id, page_id = await self.context_manager.check_context_and_page(
-            pptr_request.context_id, pptr_request.page_id
-        )
-        return self.context_manager.get_page_by_id(context_id, page_id)
 
     async def goto(self, page: Page, request: ActionRequest):
         url = request.action.payload()["url"]
@@ -362,7 +314,7 @@ class PlaywrightBrowserManager(BrowserManager):
             "cookies": cookies,
         }
 
-    async def compose(self, page: BrowserPage, request: ActionRequest):
+    async def compose(self, page: Page, request: ActionRequest):
         for action in request.action.actions:
             response_data = await self.action_map[action.endpoint](
                 page,

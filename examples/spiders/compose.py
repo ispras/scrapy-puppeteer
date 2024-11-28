@@ -19,6 +19,11 @@ class ComposeSpider(scrapy.Spider):
         "DOWNLOADER_MIDDLEWARES": {
             "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042,
         },
+        "DOWNLOAD_HANDLERS": {
+            "http": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+            "https": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+        },
+        "EXECUTION_METHOD": "pyppeteer",
     }
 
     def start_requests(self):

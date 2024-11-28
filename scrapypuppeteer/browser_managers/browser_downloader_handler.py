@@ -9,8 +9,8 @@ from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.browser_managers.playwright_browser_manager import (
     PlaywrightBrowserManager,
 )
+from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import PyppeteerBrowserManager
 
-# from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import PyppeteerBrowserManager
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )
@@ -43,8 +43,8 @@ class BrowserDownloaderHandler(HTTPDownloadHandler):
         match execution_method:
             case "puppeteer":
                 browser_manager = ServiceBrowserManager()
-            # case "pyppeteer":
-            #     browser_manager = PyppeteerBrowserManager()
+            case "pyppeteer":
+                browser_manager = PyppeteerBrowserManager()
             case "playwright":
                 browser_manager = PlaywrightBrowserManager()
             case _:
@@ -54,7 +54,7 @@ class BrowserDownloaderHandler(HTTPDownloadHandler):
 
         bdh = cls(settings, browser_manager, crawler=crawler)
         crawler.signals.connect(
-            bdh.browser_manager.start_browser_manager, signals.engine_started
+            bdh.browser_manager.start_browser_manager, signals.spider_opened
         )  # This makes the start VERY slow
         crawler.signals.connect(
             bdh.browser_manager.stop_browser_manager, signals.engine_stopped
