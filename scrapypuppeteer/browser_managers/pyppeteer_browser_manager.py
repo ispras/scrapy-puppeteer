@@ -1,13 +1,13 @@
 import asyncio
 import base64
 from json import dumps
-from typing import Dict, Callable, Awaitable, Any, Union
+from typing import Any, Awaitable, Callable, Dict, Union
 
 from pyppeteer import launch
 from scrapy.http import TextResponse
 
 from scrapypuppeteer.browser_managers import BrowserManager, ContextManager
-from scrapypuppeteer.request import CloseContextRequest, PuppeteerRequest, ActionRequest
+from scrapypuppeteer.request import ActionRequest, CloseContextRequest, PuppeteerRequest
 
 
 class PyppeteerContextManager(ContextManager):

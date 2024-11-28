@@ -3,7 +3,7 @@ __all__ = ["BrowserManager", "ContextManager"]
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Coroutine
-from typing import Union, Dict
+from typing import Dict, Union
 
 from scrapy import Request
 from scrapy.utils.defer import deferred_from_coro
@@ -21,18 +21,15 @@ class ContextManager(ABC):
 
     @classmethod
     @abstractmethod
-    async def async_init(cls):
-        ...
+    async def async_init(cls): ...
 
     @staticmethod
     @abstractmethod
-    async def _create_context(browser):
-        ...
+    async def _create_context(browser): ...
 
     @staticmethod
     @abstractmethod
-    async def _create_page(context):
-        ...
+    async def _create_page(context): ...
 
     async def check_context_and_page(self, context_id, page_id):
         if not context_id or not page_id:
@@ -71,8 +68,7 @@ class BrowserManager(ABC):
     @abstractmethod
     def _download_request(
         self, request: Request, spider
-    ) -> Union[Coroutine, Request]:
-        ...
+    ) -> Union[Coroutine, Request]: ...
 
     @abstractmethod
     async def _start_browser_manager(self) -> None: ...

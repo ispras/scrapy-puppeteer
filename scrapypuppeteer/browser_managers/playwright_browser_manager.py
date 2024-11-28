@@ -7,9 +7,8 @@ from playwright.async_api import Page, async_playwright
 from scrapy.http import TextResponse
 
 from scrapypuppeteer import PuppeteerRequest
-from scrapypuppeteer.browser_managers import BrowserManager
+from scrapypuppeteer.browser_managers import BrowserManager, ContextManager
 from scrapypuppeteer.request import ActionRequest, CloseContextRequest
-from scrapypuppeteer.browser_managers import ContextManager
 
 
 class PlaywrightContextManager(ContextManager):

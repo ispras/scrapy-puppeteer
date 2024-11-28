@@ -9,8 +9,9 @@ from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.browser_managers.playwright_browser_manager import (
     PlaywrightBrowserManager,
 )
-from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import PyppeteerBrowserManager
-
+from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import (
+    PyppeteerBrowserManager,
+)
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )
