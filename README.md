@@ -60,6 +60,7 @@ There is a parent `PuppeteerResponse` class from which other response classes ar
 Here is a list of them all:
 - `PuppeteerHtmlResponse` - has `html` and `cookies` properties
 - `PuppeteerScreenshotResponse` - has `screenshot` property
+- `PuppeteerHarResponse` - has `har` property
 - `PuppeteerJsonResponse` - has `data` property and `to_html()` method which tries to transform itself to `PuppeteerHtmlResponse`
 - `PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlResponse)` - has `recaptcha_data` property
 
