@@ -1,0 +1,67 @@
+from logging import ERROR
+
+import scrapy
+from scrapy.utils.log import failure_to_exc_info
+from twisted.python.failure import Failure
+
+from scrapypuppeteer import (
+    PuppeteerRequest,
+    PuppeteerResponse,
+    PuppeteerScreenshotResponse,
+)
+from scrapypuppeteer.actions import Click, Compose, GoTo, Screenshot, Scroll
+
+
+class PlaywrightSpider(scrapy.Spider):
+    """
+    Mostly, it is Compose spider, but it is very convenient for PlayWright testing.
+    """
+
+    name = "playwright_test"
+
+    custom_settings = {
+        "DOWNLOADER_MIDDLEWARES": {
+            "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042,
+        },
+        "DOWNLOAD_HANDLERS": {
+            "http": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+            "https": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+        },
+        "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
+        "EXECUTION_METHOD": "playwright",
+    }
+
+    def start_requests(self):
+        goto = GoTo("https://pptr.dev")
+        click_1 = Click(
+            "#__docusaurus > nav > div.navbar__inner > div:nth-child(1) > a:nth-child(3)"
+        )
+        click_2 = Click(
+            "#__docusaurus_skipToContent_fallback > div > div > aside > div > "
+            "div > nav > ul > li:nth-child(1) > ul > li:nth-child(3) > a"
+        )
+        click = Compose(click_1, click_2)
+        scroll = Scroll()
+        screenshot = Screenshot(options={"full_page": True, "type": "jpeg"})
+
+        compose_action = Compose(
+            goto,
+            click,
+            scroll,
+            screenshot,
+        )
+
+        yield PuppeteerRequest(
+            compose_action,
+            callback=self.parse,
+            errback=self.errback,
+            close_page=True,
+        )
+
+    def parse(self, response: PuppeteerResponse):
+        assert isinstance(response, PuppeteerScreenshotResponse)
+        self.log("Spider worked fine!")
+
+    def errback(self, failure: Failure):
+        print(failure)
+        self.log(failure_to_exc_info(failure), level=ERROR)
