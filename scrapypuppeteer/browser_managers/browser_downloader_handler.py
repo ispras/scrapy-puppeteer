@@ -9,9 +9,6 @@ from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.browser_managers.playwright_browser_manager import (
     PlaywrightBrowserManager,
 )
-from scrapypuppeteer.browser_managers.pyppeteer_browser_manager import (
-    PyppeteerBrowserManager,
-)
 from scrapypuppeteer.browser_managers.service_browser_manager import (
     ServiceBrowserManager,
 )
@@ -20,9 +17,8 @@ from scrapypuppeteer.request import ActionRequest
 
 class BrowserDownloaderHandler(HTTPDownloadHandler):
     """
-    docstring: TODO
-    """
 
+    """
     EXECUTION_METHOD_SETTING = "EXECUTION_METHOD"
 
     def __init__(self, settings, browser_manager: BrowserManager, crawler=None) -> None:

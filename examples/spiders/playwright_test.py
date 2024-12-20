@@ -12,13 +12,23 @@ from scrapypuppeteer import (
 from scrapypuppeteer.actions import Click, Compose, GoTo, Screenshot, Scroll
 
 
-class ComposeSpider(scrapy.Spider):
-    name = "compose"
+class PlaywrightSpider(scrapy.Spider):
+    """
+    Mostly, it is Compose spider, but it is very convenient for PlayWright testing.
+    """
+
+    name = "playwright_test"
 
     custom_settings = {
         "DOWNLOADER_MIDDLEWARES": {
             "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042,
         },
+        "DOWNLOAD_HANDLERS": {
+            "http": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+            "https": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+        },
+        "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
+        "EXECUTION_METHOD": "playwright",
     }
 
     def start_requests(self):

@@ -10,6 +10,3 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 PUPPETEER_SERVICE_URL = "http://localhost:3000"
-
-TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-PUPPETEER_LOCAL = False
