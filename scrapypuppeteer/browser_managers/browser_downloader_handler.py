@@ -49,7 +49,9 @@ class BrowserDownloaderHandler(HTTPDownloadHandler):
             case "puppeteer":
                 browser_manager = ServiceBrowserManager()
             case "pyppeteer":
-                raise ValueError("Currently, pyppeteer cannot run on some machines since it is not actively supported.")
+                raise ValueError(
+                    "Currently, pyppeteer cannot run on some machines since it is not actively supported."
+                )
             case "playwright":
                 browser_manager = PlaywrightBrowserManager()
             case _:
