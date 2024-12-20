@@ -17,8 +17,16 @@ from scrapypuppeteer.request import ActionRequest
 
 class BrowserDownloaderHandler(HTTPDownloadHandler):
     """
+    Browser downloader handler.
+    If instantiated, executes actions in the browser with provided requests.
+    If given, then installed reactor must be `AsyncioSelectorReactor`.
 
+    Currently, supports 3 browser types via EXECUTION_METHOD setting:
+    * puppeteer -- see scrapy-puppeteer-service
+    * pyppeteer -- not available, since the package is not actively supported
+    * playwright -- see https://playwright.dev/python/
     """
+
     EXECUTION_METHOD_SETTING = "EXECUTION_METHOD"
 
     def __init__(self, settings, browser_manager: BrowserManager, crawler=None) -> None:
