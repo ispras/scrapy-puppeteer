@@ -24,9 +24,21 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 PUPPETEER_SERVICE_URL = "http://localhost:3000"  # Not necessary in other execution methods
+```
+You may want not to use scrapy-puppeteer-service.
+In this case aou are able to run locally with playwright and pyppeteer.
 
-# To change the execution method, you must add the corresponding setting:
-EXECUTION_METHOD = "Puppeteer"
+```python
+DOWNLOADER_MIDDLEWARES = {
+    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+}
+
+DOWNLOAD_HANDLERS = {  # Add browser download handler
+    "http": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+    "https": "scrapypuppeteer.browser_managers.browser_downloader_handler.BrowserDownloaderHandler",
+}
+TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"  # Need to install asyncio reactor
+EXECUTION_METHOD = "playwright"  # Choose execution method
 ```
 Available methods: `Puppeteer`, `Pyppeteer`, `Playwright`
 
