@@ -194,7 +194,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
             if isinstance(submit_selector, str):
                 submit_selectors[key] = Click(selector=submit_selector)
             elif not isinstance(submit_selector, Click):
-                raise ValueError(
+                raise TypeError(
                     "Submit selector must be str or Click,"
                     f"but {type(submit_selector)} provided"
                 )
@@ -256,6 +256,7 @@ class PuppeteerRecaptchaDownloaderMiddleware:
         recaptcha_solver = RecaptchaSolver(
             solve_recaptcha=self.recaptcha_solving,
             close_on_empty=self.__is_closing(response, remove_request=False),
+            navigation_options={"waitUntil": "domcontentloaded"},
         )
         return response.follow(
             recaptcha_solver,
