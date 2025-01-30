@@ -303,7 +303,7 @@ class RecaptchaSolver(PuppeteerServiceAction):
         close_on_empty: bool = False,
         navigation_options: dict = None,
         wait_options: dict = None,
-        **kwargs
+        **kwargs,
     ):
         self.solve_recaptcha = solve_recaptcha
         self.close_on_empty = close_on_empty
