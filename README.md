@@ -80,7 +80,7 @@ Here is the list of available actions:
 - `Screenshot(options)` - take screenshot
 - `Har()` - to get the HAR file, pass the `har_recording=True` argument to `PuppeteerRequest` at the start of execution.
 - `FillForm(input_mapping, submit_button)` - to fill out and submit forms on page.
-- `RecaptchaSolver(solve_recaptcha)` - find or solve recaptcha on page
+- `RecaptchaSolver(solve_recaptcha, close_on_empty, options)` - find or solve recaptcha on page
 - `CustomJsAction(js_function)` - evaluate JS function on page
 
 Available options essentially mirror [service](https://github.com/ispras/scrapy-puppeteer-service) method parameters, which in turn mirror puppeteer API functions to some extent.

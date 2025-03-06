@@ -230,6 +230,9 @@ class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlRespo
     Response for RecaptchaSolver.
     Result is available via self.recaptcha_data and self.data["recaptcha_data"]
     (deprecated, to be deleted in next versions) object.
+    You can visit
+    https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
+    to get information about return value.
     """
 
     attributes: Tuple[str, ...] = tuple(

@@ -282,33 +282,40 @@ class RecaptchaSolver(PuppeteerServiceAction):
     will happen to your 2captcha balance.
     Then it solves recaptcha with 2captcha service and inserts the special code
     into the page automatically.
-    Note that it does not click buttons like "submit buttons".
+    Note that it does not click buttons like "submit" buttons.
 
-    Params:
-        solve_recaptcha - bool = True: enables automatic solving of recaptcha on the page if found.
+    :param bool solve_recaptcha: (default = True) enables automatic solving of recaptcha on the page if found.
             If false is provided recaptcha will still be detected on the page but not solved.
             You can get info about found recaptchas via return value.
-        close_on_empty - bool = False: whether to close page or not if there was no captcha on the page.
+    :param bool close_on_empty: (default = True) whether to close page or not if there was no captcha on the page.
 
-    Response for this action is PuppeteerJsonResponse. You can get the return values
-    via self.data['recaptcha_data'].
-    You can visit
-    https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-recaptcha#result-object
-    to get information about return value.
+    :param dict navigation_options: Navigation options, same as GoTo action.
+    :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
+
+    Response for this action is PuppeteerRecaptchaSolverResponse.
     """
 
     endpoint = "recaptcha_solver"
 
     def __init__(
-        self, solve_recaptcha: bool = True, close_on_empty: bool = False, **kwargs
+        self,
+        solve_recaptcha: bool = True,
+        close_on_empty: bool = False,
+        navigation_options: dict = None,
+        wait_options: dict = None,
+        **kwargs,
     ):
         self.solve_recaptcha = solve_recaptcha
         self.close_on_empty = close_on_empty
+        self.navigation_options = navigation_options
+        self.wait_options = wait_options
 
     def payload(self):
         return {
             "solve_recaptcha": self.solve_recaptcha,
             "close_on_empty": self.close_on_empty,
+            "navigationOptions": self.navigation_options,
+            "waitOptions": self.wait_options,
         }
 
 
