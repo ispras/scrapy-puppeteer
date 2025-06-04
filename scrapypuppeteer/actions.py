@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from builtins import bool
 from typing import List, Tuple
 
 
@@ -164,6 +165,32 @@ class Click(PuppeteerServiceAction):
         return {
             "selector": self.selector,
             "clickOptions": self.click_options,
+            "waitOptions": self.wait_options,
+            "navigationOptions": self.navigation_options,
+        }
+
+
+class CloudflareCaptchaSolver(PuppeteerServiceAction):
+    """
+    Solve or find cloudflare captcha on the page.
+
+    :param bool solve_cloudflare_captcha: whether to solve cloudflare captcha.
+    :param dict wait_options: Same as in GoTo and Click actions.
+    :param dict navigation_options: Same as in GoTo and Click actions.
+
+    Response for this action is PuppeteerCloudflareCaptchaResponse.
+    """
+
+    endpoint = "cloudflare_captcha_solver"
+
+    def __init__(self, solve_cloudflare_captcha: bool = True, wait_options: dict = None, navigation_options: dict = None):
+        self.solve_cloudflare_captcha = solve_cloudflare_captcha
+        self.wait_options = wait_options
+        self.navigation_options = navigation_options
+
+    def payload(self):
+        return {
+            "solveCloudflareCaptcha": self.solve_cloudflare_captcha,
             "waitOptions": self.wait_options,
             "navigationOptions": self.navigation_options,
         }

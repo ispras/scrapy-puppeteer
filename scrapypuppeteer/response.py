@@ -225,6 +225,35 @@ class PuppeteerJsonResponse(PuppeteerResponse):
         return PuppeteerHtmlResponse(**kwargs)
 
 
+class PuppeteerCloudflareCaptchaResponse(PuppeteerHtmlResponse):
+    """
+    Response for CloudflareCaptchaSolver action.
+
+    Result is available via self.cloudflare_captcha_data.
+    Other HTML content is available like in PuppeteerHtmlResponse.
+
+    For more information self.cloudflare_captcha_data value visit
+    https://www.npmjs.com/package/puppeteer-captcha-plugin
+    """
+
+    attributes: Tuple[str, ...] = PuppeteerHtmlResponse.attributes + (
+        "cloudflare_captcha_data",
+    )
+
+    def __init__(
+        self,
+        url,
+        puppeteer_request,
+        context_id,
+        page_id,
+        cloudflare_captcha_data,
+        **kwargs,
+    ):
+        kwargs["headers"] = {"Content-Type": "application/json"}
+        self.cloudflare_captcha_data = cloudflare_captcha_data
+        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)
+
+
 class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlResponse):
     """
     Response for RecaptchaSolver.

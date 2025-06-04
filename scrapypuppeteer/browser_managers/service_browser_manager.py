@@ -18,7 +18,7 @@ from scrapypuppeteer.actions import (
     Har,
     RecaptchaSolver,
     Screenshot,
-    Scroll,
+    Scroll, CloudflareCaptchaSolver,
 )
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import ActionRequest, CloseContextRequest, PuppeteerRequest
@@ -27,7 +27,7 @@ from scrapypuppeteer.response import (
     PuppeteerHtmlResponse,
     PuppeteerJsonResponse,
     PuppeteerRecaptchaSolverResponse,
-    PuppeteerScreenshotResponse,
+    PuppeteerScreenshotResponse, PuppeteerCloudflareCaptchaResponse,
 )
 
 
@@ -220,6 +220,8 @@ class ServiceBrowserManager(BrowserManager):
             request_action, (GoTo, GoForward, GoBack, Click, Scroll, FillForm)
         ):
             return PuppeteerHtmlResponse
+        if isinstance(request_action, CloudflareCaptchaSolver):
+            return PuppeteerCloudflareCaptchaResponse
         if isinstance(request_action, Screenshot):
             return PuppeteerScreenshotResponse
         if isinstance(request_action, Har):
