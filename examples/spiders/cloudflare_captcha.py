@@ -1,10 +1,10 @@
 import scrapy
-
 from scrapy.http import TextResponse
 from scrapy.spidermiddlewares.httperror import HttpError
-from scrapypuppeteer import PuppeteerRequest, PuppeteerCloudflareCaptchaResponse
-from scrapypuppeteer.actions import CloudflareCaptchaSolver, Compose, GoTo
 from twisted.python.failure import Failure
+
+from scrapypuppeteer import PuppeteerCloudflareCaptchaResponse, PuppeteerRequest
+from scrapypuppeteer.actions import CloudflareCaptchaSolver, Compose, GoTo
 
 
 class CloudflareCaptchaSpider(scrapy.Spider):
@@ -31,7 +31,9 @@ class CloudflareCaptchaSpider(scrapy.Spider):
             )
 
     async def parse(self, response: PuppeteerCloudflareCaptchaResponse):
-        assert "Captcha is passed successfully!" in response.text, "No successful text in response"
+        assert (
+            "Captcha is passed successfully!" in response.text
+        ), "No successful text in response"
         print(response.cloudflare_captcha_data)
 
     @staticmethod

@@ -10,6 +10,7 @@ from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
     Click,
+    CloudflareCaptchaSolver,
     Compose,
     FillForm,
     GoBack,
@@ -18,16 +19,17 @@ from scrapypuppeteer.actions import (
     Har,
     RecaptchaSolver,
     Screenshot,
-    Scroll, CloudflareCaptchaSolver,
+    Scroll,
 )
 from scrapypuppeteer.browser_managers import BrowserManager
 from scrapypuppeteer.request import ActionRequest, CloseContextRequest, PuppeteerRequest
 from scrapypuppeteer.response import (
+    PuppeteerCloudflareCaptchaResponse,
     PuppeteerHarResponse,
     PuppeteerHtmlResponse,
     PuppeteerJsonResponse,
     PuppeteerRecaptchaSolverResponse,
-    PuppeteerScreenshotResponse, PuppeteerCloudflareCaptchaResponse,
+    PuppeteerScreenshotResponse,
 )
 
 

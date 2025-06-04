@@ -183,7 +183,12 @@ class CloudflareCaptchaSolver(PuppeteerServiceAction):
 
     endpoint = "cloudflare_captcha_solver"
 
-    def __init__(self, solve_cloudflare_captcha: bool = True, wait_options: dict = None, navigation_options: dict = None):
+    def __init__(
+        self,
+        solve_cloudflare_captcha: bool = True,
+        wait_options: dict = None,
+        navigation_options: dict = None,
+    ):
         self.solve_cloudflare_captcha = solve_cloudflare_captcha
         self.wait_options = wait_options
         self.navigation_options = navigation_options
