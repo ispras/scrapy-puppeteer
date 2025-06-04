@@ -59,6 +59,7 @@ class PyppeteerBrowserManager(BrowserManager):
         self.action_map = {
             "goto": self.goto,
             "click": self.click,
+            "cloudflare_captcha_solver": self.cloudflare_captcha_solver,
             "compose": self.compose,
             "back": self.go_back,
             "forward": self.go_forward,
@@ -338,3 +339,6 @@ class PyppeteerBrowserManager(BrowserManager):
 
     def har(self, request: PuppeteerRequest):
         raise ValueError("Har is not available in local mode")
+
+    def cloudflare_captcha_solver(self, request: PuppeteerRequest):
+        raise ValueError("CloudflareCaptchaSolver is not available in local mode")
