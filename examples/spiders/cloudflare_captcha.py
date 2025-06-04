@@ -31,9 +31,9 @@ class CloudflareCaptchaSpider(scrapy.Spider):
             )
 
     async def parse(self, response: PuppeteerCloudflareCaptchaResponse):
-        assert (
-            "Captcha is passed successfully!" in response.text
-        ), "No successful text in response"
+        assert "Captcha is passed successfully!" in response.text, (
+            "No successful text in response"
+        )
         print(response.cloudflare_captcha_data)
 
     @staticmethod
