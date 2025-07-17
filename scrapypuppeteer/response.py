@@ -291,3 +291,18 @@ class PuppeteerRecaptchaSolverResponse(PuppeteerJsonResponse, PuppeteerHtmlRespo
         super().__init__(
             url, puppeteer_request, context_id, page_id, self._data, **kwargs
         )
+
+
+class PuppeteerCaptchaSolverResponse(PuppeteerHtmlResponse):
+    """
+    Response for CaptchaSolver.
+    Results are available via self.recaptcha_data and self.cloudflare_captcha_data.
+    """
+
+    attributes: Tuple[str, ...] = PuppeteerHtmlResponse.attributes + ("",)
+
+    def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
+        self.recaptcha_data = kwargs.pop("recaptchaData", None)
+        self.cloudflare_captcha_data = kwargs.pop("cloudflareCaptchaData", None)
+
+        super().__init__(url, puppeteer_request, context_id, page_id, **kwargs)

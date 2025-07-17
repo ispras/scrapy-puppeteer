@@ -1,6 +1,9 @@
+import warnings
 from abc import ABC, abstractmethod
 from builtins import bool
 from typing import List, Tuple
+
+from scrapy.exceptions import ScrapyDeprecationWarning
 
 
 class PuppeteerServiceAction(ABC):
@@ -170,37 +173,6 @@ class Click(PuppeteerServiceAction):
         }
 
 
-class CloudflareCaptchaSolver(PuppeteerServiceAction):
-    """
-    Solve or find cloudflare captcha on the page.
-
-    :param bool solve_cloudflare_captcha: whether to solve cloudflare captcha.
-    :param dict wait_options: Same as in GoTo and Click actions.
-    :param dict navigation_options: Same as in GoTo and Click actions.
-
-    Response for this action is PuppeteerCloudflareCaptchaResponse.
-    """
-
-    endpoint = "cloudflare_captcha_solver"
-
-    def __init__(
-        self,
-        solve_cloudflare_captcha: bool = True,
-        wait_options: dict = None,
-        navigation_options: dict = None,
-    ):
-        self.solve_cloudflare_captcha = solve_cloudflare_captcha
-        self.wait_options = wait_options
-        self.navigation_options = navigation_options
-
-    def payload(self):
-        return {
-            "solveCloudflareCaptcha": self.solve_cloudflare_captcha,
-            "waitOptions": self.wait_options,
-            "navigationOptions": self.navigation_options,
-        }
-
-
 class Scroll(PuppeteerServiceAction):
     """
     Scroll page down or for specific element.
@@ -337,6 +309,13 @@ class RecaptchaSolver(PuppeteerServiceAction):
         wait_options: dict = None,
         **kwargs,
     ):
+        warnings.warn(
+            "RecaptchaSolver is deprecated and staged to remove in next versions."
+            "Use CaptchaSolver instead.",
+            ScrapyDeprecationWarning,
+            stacklevel=2,
+        )
+
         self.solve_recaptcha = solve_recaptcha
         self.close_on_empty = close_on_empty
         self.navigation_options = navigation_options
@@ -410,4 +389,42 @@ class Compose(PuppeteerServiceAction):
                 {"endpoint": action.endpoint, "body": action.payload()}
                 for action in self.actions
             ]
+        }
+
+
+class CaptchaSolver(PuppeteerServiceAction):
+    """
+        Action to merge all captcha solving actions into one action.
+        Available captcha types to solve: Recaptcha, Cloudflare.
+
+        :param solve_recaptcha: (default = False) enables automatic solving of recaptcha on the page.
+        :param close_on_empty: (default = False) whether to close page or not if there was no captcha on the page (only for recaptcha).
+        :param solve_cloudflare: (default = False) enables automatic solving of cloudflare on the page.
+        :param dict navigation_options: Navigation options, same as GoTo action.
+        :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
+    """
+
+    endpoint = "captcha_solver"
+
+    def __init__(
+        self,
+        solve_recaptcha: bool = False,
+        close_on_empty: bool = False,
+        solve_cloudflare: bool = False,
+        navigation_options: dict = None,
+        wait_options: dict = None,
+    ):
+        self.solve_recaptcha = solve_recaptcha
+        self.close_on_empty = close_on_empty
+        self.solve_cloudflare = solve_cloudflare
+        self.navigation_options = navigation_options
+        self.wait_options = wait_options
+
+    def payload(self):
+        return {
+            "solveRecaptcha": self.solve_recaptcha,
+            "closeOnEmpty": self.close_on_empty,
+            "solveCloudflare": self.solve_cloudflare,
+            "navigationOptions": self.navigation_options,
+            "waitOptions": self.wait_options,
         }
