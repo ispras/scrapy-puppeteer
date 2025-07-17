@@ -9,8 +9,8 @@ from scrapy.utils.log import failure_to_exc_info
 from twisted.python.failure import Failure
 
 from scrapypuppeteer.actions import (
-    Click,
     CaptchaSolver,
+    Click,
     Compose,
     FillForm,
     GoBack,

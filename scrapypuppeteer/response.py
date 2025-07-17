@@ -270,7 +270,10 @@ class PuppeteerCaptchaSolverResponse(PuppeteerHtmlResponse):
     Results are available via self.recaptcha_data and self.cloudflare_captcha_data.
     """
 
-    attributes: Tuple[str, ...] = PuppeteerHtmlResponse.attributes + ("recaptcha_data", "cloudflare_captcha_data")
+    attributes: Tuple[str, ...] = PuppeteerHtmlResponse.attributes + (
+        "recaptcha_data",
+        "cloudflare_captcha_data",
+    )
 
     def __init__(self, url, puppeteer_request, context_id, page_id, **kwargs):
         self.recaptcha_data = kwargs.pop("recaptchaData", None)

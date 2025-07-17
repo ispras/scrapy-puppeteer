@@ -394,14 +394,14 @@ class Compose(PuppeteerServiceAction):
 
 class CaptchaSolver(PuppeteerServiceAction):
     """
-        Action to merge all captcha solving actions into one action.
-        Available captcha types to solve: Recaptcha, Cloudflare.
+    Action to merge all captcha solving actions into one action.
+    Available captcha types to solve: Recaptcha, Cloudflare.
 
-        :param solve_recaptcha: (default = False) enables automatic solving of recaptcha on the page.
-        :param solve_cloudflare: (default = False) enables automatic solving of cloudflare on the page.
-        :param close_on_empty: (default = False) whether to close page or not if there was no captcha on the page.
-        :param dict navigation_options: Navigation options, same as GoTo action.
-        :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
+    :param solve_recaptcha: (default = False) enables automatic solving of recaptcha on the page.
+    :param solve_cloudflare: (default = False) enables automatic solving of cloudflare on the page.
+    :param close_on_empty: (default = False) whether to close page or not if there was no captcha on the page.
+    :param dict navigation_options: Navigation options, same as GoTo action.
+    :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
     """
 
     endpoint = "captcha_solver"

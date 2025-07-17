@@ -1,6 +1,6 @@
 from .actions import (
-    Click,
     CaptchaSolver,
+    Click,
     CustomJsAction,
     FillForm,
     GoBack,
