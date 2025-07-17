@@ -3,8 +3,8 @@ from scrapy.http import TextResponse
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.python.failure import Failure
 
-from scrapypuppeteer import PuppeteerCloudflareCaptchaResponse, PuppeteerRequest
-from scrapypuppeteer.actions import CloudflareCaptchaSolver, Compose, GoTo
+from scrapypuppeteer import PuppeteerCaptchaSolverResponse, PuppeteerRequest
+from scrapypuppeteer.actions import CaptchaSolver, Compose, GoTo
 
 
 class CloudflareCaptchaSpider(scrapy.Spider):
@@ -24,13 +24,13 @@ class CloudflareCaptchaSpider(scrapy.Spider):
             compose_action = Compose(
                 GoTo(url, navigation_options={"waitUntil": "networkidle2"}),
                 # It's essential to wait for smth before solving Cloudflare captcha since it must be rendered on the page
-                CloudflareCaptchaSolver(),
+                CaptchaSolver(solve_cloudflare=True, solve_recaptcha=None),
             )
             yield PuppeteerRequest(
                 compose_action, dont_filter=True, callback=self.parse, close_page=False
             )
 
-    async def parse(self, response: PuppeteerCloudflareCaptchaResponse):
+    async def parse(self, response: PuppeteerCaptchaSolverResponse):
         assert "Captcha is passed successfully!" in response.text, (
             "No successful text in response"
         )

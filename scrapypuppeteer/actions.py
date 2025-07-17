@@ -398,8 +398,8 @@ class CaptchaSolver(PuppeteerServiceAction):
         Available captcha types to solve: Recaptcha, Cloudflare.
 
         :param solve_recaptcha: (default = False) enables automatic solving of recaptcha on the page.
-        :param close_on_empty: (default = False) whether to close page or not if there was no captcha on the page (only for recaptcha).
         :param solve_cloudflare: (default = False) enables automatic solving of cloudflare on the page.
+        :param close_on_empty: (default = False) whether to close page or not if there was no captcha on the page.
         :param dict navigation_options: Navigation options, same as GoTo action.
         :param dict wait_options: Options specifying wait after navigation, same as GoTo action.
     """
@@ -409,22 +409,22 @@ class CaptchaSolver(PuppeteerServiceAction):
     def __init__(
         self,
         solve_recaptcha: bool = False,
-        close_on_empty: bool = False,
         solve_cloudflare: bool = False,
+        close_on_empty: bool = False,
         navigation_options: dict = None,
         wait_options: dict = None,
     ):
         self.solve_recaptcha = solve_recaptcha
-        self.close_on_empty = close_on_empty
         self.solve_cloudflare = solve_cloudflare
+        self.close_on_empty = close_on_empty
         self.navigation_options = navigation_options
         self.wait_options = wait_options
 
     def payload(self):
         return {
             "solveRecaptcha": self.solve_recaptcha,
+            "solveCloudflareCaptcha": self.solve_cloudflare,
             "closeOnEmpty": self.close_on_empty,
-            "solveCloudflare": self.solve_cloudflare,
             "navigationOptions": self.navigation_options,
             "waitOptions": self.wait_options,
         }
