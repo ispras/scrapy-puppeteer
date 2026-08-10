@@ -171,10 +171,10 @@ class PuppeteerRecaptchaDownloaderMiddleware:
 
     @classmethod
     def from_crawler(cls, crawler: Crawler):
-        activation = crawler.settings.get(cls.MIDDLEWARE_ACTIVATION_SETTING, True)
+        activation = crawler.settings.getbool(cls.MIDDLEWARE_ACTIVATION_SETTING, True)
         if not activation:
             raise NotConfigured
-        recaptcha_solving = crawler.settings.get(cls.RECAPTCHA_SOLVING_SETTING, True)
+        recaptcha_solving = crawler.settings.getbool(cls.RECAPTCHA_SOLVING_SETTING, True)
 
         try:
             submit_selectors = crawler.settings.getdict(
