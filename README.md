@@ -20,10 +20,12 @@ You should have [scrapy-puppeteer-service](https://github.com/ispras/scrapy-pupp
 Then add its URL to `settings.py` and enable puppeteer downloader middleware:
 ```python
 DOWNLOADER_MIDDLEWARES = {
-    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+    "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042
 }
 
-PUPPETEER_SERVICE_URL = "http://localhost:3000"  # Not necessary in other execution methods
+PUPPETEER_SERVICE_URL = (
+    "http://localhost:3000"  # Not necessary in other execution methods
+)
 
 # To change the execution method, you must add the corresponding setting:
 EXECUTION_METHOD = "Puppeteer"
@@ -43,11 +45,13 @@ Use `scrapypuppeteer.PuppeteerRequest` instead of `scrapy.Request` to render URL
 import scrapy
 from scrapypuppeteer import PuppeteerRequest
 
+
 class MySpider(scrapy.Spider):
     ...
+
     def start_requests(self):
-        yield PuppeteerRequest('https://exapmle.com', callback=self.parse)
-    
+        yield PuppeteerRequest("https://exapmle.com", callback=self.parse)
+
     def parse(self, response):
         links = response.css(...)
         ...
@@ -95,11 +99,13 @@ import scrapy
 from scrapypuppeteer import PuppeteerRequest, PuppeteerHtmlResponse
 from scrapypuppeteer.actions import Click
 
+
 class MySpider(scrapy.Spider):
     ...
+
     def start_requests(self):
         yield PuppeteerRequest(
-            'https://exapmle.com',  # will be transformed into GoTo action
+            "https://exapmle.com",  # will be transformed into GoTo action
             close_page=False,
             callback=self.parse,
         )
@@ -108,12 +114,12 @@ class MySpider(scrapy.Spider):
         ...
         # parse and yield some items
         ...
-        next_page_selector = 'button.next-page-or-smth'
-        if response.css(next_page_selector ):
+        next_page_selector = "button.next-page-or-smth"
+        if response.css(next_page_selector):
             yield response.follow(
                 Click(
                     next_page_selector,
-                    wait_options={'selectorOrTimeout': 3000},  # wait 3 seconds
+                    wait_options={"selectorOrTimeout": 3000},  # wait 3 seconds
                 ),
                 close_page=False,
                 callback=self.parse,
@@ -146,8 +152,8 @@ to use RecaptchaSolver action when the middleware works.
 
 ```Python
 DOWNLOADER_MIDDLEWARES = {
-    'scrapypuppeteer.middleware.PuppeteerRecaptchaDownloaderMiddleware': 1041,
-    'scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware': 1042
+    "scrapypuppeteer.middleware.PuppeteerRecaptchaDownloaderMiddleware": 1041,
+    "scrapypuppeteer.middleware.PuppeteerServiceDownloaderMiddleware": 1042,
 }
 ```
 Note that the number of RecaptchaMiddleware has to be lower than ServiceMiddleware's.
@@ -158,7 +164,7 @@ PUPPETEER_INCLUDE_META = True  # Essential to send meta
 RECAPTCHA_ACTIVATION = True  # Enables the middleware
 RECAPTCHA_SOLVING = False  # Automatic recaptcha solving
 RECAPTCHA_SUBMIT_SELECTORS = {  # Selectors for "submit recaptcha" button
-    'www.google.com/recaptcha/api2/demo': '',  # No selectors needed
+    "www.google.com/recaptcha/api2/demo": "",  # No selectors needed
 }
 ```
 If you set RECAPTCHA_SOLVING to False the middleware will try to find captcha
